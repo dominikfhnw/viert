@@ -1,0 +1,26 @@
+%pragma preproc sane_empty_expansion
+
+%ifenv %!DEBUG
+;%warning DD %!DEBUG
+;%xdefine D %!DEBUG
+;%assign	di D
+;%warning DDD D
+;%if di != 0
+	%defstr DEBUG %!DEBUG
+;%endif
+%endif
+
+;%xdefine L .nolist
+%define arg(a) %tok(a).nolist
+;%define arg(a) %tok(a)
+;%define arg(a) a
+;%macro arg2 1
+;	%1%[.nolist]
+;%endmacro
+
+%include "elf.mac"
+%include "syscall.mac"
+%include "generic.mac"
+%include "regdump.mac"
+%include "print.mac"
+

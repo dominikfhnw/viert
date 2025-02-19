@@ -1,0 +1,76 @@
+%ifndef stack_cleanup
+%define stack_cleanup 1
+%endif
+
+; print EAX, newline, and exit
+%imacro printnumexit 0
+	%define stack_cleanup 0
+	printnum
+	exitafterputs
+%endmacro
+
+%imacro __print_init 0-1
+	mov	ecx, esp
+	taint	ecx
+	alloca	12
+	%if %0 == 0
+	set	edx, (`\n` - '0') % 255
+	%else
+	set	edx, (%1 - '0') % 255
+	%endif
+	set	ebx, 10
+	set	esi, 0
+%endmacro
+
+%imacro __print_loop 0
+	%%loop:
+		add     dl, '0'
+		dec     ecx
+		;dbg_regdump
+
+		%define ZEROED 0
+		%if ZEROED
+		xchg    [ecx], dl
+		%else
+		mov     [ecx], dl
+		cdq
+		%endif
+
+		inc     esi
+		; so the div below has 'undefined' ZF... on my CPU that means this ZF here
+		; gets used for the jnz
+		test    eax,eax 
+		div     ebx
+	jnz %%loop
+	rset	eax, 0
+	rset	edx, 0
+	rset	esi, -2
+	taint	ecx, esi
+%endmacro
+
+%imacro __print_finish 0
+	rdump
+	puts	ecx, esi
+
+	%if stack_cleanup
+	sub	esp, -12
+	%endif
+
+%endmacro
+
+; print EAX, newline
+%imacro printnum 0-1 `\n`
+	__print_init %1
+	;dbg_regdump
+	__print_loop
+	;dbg_regdump
+	__print_finish
+%endmacro
+
+%imacro printnumsafe 0
+	pusha
+	printnum
+	popa
+%endmacro
+
+

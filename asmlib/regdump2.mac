@@ -1,0 +1,286 @@
+; 164 byte full
+;
+; 58 byte no label
+; 69 byte count label
+; 83 byte 1byte label
+; 94 byte full label
+
+; count labels: 11 bytes
+; 1byte labels: 25 bytes	+14 bytes
+; full  labels: 36 bytes	+11 bytes
+
+%define SEPARATE_STACK 0
+%define	FAKEHEX 0
+%define ZEROES 0
+
+; each of those adds 4 byte of code and 1*REGS of stack used
+;%define SPACE 1
+%define NEWLINE 1
+%define EXTENDED 0
+%define FLAGS 0
+%define IP 1
+%define	STACK 3
+
+%define LABEL 2
+%define ALTLABEL 0
+
+; eax ecx edx ebx esp ebp esi edi eflags
+;  AX  CX  DX  BX  SP  BP  SI  DI  FL
+;  A   C   D   B   S   P   s   d   f
+;hlt
+
+%macro regdump_func 0
+%if LABEL || ALTLABEL
+%define SPACE 1
+%else
+%define SPACE 0
+%endif
+
+%if LABEL && ALTLABEL
+%error cant have LABEL and ALTLABEL together
+%endif
+
+%assign REGS (9+IP+STACK)
+%assign RECORD (8 + LABEL + ALTLABEL + SPACE + NEWLINE + EXTENDED)
+%assign TOTAL ( (RECORD*REGS) + (2*NEWLINE) + (FLAGS*13) ) - 0
+%warning TOTAL STACK ToOTAL
+rtaint			; we can be called from everywhere
+%if SEPARATE_STACK
+	; save esp on top of our alternative stack
+
+	; we can not change any other registers, so we have to
+	; use regdump_stack_top constant twice
+	mov	[regdump_stack_top], esp
+	mov	esp, regdump_stack_top
+%endif
+pusha
+pushf			; save processor state on stack
+
+
+%if SEPARATE_STACK
+	; patch the values on the stack for display purposes
+	; ESP
+	mov     esi, [esp+36]
+	mov	dword [esp+12], esi
+	; IP
+	%if IP
+	push	dword [esi]
+	%endif
+	taint	esi
+%endif
+
+%if LABEL || FLAGS
+call	.begin
+.labels:
+	%if FLAGS
+	;db "FLG "
+	db "."
+	; the "always 0" reserved registers have been set to X,
+	; as that slightly increases the compression rate of this code
+	db "CrPXAXZSTIDO"
+	db 10
+	%endif
+	%if LABEL == 2
+	%if IP && SEPARATE_STACK
+	db "IP"
+	%endif
+	db "FLDISIBPSPBXDXCXAX"
+	%if IP && !SEPARATE_STACK
+	db "IP"
+	%endif
+	%if STACK > 0
+	db "S0S1S2"
+	%endif
+	;db "fldisibpspbxdxcxax"
+	%elif LABEL == 1
+	%if IP && SEPARATE_STACK
+	db "I"
+	%endif
+	db "fdsPSBDCA"
+	%if IP && !SEPARATE_STACK
+	db "I"
+	%endif
+	%if STACK > 0
+	db "012"
+	%endif
+	%endif
+.begin:
+pop	esi
+mov	edx, esp
+taint	esi, edx
+%else
+mov	esi, esp
+taint	esi
+%endif
+
+%if ALTLABEL
+set	edx, 'Z'
+%endif
+
+; FLAGS still original here
+; used elsewhere: esi, edx, esp, eax
+; free: ebx, ecx
+%if FLAGS
+pushf
+pop	ebx
+%endif
+
+rdump
+alloca	TOTAL
+mov	edi, esp
+taint	edi
+
+cld
+%if NEWLINE
+	stos	0x0a
+%endif
+
+
+%if FLAGS
+	push	edx
+
+	; load header
+	;lodsd
+	;stosd
+
+	; empty character
+	lodsb
+	xchg	eax, edx
+
+	doloop 12
+		lodsb
+		ror	ebx, 1
+		;jc	.c
+		;mov	eax, edx
+		;.c:
+		cmovnc	eax, edx
+		stosb
+	endloop
+
+	; nl
+	lodsb
+	stosb
+
+	pop	edx
+%endif
+
+
+doloop	REGS
+	%if EXTENDED
+	stos	'E'		; whitespace
+	%endif
+
+	%if LABEL == 2
+	lodsw			; load description text
+	stosw			; store it
+	%elif LABEL == 1
+	lodsb			; load description text
+	stosb			; store it
+	%endif
+
+	%if ALTLABEL
+	mov	eax, edx
+	stosb
+	dec	edx
+	%endif
+	taint	eax
+
+	%if SPACE
+	stos	0x20		; whitespace
+	%endif
+
+	%if LABEL || FLAGS
+	xchg	edx, esi	; switch back to the pusha registers on the stack
+	%endif
+
+	push	ecx
+
+		;; clobbers: eax, ebx, ecx
+		lodsd
+		mov	ebx, eax
+
+		%if FAKEHEX
+			tohexf	ebx
+		%else
+			tohex	ebx
+		%endif
+
+	pop	ecx
+
+	%if LABEL || FLAGS
+	xchg	edx, esi	; back again to description text
+	%endif
+
+	taint eax, ebx, ecx, edx
+	%if NEWLINE
+	stos	0x0a
+	%endif
+endloop
+
+%if NEWLINE > 0 && NEWLINE < 3
+stosb
+%endif
+
+puts	esp, TOTAL
+
+; partial memory cleanup +6 bytes
+; popf/popa/ret not cleand up (40 bytes)
+%define clearmem 0
+%if clearmem
+	;sub	edi, edx
+	;add	esp, edx
+	set	eax, 0
+	;xor	eax, eax
+	;xchg	edi, esp
+	mov	edi, esp
+
+	;mov	al, 0
+	mov	ecx, edx
+	;sub	ecx, 30
+	;mov	ecx, 10
+	rep	stosb
+	;puts	esp, TOTAL
+	add	esp, edx
+%else
+	add	esp, edx
+%endif
+%if SEPARATE_STACK && IP
+	pop	eax
+%endif
+popf
+popa
+%if SEPARATE_STACK
+	; popa does NOT restore esp, so we have to do it manually
+	; jump over the fake EIP. no pop/pop because we would either
+	; mess up esp or clobber another register
+	pop	esp
+%endif
+rtaint ;popa destroys all our assumptions
+%endmacro
+
+; *********************************************************
+
+%if DEBUG
+
+%define REG_OPT 1
+%define reg_stack 1
+%define reg_keepflags 0
+
+%if ZEROES
+times 8 db 0
+%endif
+
+regdump:
+regdump_func
+ret
+
+%if SEPARATE_STACK
+section .bss
+	regdump_stack_bottom:
+	resb TOTAL+48
+	regdump_stack_top:
+	regdump_esp:	resd 1
+%endif
+%endif
+
+

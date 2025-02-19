@@ -1,0 +1,12 @@
+%imacro fakeharden 0
+	%%harden:
+	cmp     ax, 0x1000
+	;cmp    rsp, rax ; for 64bit codebase, 1 byte shorter
+	jz      %%harden
+	sub     ax, 0x1000
+	or      al, 0x0
+	jmp     %%harden
+%endmacro
+
+;section .note.gnu.property
+;db	0

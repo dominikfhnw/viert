@@ -1,0 +1,99 @@
+%ifndef LINCOM
+%define LINCOM 0
+%endif
+
+%ifidn __OUTPUT_FORMAT__, bin
+	%if !LINCOM
+		%assign ELF_CUSTOM 1
+	%else
+		%assign ELF_CUSTOM 0
+		org 0x10000
+	%endif
+%else
+%assign ELF_CUSTOM 0
+%endif
+
+BITS 32
+EXTERN _start
+
+%ifndef ELF_OFFSET
+%define ELF_OFFSET 3
+%endif
+
+%ifndef START
+%define START _start - ELF_OFFSET
+%endif
+
+%define startlabel _start:
+
+%if ELF_CUSTOM
+;%warning BIN format
+;%macro BASE 1
+%define BASE org
+;	org %1
+;%endmacro
+%define	ELF_ALLINONE 0
+
+%macro ELF 0-1
+		db	0x7F, "ELF"
+		dd	1
+		dd	0
+		dd	$$			; vaddr
+		dw	2
+		dw	3
+		dd	START			; garbage/filesz
+		dd	START			; start/memsz
+	startlabel
+		dd	4
+	%if %0 == 1
+		ELF_PHDR 1
+	%endif
+%endmacro
+
+; add any parameter to add the jump around/safe value at the end
+; increases file size by 1 byte
+%macro ELF_PHDR 0-2
+	%if !ELF_ALLINONE
+		%if %0 == 2
+			times $$-$+41   nop
+			db	%2
+		%elif %0 == 1
+			times $$-$+41   nop
+			%if %1 == 3
+				db	0x25
+			%elif %1 == 2
+				db	186
+			%elif %1 == 4
+				db	233
+			%else
+				db	169
+			%endif
+		%else
+			times $$-$+42   nop
+		%endif
+
+		dw	0x20
+		db	1
+
+		%if %0 > 0
+			db	0
+		%endif
+	%endif
+	%define ELF_ALLINONE 1
+%endmacro
+%else
+;%warning ELF format
+%unmacro ELF 0-1
+%macro ELF 0-1
+startlabel
+%endmacro
+%unmacro ELF_PHDR 0-2
+%macro ELF_PHDR 0-2
+%endmacro
+%endif
+%unmacro BASE 1
+%macro BASE 1
+	dw	%1/256
+	db	%1/(256*256*256)
+	dd	4
+%endmacro
