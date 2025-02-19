@@ -19,43 +19,19 @@
 
 %macro realNEXT 0
 	%%next:
-	%if !WORD_TABLE && WORD_SIZE == 4
-		%if WORD_FOOBEL
-			; + just a single register for NEXT
-			; - a bit bigger than the other solution
-			lea	FORTH_OFFSET, [FORTH_OFFSET+4]
-			jmp	[FORTH_OFFSET]
-		%else
-			lodsWORD
-			jmp	NEXT_WORD
+	%if !WORD_TABLE && WORD_SIZE == 2
+		mov	eax, TABLE_OFFSET
+		lodsWORD
+		%if WORD_ALIGN > 1
+			%error not working atm
+			;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
 		%endif
-	%elif !WORD_TABLE && WORD_SIZE == 2
-		%if 0
-			movzx	NEXT_WORD, word [FORTH_OFFSET]
-			add	NEXT_WORD, TABLE_OFFSET
-			;add	FORTH_OFFSET, WORD_SIZE
-			inc	FORTH_OFFSET
-			inc	FORTH_OFFSET
-			jmp	NEXT_WORD
-		%else
-			mov	eax, TABLE_OFFSET
-			lodsWORD
-			%if WORD_ALIGN > 1
-				%error not working atm
-				;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
-			%endif
-			jmp	NEXT_WORD
-		%endif
+		jmp	NEXT_WORD
 
 	%elif !WORD_TABLE && WORD_SIZE == 1
 		%if WORD_ALIGN > 1
-			;%error not working atm
-			;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
 			xor	eax, eax
-			;mov	eax, TABLE_OFFSET
 			lodsWORD
-			;imul	eax, eax, WORD_ALIGN
-			;add	eax, TABLE_OFFSET
 			lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
 			jmp	NEXT_WORD
 		%else
@@ -64,139 +40,17 @@
 			jmp	NEXT_WORD
 		%endif
 	%elif WORD_SMALLTABLE
-		;mov	eax, TABLE_OFFSET
-		;lodsWORD
-		;%if WORD_ALIGN > 1
-		;	%error not working atm
-		;	;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
-		;%endif
-		;jmp	NEXT_WORD
-		
-		%if 0
-			set	NEXT_WORD, 0
-			lodsWORD
-			movzx	eax, al
-			%define OFF (STATIC_TABLE - $$ + ELF_HEADER_SIZE)
-			movzx	NEXT_WORD, word [TABLE_OFFSET + 2*NEXT_WORD + OFF]
-			add	NEXT_WORD, TABLE_OFFSET
-			jmp	NEXT_WORD
-		%elif 1
-			set	NEXT_WORD, 0
-			lodsWORD
-			%define OFF (STATIC_TABLE - $$ + ELF_HEADER_SIZE)
-			;mov	eax, [TABLE_OFFSET + 2*NEXT_WORD + OFF]
-			;mov	ax, [TABLE_OFFSET + 2*NEXT_WORD + OFF]
-			;mov	ax, [STATIC_TABLE + 2*NEXT_WORD]
-
-			movzx	eax, word [STATIC_TABLE + 2*NEXT_WORD]
-			;movzx	eax, word [TABLE_OFFSET + 2*NEXT_WORD + OFF]
-
-			add	NEXT_WORD, TABLE_OFFSET
-			jmp	NEXT_WORD
-
-		%elif 0
-			;mov	NEXT_WORD, edi
-			set	NEXT_WORD, 0
-			lodsWORD
-			;cbw
-			;cwde
-			;movzx	eax, byte [esi]
-			;inc	esi
-			;add	eax, al
-			;push	ax
-			;add	eax, eax
-			;add	eax, STATIC_TABLE
-			;movzx	eax, al
-			%define OFF (STATIC_TABLE - $$ + ELF_HEADER_SIZE)
-			mov	eax, [STATIC_TABLE + 2*NEXT_WORD]
-			;mov	eax, [edi+2*eax+OFF]
-			cwde
-			;movzx	eax, word [TABLE_OFFSET + 2*NEXT_WORD + OFF]
-			add	eax, TABLE_OFFSET
-			;mov	ax, [TABLE_OFFSET + 2*NEXT_WORD + OFF]
-			;mov	ax, [STATIC_TABLE + 2*NEXT_WORD]
-
-			;set	eax, edi
-			;movzx	eax, word [STATIC_TABLE + 2*NEXT_WORD]
-
-			;add	NEXT_WORD, TABLE_OFFSET
-			jmp	NEXT_WORD
-
-		%else	; striped table
-			mov	ecx, edi
-			lodsWORD
-			push	eax
-			;mov	ebx, STATIC_TABLE
-			mov	ebx, edi
-			mov	bl, 0xA4
-			xlat
-			mov	cl, al
-			inc	bh
-			pop	eax
-			xlat
-			mov	ch, al
-			jmp	ecx
-		%endif
-;		;mov	ax, word [TABLE_OFFSET + 2*NEXT_WORD]
-
-
-;		%ifnidn NEXT_WORD,eax
-;			%error NEXT__WORD is not eax
-;		%endif
-;		%if WORD_SIZE == 1
-;			set	NEXT_WORD, 0
-;		%endif
-;		lodsWORD
-;		%if WORD_SIZE == 2
-;			cwde
-;		%endif
-;		;mov	ax, word [TABLE_OFFSET + 2*NEXT_WORD]
-;		movzx	eax, word [TABLE_OFFSET + 2*NEXT_WORD]
-;		%if 1
-;			add	NEXT_WORD, DEF0
-;			jmp	NEXT_WORD
-;		%else
-;			jmp	[NEXT_WORD + DEF0]
-;		%endif
-;		;DIRECT_EXECUTE reg
-	%elif 0
-		;movzx	NEXT_WORD, byte [FORTH_OFFSET]
-		;inc	FORTH_OFFSET
 		set	NEXT_WORD, 0
 		lodsWORD
-		push	dword [TABLE_OFFSET + 4*NEXT_WORD]
-		;taint	NEXT_WORD
-		ret
-	%elif 0
-		; + freely choose which registers to use
-		; - every NEXT is 1 byte longer
-		movzx	NEXT_WORD, WORD_TYPE [FORTH_OFFSET]
-		inc	FORTH_OFFSET
-		taint	NEXT_WORD
-		jmp	[TABLE_OFFSET + 4*NEXT_WORD]
-	%else
-		%ifnidn NEXT_WORD,eax
-			%error NEXT__WORD is not eax
-		%endif
-		%if WORD_SIZE == 1
-			set	NEXT_WORD, 0
-		%endif
-		lodsWORD
-		%if WORD_SIZE == 2
-			cwde
-		%endif
-		%if 1
-			jmp	[TABLE_OFFSET + 4*NEXT_WORD]
-		%else
-			mov	eax, [TABLE_OFFSET + 4*NEXT_WORD]
-			jmp	eax
-		%endif
-	%endif
-	;mov	NEXT_WORD, [TABLE_OFFSET + 4*NEXT_WORD]
-	;lea	NEXT_WORD, [TABLE_OFFSET + 4*NEXT_WORD]
-	;jmp	NEXT_WORD
-	;jmp	[NEXT_WORD]
+		%define OFF (STATIC_TABLE - $$ + ELF_HEADER_SIZE)
+		mov	eax, [STATIC_TABLE + 2*NEXT_WORD]
+		cwde
+		add	eax, TABLE_OFFSET
+		jmp	NEXT_WORD
 
+	%else
+		%error unhandled case
+	%endif
 %endmacro
 
 %macro DEF 1-2.nolist
