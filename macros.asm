@@ -1,7 +1,4 @@
 ; **** Macros ****
-%ifndef BIGJMP
-%define BIGJMP 1
-%endif
 
 %macro NEXT arg(0)
 	%if BIGJMP
@@ -33,11 +30,22 @@
 %endmacro
 
 %macro DEFFORTH 1
+	%push defforth_ctx
+	%$current:
+	%if WORD_TABLE
+		%assign wcurr	WORD_COUNT-1
+	%else
+		%define wcurr	(%$current - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+	%endif
+
 	DEF %1, no_next
 	%if !THRESH
 		DOCOL
 	%endif
-	%push defforth_ctx
+%endmacro
+
+%macro	RECURSE 0
+	WORD_DEF wcurr
 %endmacro
 
 %macro ENDDEF 0-1
