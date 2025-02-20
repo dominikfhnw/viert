@@ -42,6 +42,24 @@ DEFFORTH "nl"
 	f_emit
 ENDDEF
 
+%if 1
+
+DEFFORTH "mem"
+	lit 0
+	f_dup
+	f_dup
+	f_dup
+	f_dup
+	lit 45
+	f_syscall3
+	lit 0x10000
+	f_plus
+	lit 45
+	;f_swap
+	f_syscall3
+ENDDEF
+%endif
+
 DEFFORTH "char"
 	lit 'E'
 	f_emit
