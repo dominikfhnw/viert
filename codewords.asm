@@ -9,6 +9,13 @@ DEF "lit8"
 	lodsb
 	push	eax
 
+DEF "lit16"
+	lodsb
+	mov	ah, al
+	lodsb
+	cwde
+	push	eax
+
 DEF "lit32"
 	lodsd
 	push	eax
