@@ -83,17 +83,14 @@
 	%pop defforth_ctx
 %endmacro
 
+%if WORD_TABLE
+	%define WORDVAL(a) a
+%else
+	%define WORDVAL(a) (DEF%tok(a) - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+%endif
+
 %macro WORD 1
-	%if !WORD_TABLE && WORD_SIZE == 4
-		WORD_DEF DEF%1
-	%elif !WORD_TABLE && WORD_SIZE == 2
-		WORD_DEF (DEF%1 - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
-	%elif !WORD_TABLE && WORD_SIZE == 1
-		WORD_DEF (DEF%1 - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
-	%else
-		%warning FOO4 WORD %1
-		WORD_DEF %1
-	%endif
+	WORD_DEF WORDVAL(%1)
 %endmacro
 
 %macro OVERRIDE_NEXT 1
