@@ -226,8 +226,8 @@ SECTION .rodata align=1
 	%endif
 	A_END_TABLE:
 	;db "gugus"
-	A_REALLY_END:
 %endif
+A_REALLY_END:
 
 resb 65536
 ; **** Assembler code ****
