@@ -35,6 +35,15 @@ DEF "plus"
 	add	eax, ebx
 	push	eax
 
+DEF "divmod"
+	pop	ebx
+	pop	eax
+	xor	edx, edx
+	div	ebx
+	push	eax
+	push	edx
+
+
 DEF "swap"
 	pop	ebx
 	pop	eax
@@ -50,6 +59,7 @@ DEF "drop"
 	; try not to clobber eax with garbage
 	pop	ebx
 
+%define BIGJMP 0
 DEF "store"
 	pop	ebx
 	pop	dword [ebx] ; I have to agree with Kragen here, I'm also amazed this is legal
@@ -63,6 +73,7 @@ DEF "negate"
 	neg	eax
 	push	eax
 
+%if 0
 DEF "equ"
 	pop	eax
 	pop	ebx
@@ -70,6 +81,19 @@ DEF "equ"
 	xor	eax, eax
 	sete	al
 	push	eax
+%endif
+
+DEF "zbranch"
+	lodsb
+	pop	ecx
+	push	ecx
+	jecxz	branch
+;DEF "branch", no_next
+	;lodsb
+	movsx	eax, al
+	add	esi, eax
+	branch:
+	;inc	esi
 	
 DEF "string"
 	xor	eax,eax
@@ -77,6 +101,9 @@ DEF "string"
 	push	esi
 	push	eax
 	add	esi, eax
+
+DEF "dec"
+	dec	dword [esp]
 
 %if 1
 DEF "asmjmp"
