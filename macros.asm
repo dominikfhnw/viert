@@ -4,49 +4,11 @@
 %endif
 
 %macro NEXT arg(0)
-	;%if JUMPNEXT
 	%if BIGJMP
-		;jmp    [edi + offset(ASM_OFFSET)]
 		jmp    [edi]
-		;jmp A_NEXT
 	%else
 		jmp short A_NEXT
 	%endif
-	;%else
-	;	realNEXT
-	;%endif
-%endmacro
-
-%macro realNEXT 0
-	%%next:
-	%if !WORD_TABLE && WORD_SIZE == 2
-		mov	eax, TABLE_OFFSET
-		lodsWORD
-		%if WORD_ALIGN > 1
-			%error not working atm
-			;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
-		%endif
-
-	%elif !WORD_TABLE && WORD_SIZE == 1
-		%if WORD_ALIGN > 1
-			xor	eax, eax
-			lodsWORD
-			lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
-		%else
-			mov	eax, TABLE_OFFSET
-			lodsWORD
-		%endif
-	%elif WORD_SMALLTABLE
-		set	NEXT_WORD, 0
-		lodsWORD
-		%define OFF (STATIC_TABLE - $$ + ELF_HEADER_SIZE)
-		mov	eax, [STATIC_TABLE + 2*NEXT_WORD]
-		cwde
-		add	eax, TABLE_OFFSET
-	%else
-		%error unhandled case
-	%endif
-	jmp	NEXT_WORD
 %endmacro
 
 %macro DEF 1-2.nolist
@@ -72,7 +34,9 @@
 
 %macro DEFFORTH 1
 	DEF %1, no_next
-	DOCOL
+	%if !THRESH
+		DOCOL
+	%endif
 	%push defforth_ctx
 %endmacro
 

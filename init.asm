@@ -49,7 +49,11 @@ rinit
 		mov	eax, TABLE_OFFSET
 		mov	al, OFF
 	%else ; simple but slightly larger
-		mov	eax, FORTH - 2
+		%if THRESH
+			mov	esi, FORTH
+		%else
+			mov	eax, FORTH - 2
+		%endif
 	%endif
 
 	;lea	eax, [TABLE_OFFSET  + OFF]
