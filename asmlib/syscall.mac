@@ -35,6 +35,7 @@
 %define SYS_getppid		64
 %define SYS_dup2		63
 %define SYS_ioctl		54
+%define SYS_brk			45
 %define SYS_dup			41
 %define SYS_kill		37
 %define SYS_pause		29
@@ -718,6 +719,10 @@ SECTION .text
 
 %imacro stat arg(2)
 	syscall SYS_stat, %1, %2
+%endmacro
+
+%imacro brk arg(1)
+	syscall SYS_brk, %1
 %endmacro
 
 %imacro dup arg(1)
