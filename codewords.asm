@@ -150,6 +150,7 @@ _start:
 
 A_NEXT:
 
+; TODO: merge with WORDVAL macro
 %if WORD_TABLE
 	%define BREAK WORD_COUNT
 %else
@@ -157,29 +158,45 @@ A_NEXT:
 %endif
 
 %if !WORD_TABLE && WORD_SIZE == 2
-	%error borked
 	mov	eax, TABLE_OFFSET
 	lodsWORD
+	cmp	al, BREAK
+	jae	.docol
+	jmp	eax
 	%if WORD_ALIGN > 1
 		%error not working atm
 		;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
 	%endif
 
 %elif !WORD_TABLE && WORD_SIZE == 1
-	%error borked
-	%if WORD_ALIGN > 1
-		xor	eax, eax
-		lodsWORD
-		lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
+	%if THRESH
+		%if WORD_ALIGN > 1
+			xor	eax, eax
+			lodsWORD
+			cmp	al, BREAK
+			lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
+		%else
+			mov	eax, TABLE_OFFSET
+			lodsWORD
+			cmp	al, BREAK
+		%endif
+		jae	.docol
+		jmp	eax
 	%else
-		mov	eax, TABLE_OFFSET
-		lodsWORD
+		%if WORD_ALIGN > 1
+			xor	eax, eax
+			lodsWORD
+			lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
+		%else
+			mov	eax, TABLE_OFFSET
+			lodsWORD
+		%endif
+		jmp	eax
 	%endif
 %elif WORD_SMALLTABLE
 	%if THRESH
 		set	NEXT_WORD, 0
 		lodsWORD
-		; TODO: merge with WORDVAL macro
 		cmp	al, BREAK
 
 		mov	eax, [STATIC_TABLE + 2*NEXT_WORD]
@@ -189,13 +206,6 @@ A_NEXT:
 		jae	.docol
 		jmp	eax
 
-		.docol:
-		rspush	FORTH_OFFSET
-		; only as long as the jmp DOCOL is still in there:
-		;inc	eax
-		;inc	eax
-		xchg	eax, esi
-		jmp	A_NEXT
 	%else
 		set     NEXT_WORD, 0
 		lodsWORD
@@ -208,4 +218,8 @@ A_NEXT:
 %else
 	%error unhandled case
 %endif
-jmp	NEXT_WORD
+
+.docol:
+	rspush	FORTH_OFFSET
+	xchg	eax, esi
+	jmp	A_NEXT
