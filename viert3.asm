@@ -8,7 +8,7 @@ ORG="0x10000"
 
 OUT=viert
 NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan -Werror=number-overflow"
-#NASMOPT="-DORG=$ORG -Werror=label-orphan"
+#NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan"
 if [ -n "${LINCOM-}" ]; then
 	OUT="$OUT.com"
 	NASMOPT="-DLINCOM=1"
@@ -34,7 +34,8 @@ ls -l $OUT
 chmod +x $OUT
 
 symbols(){
-	time nm -td -n $OUT.full
+	#time LC_ALL=C nm -f bsd -td -n $OUT.full
+	time LC_ALL=C eu-nm -f bsd -td -n $OUT.full
 }
 
 DUMP="-Mintel"
@@ -42,7 +43,7 @@ DUMP="-Mintel"
 if [ -n "${FULL-1}" ]; then
 	DUMP="$DUMP -j .text -j .rodata"
 	objdump $DUMP -d $OUT.full
-	time symbols | mawk '/. A_/{sub(/A_/,"");if(name){print $1-size " " name};name=$3;size=$1}'|column -tR1 | sort -nr
+	time symbols | mawk '/. A_[^.]*$/{sub(/A_/,"");if(name){print $1-size " " name;total+=($1-size)};name=$3;size=$1}END{total+=84;print total " TOTAL";print "84 ELF"}'|column -tR1 | sort -nr
 	#time nm -td -n $OUT.full | mawk '/. A_/{sub(/A_/,"");if(name){print $1-size " " name};name=$3;size=$1}'|column -tR1 
 else
 	#OFF=$(  readelf2 -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
@@ -69,8 +70,12 @@ exit
 
 %include "stdlib.mac"
 
-%ifndef JUMPNEXT
-%define JUMPNEXT	1
+%ifndef BIGJMP
+%define BIGJMP		0
+%endif
+
+%ifndef THRESH
+%define THRESH		1
 %endif
 
 %define	TABLE_OFFSET	edi
@@ -81,7 +86,7 @@ exit
 %define zero_seg	1
 
 %ifndef WORD_ALIGN
-%define WORD_ALIGN	1
+%define WORD_ALIGN	2
 %endif
 
 %ifndef WORD_FOOBEL
