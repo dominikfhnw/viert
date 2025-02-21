@@ -30,11 +30,21 @@ DEFFORTH "puts"
 	f_drop
 ENDDEF
 
+%if 0
+DEFFORTH "xputs"
+	f_swap
+	lit	0 ;stdin; yep, that works, as long as stdin is a tty
+	lit	4 ;write
+	f_syscall3
+	f_drop
+ENDDEF
+%endif
+
 DEFFORTH "emit"
 	f_sp_at
 	lit 1
 	f_puts
-	f_drop
+	;f_drop
 ENDDEF
 
 DEFFORTH "nl"
