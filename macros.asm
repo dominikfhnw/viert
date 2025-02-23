@@ -1,10 +1,13 @@
 ; **** Macros ****
+%ifndef JMPLEN
+%define JMPLEN short
+%endif
 
 %macro NEXT arg(0)
 	%if BIGJMP
 		jmp    [edi]
 	%else
-		jmp short A_NEXT
+		jmp JMPLEN A_NEXT
 	%endif
 %endmacro
 
@@ -30,6 +33,9 @@
 %endmacro
 
 %macro DEFFORTH 1
+	%ifctx defforth_ctx
+		%fatal Nested DEFFORTH not allowed. Did you forget an ENDDEF?
+	%endif
 	%push defforth_ctx
 	%$current:
 	%if WORD_TABLE
@@ -38,6 +44,8 @@
 		%define wcurr	(%$current - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 	%endif
 
+	; another align here, to override "align with nop"
+	align WORD_ALIGN, db 0xff
 	DEF %1, no_next
 	%if !THRESH
 		DOCOL
@@ -65,18 +73,20 @@
 	WORD_DEF WORDVAL(%1)
 %endmacro
 
+; XXX unused?
 %macro OVERRIDE_NEXT 1
 	push n_%[%1]
 	set FORTH_OFFSET, esp
 %endmacro
 
 %macro DIRECT_EXECUTE 1
-	jmp short A_%[%1]
+	jmp A_%[%1]
 %endmacro
 
 ; execute 2 words. Undefined behaviour if the second word doesn't exit
 ; Second word has to be already defined.
 ; Second word is expected to be something like "exit"
+; XXX unused?
 %macro EXECUTE2 2
 	OVERRIDE_NEXT	%2
 	DIRECT_EXECUTE	%1
@@ -94,19 +104,21 @@
 %endmacro
 
 %imacro rspush arg(1)
+%if 0
+	lea	ebp, [ebp-4]
+	mov	[ebp], esi
+%else
 	xchg	ebp, esp
 	push	%1
 	xchg	ebp, esp
+%endif
 %endmacro
 
 %imacro lit 1
-	%if %1 >= 0 && %1 < 256
-		;%warning FOO f_lit8 -- %1
+	%if (%1 >= 0 && %1 < 256)
 		f_lit8
-		;%warning FOO2 f_lit8 -- %1
 		db %1
 	%else
-		;%warning FOO3 f_lit8 -- %1
 		f_lit32
 		dd %1
 	%endif
