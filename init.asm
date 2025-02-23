@@ -19,6 +19,7 @@ rinit
 ;rwx
 
 %if !WORD_TABLE && WORD_SIZE == 4
+	%error borked
 	set	FORTH_OFFSET, FORTH
 	%if WORD_FOOBEL
 		jmp	[FORTH_OFFSET]
@@ -26,6 +27,7 @@ rinit
 		jmp	A_NEXT
 	%endif
 %elif 0 && !WORD_TABLE && WORD_SIZE == 1
+	%error borked
 	rset	TABLE_OFFSET, 0
 	set	TABLE_OFFSET, ORG
 	%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
@@ -40,14 +42,38 @@ rinit
 	rset	TABLE_OFFSET, 0
 	set	TABLE_OFFSET, ORG
 
-	mprotect edi, 0xFFFF,7
-	mov	[edi], dword A_NEXT
+	.brk1:
+	;rtaint
+	%if 1
+	%elif 1
+		brk	0
+		set	ebx, 0xff00
+		;add	eax, 4096
+		;xchg	eax, ebx
+		add	ebx, eax
+		taint	ebx
+		;rtaint
+		brk	ebx
+	%else
+		;;set	ebx, 0
+		mmap	0, 0xff00, PROT_WRITE | PROT_EXEC | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, x, x
+	%endif
+	.endbrk:
+	;pause
+	;mprotect edi, 0xFFFF,7
+	;mov	ebx, esp
+	;xor	bx, bx
+	;mprotect ebx, 0x2000,6
+	;mprotect 0x10000, 0x1000,6
+
+	;mov	[edi], dword A_NEXT
 	%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
 
 	; XXX magic
 	%if 0 ; some magic that doesn't always works
 		mov	eax, TABLE_OFFSET
 		mov	al, OFF
+		;lea	eax, [TABLE_OFFSET + OFF]
 	%else ; simple but slightly larger
 		%if THRESH
 			mov	esi, FORTH
