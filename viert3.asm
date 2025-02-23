@@ -62,7 +62,7 @@ exit
 %endif
 
 %define REG_OPT		1
-%define REG_SEARCH	1
+%define REG_SEARCH	0
 %define REG_ASSERT	0
 %ifndef	LINCOM
 %define LINCOM		0
@@ -187,23 +187,109 @@ ASM_OFFSET:
 		%pop asmctx
 	%endmacro
 %endif
-;_start:
-;%define ASM_OFFSET _start
-;%include "init.asm"
+
+%macro doloop 0-1
+	%push loopctx
+	%if %0 == 1
+		lit %1
+	%endif
+	f_rspush
+	%$loop:
+%endmacro
+
+%macro endloop arg(0)
+	;f_rsdec
+	;f_dupr2d
+	;f_zbranch
+	f_while
+	db %$loop - $ - 1
+	f_rspop
+	; f_drop
+	%pop loopctx
+%endmacro
 
 %include "forthwords.asm"
 
+_start:
+%include "init.asm"
+jmp	A_NEXT
+
+
 ; **** Forth code ****
 ;SECTION .rodata align=1 WORD_TYPE
+
 A_FORTH:
 FORTH:
-	string "hello"
-	f_puts
-	inline_asm
-	push	12
-	endasm
-	f_exit
+;	lit 8
+;	f_rspush
+;
+;	.loop:
+;	f_char
+;	f_rsdec
+;	f_dupr2d
+;	f_zbranch
+;	db .loop - $ - 1
+	lit 19
+	lit 1234
+	f_dot
 
+	f_exit
+%if 0
+	;f_exit
+	;string "hello, world!"
+	;f_puts
+	;f_mem
+	;lit -1
+	;f_dot
+	lit 0
+	f_dup
+	f_dot
+	lit 1
+	f_dup
+	f_dot
+	f_fib
+	f_exit
+%endif
+
+;%if 0
+;	lit 8
+;	lit 14
+;	f_plus
+;	f_dot
+;%endif
+;
+;%if 0
+;	inline_asm
+;	push	12
+;	endasm
+;%endif
+;
+;%if 0
+;	lit 10
+;	lit 8
+;	f_plus
+;	;lit 123456789
+;	f_dot
+;%endif
+;%if 0
+;	lit 8
+;	.loop:
+;	f_char
+;	f_dec
+;	f_zbranch
+;	db .loop - $ - 1
+;	f_nl
+;	string "finished"
+;	f_puts
+;	f_nl
+;%endif
+;	;string `\033[G\033[F\033[JFoobar`
+;	;string `\033[A\033[G\033[J`
+;	;string `\033[A\033[20D\033[Jclose(0`
+;	;f_xputs
+;
+;
+	f_exit
 
 
 
