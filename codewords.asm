@@ -38,20 +38,6 @@ DEF "sp_at"
 		push	dword [eax]
 %endif
 
-DEF "plus"
-	pop	eax
-	pop	ebx
-	add	eax, ebx
-	push	eax
-
-DEF "divmod"
-	pop	ebx
-	pop	eax
-	xor	edx, edx
-	div	ebx
-	push	eax
-	push	edx
-
 
 DEF "swap"
 	pop	ebx
@@ -60,13 +46,28 @@ DEF "swap"
 	push	eax
 
 DEF "dup"
+%if 0
 	pop	eax
 	push	eax
 	push	eax
+%else
+	push	dword [esp]
+%endif
+
+DEF "over"
+	push	dword [esp+4]
 
 DEF "drop"
 	; try not to clobber eax with garbage
 	pop	ebx
+
+DEF "rot"
+	pop	eax
+	pop	ebx
+	pop	ecx
+	push	ebx
+	push	eax
+	push	ecx
 
 %define BIGJMP 0
 DEF "store"
@@ -77,51 +78,61 @@ DEF "fetch"
 	pop	ebx
 	push	dword [ebx] ; This feels less illegal for some reason
 
-DEF "negate"
+DEF "cstore"
+	pop	ebx
 	pop	eax
-	neg	eax
+	mov	[ebx], al
+
+DEF "cfetch"
+	pop	ebx
+	xor	eax, eax
+	mov	al, [ebx]
+
+DEF "dupr2d"
+	push	dword [ebp]
+
+DEF "rspop"
+	rspop	eax
 	push	eax
 
-%if 0
-DEF "equ"
+DEF "rspush"
+	%if 0
 	pop	eax
-	pop	ebx
-	cmp	eax, ebx
-	xor	eax, eax
-	sete	al
-	push	eax
-%endif
+	rspush	eax
+	%else ; same amount of bytes, less instructions
+	lea	ebp, [ebp-4]
+	pop	dword [ebp] ; would be one byte less if !ebp
+	%endif
+
+;DEF "rsdec"
+;	dec	dword [ebp]
+
+DEF "rsinc"
+	inc	dword [ebp]
 
 DEF "zbranch"
-	lodsb
+
 	pop	ecx
-	push	ecx
-	jecxz	branch
+	lodsb
+	jecxz	A_NEXT
 ;DEF "branch", no_next
 	;lodsb
 	movsx	eax, al
 	add	esi, eax
-	branch:
-	;inc	esi
-	
+
+DEF "branch"
+	lodsb
+	movsx	eax, al
+	add	esi, eax
+
 
 ; **** INIT BLOCK ****
 NEXT
-;_start:
-;%include "init.asm"
-
-%if !THRESH
-	DEF "DOCOL", no_next
-		rspush	FORTH_OFFSET
-		inc	eax
-		inc	eax
-		xchg	eax, esi
-%endif
 
 
 ; TODO: merge with WORDVAL macro
 %if WORD_TABLE
-	%define BREAK 17
+	%define BREAK 29
 %else
 	%define BREAK (END_OF_CODEWORDS - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %endif
@@ -129,6 +140,12 @@ NEXT
 
 A_DOCOL:
 rspush	FORTH_OFFSET
+
+%if !THRESH
+	inc	eax
+	inc	eax
+%endif
+
 xchg	eax, esi
 
 
@@ -199,16 +216,58 @@ A_NEXT:
 
 ; **** END INIT ****
 
+; f_while <imm8>:
+;  1. decrement counter
+;  2. if counter != 0:
+;	jump imm8 bytes
+DEF "while", no_next
+%if 0
+	dec	dword [ebp]
+	;push	dword [ebp]
 
-DEF "string", no_next
+	;pop	ecx
+	lodsb
+	jz	A_NEXT
+	movsx	eax, al
+	add	esi, eax
+	;rspop	eax
+%else
+	dec	dword [ebp]
+	lodsb
+	jz	A_NEXT
+	movsx	eax, al
+	add	esi, eax
+%endif
+
+
+DEF "string"
 	xor	eax,eax
 	lodsb
 	push	esi
 	push	eax
 	add	esi, eax
 
+DEF "plus"
+	pop	eax
+	pop	ebx
+	add	eax, ebx
+	push	eax
+
+DEF "negate"
+	pop	eax
+	neg	eax
+	push	eax
+
 DEF "dec"
 	dec	dword [esp]
+
+DEF "divmod"
+	pop	ebx
+	pop	eax
+	xor	edx, edx
+	div	ebx
+	push	edx
+	push	eax
 
 %if 1
 DEF "asmjmp"
@@ -227,16 +286,27 @@ DEF "asmret"
 
 ; asmret above does not directly return
 DEF "syscall3", no_next
+%if 0
+	pop	edx
+	pop	ecx
+	pop	ebx
+	pop	eax
+%else
 	pop	eax
 	pop	ebx
 	pop	ecx
 	pop	edx
+%endif
+
 	int	0x80
 	push	eax
+
+DEF "int3"
+	int3
 
 NEXT
 END_OF_CODEWORDS:
 	%warning "BREAK" WORD_COUNT
 	%if WORD_TABLE == 1 && WORD_COUNT != BREAK
-		%error break constant set to wrong value: WORD_COUNT != BREAK
+		%fatal break constant set to wrong value: WORD_COUNT != BREAK
 	%endif
