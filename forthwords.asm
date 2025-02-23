@@ -1,7 +1,22 @@
+DEFFORTH "lit0"
+	lit 0
+ENDDEF
+
 DEFFORTH "exit"
-	lit	1
+	lit 1
 	f_syscall3
 ENDDEF noreturn
+
+DEFFORTH "2dup"
+	f_over
+	f_over
+ENDDEF
+
+DEFFORTH "2drop"
+	f_drop
+	f_drop
+ENDDEF
+
 
 %if 0
 DEFFORTH "dec"
@@ -44,7 +59,7 @@ DEFFORTH "emit"
 	f_sp_at
 	lit 1
 	f_puts
-	;f_drop
+	f_drop
 ENDDEF
 
 DEFFORTH "nl"
@@ -52,65 +67,63 @@ DEFFORTH "nl"
 	f_emit
 ENDDEF
 
-%if 1
-
-DEFFORTH "mem"
-	lit 0
+DEFFORTH "brk"
+	f_lit0
 	f_dup
-	f_dup
-	f_dup
-	f_dup
+	f_rot
 	lit 45
-	f_syscall3
-	lit 0x10000
-	f_plus
-	lit 45
-	;f_swap
 	f_syscall3
 ENDDEF
-%endif
+
+DEFFORTH "mem"
+	f_lit0
+	f_brk
+	lit 0x10000
+	f_plus
+	f_brk
+ENDDEF
 
 DEFFORTH "char"
 	lit 'E'
 	f_emit
 ENDDEF
 
+DEFFORTH "nop"
+ENDDEF
+
 DEFFORTH "dotstep"
 	; divide TOS by 10
 	lit 10
 	f_divmod
+ENDDEF
 
+DEFFORTH "emitdigit"
 	; convert to ascii
 	lit '0'
 	f_plus
-
-	; print
 	f_emit
-
 ENDDEF
 
 DEFFORTH "dot"
-	;string `parsing...\n`
-	;f_puts
-	%if 0
-		lit 8
-		.loop:
+
+	doloop 10
 		f_dotstep
-		f_dec
-		f_zbranch
-		db .loop - $ - 1
-	%else
-		f_dotstep
-		f_dotstep
-		f_dotstep
-		f_dotstep
-		f_dotstep
-		f_dotstep
-		f_dotstep
-		f_dotstep
-		f_dotstep
-	%endif
+	endloop
+
+	f_2drop
+
+	doloop 10
+		f_emitdigit
+	endloop
 
 	f_nl
 
+ENDDEF
+
+DEFFORTH "fib"
+	f_2dup
+	f_plus
+	f_dup
+	f_dot
+	f_fib
 ENDDEF
