@@ -25,34 +25,14 @@ DEF "lit32"
 DEF "sp_at"
 	push	esp
 
-%if 0
-	DEF "upget8"
-		mov	eax, [ebp]
-		inc	dword [ebp]
-		movzx	eax, byte [eax]
-		push	eax
-
-	DEF "upget32"
-		mov	eax, [ebp]
-		inc	dword [ebp]
-		push	dword [eax]
-%endif
-
-
 DEF "swap"
 	pop	ebx
-	pop	eax
+	pop	ecx
 	push	ebx
-	push	eax
+	push	ecx
 
 DEF "dup"
-%if 0
-	pop	eax
-	push	eax
-	push	eax
-%else
 	push	dword [esp]
-%endif
 
 DEF "over"
 	push	dword [esp+4]
@@ -62,11 +42,11 @@ DEF "drop"
 	pop	ebx
 
 DEF "rot"
-	pop	eax
+	pop	edx
 	pop	ebx
 	pop	ecx
 	push	ebx
-	push	eax
+	push	edx
 	push	ecx
 
 %define BIGJMP 0
@@ -80,25 +60,24 @@ DEF "fetch"
 
 DEF "cstore"
 	pop	ebx
-	pop	eax
-	mov	[ebx], al
+	pop	edx
+	mov	[ebx], dl
 
 DEF "cfetch"
 	pop	ebx
-	xor	eax, eax
 	mov	al, [ebx]
 
 DEF "dupr2d"
 	push	dword [ebp]
 
 DEF "rspop"
-	rspop	eax
-	push	eax
+	rspop	ebx
+	push	ebx
 
 DEF "rspush"
 	%if 0
-	pop	eax
-	rspush	eax
+	pop	ebx
+	rspush	ebx
 	%else ; same amount of bytes, less instructions
 	lea	ebp, [ebp-4]
 	pop	dword [ebp] ; would be one byte less if !ebp
@@ -117,13 +96,13 @@ DEF "zbranch"
 	jecxz	A_NEXT
 ;DEF "branch", no_next
 	;lodsb
-	movsx	eax, al
-	add	esi, eax
+	movsx	ebx, al
+	add	esi, ebx
 
 DEF "branch"
 	lodsb
-	movsx	eax, al
-	add	esi, eax
+	movsx	ebx, al
+	add	esi, ebx
 
 
 ; **** INIT BLOCK ****
@@ -237,8 +216,8 @@ DEF "while", no_next
 	lodsb
 
 	jz	.end
-	movsx	eax, al
-	add	esi, eax
+	movsx	ebx, al
+	add	esi, ebx
 	NEXT
 	.end:
 	lea	ebp, [ebp+4]
@@ -264,15 +243,15 @@ DEF "string"
 	add	esi, eax
 
 DEF "plus"
-	pop	eax
+	pop	edx
 	pop	ebx
-	add	eax, ebx
-	push	eax
+	add	edx, ebx
+	push	edx
 
 DEF "negate"
-	pop	eax
-	neg	eax
-	push	eax
+	pop	ebx
+	neg	ebx
+	push	ebx
 
 DEF "dec"
 	dec	dword [esp]
@@ -287,17 +266,17 @@ DEF "divmod"
 
 %if 1
 DEF "asmjmp"
-	pop	eax
-	pop	eax
-	jmp	eax
+	pop	ebx
+	pop	ebx
+	jmp	ebx
 %else
 
-DEF "asmret"
-	xor	eax,eax
-	lodsb
-	mov	ebx, esi
-	add	esi, eax
-	jmp	ebx
+;DEF "asmret"
+;	xor	eax,eax
+;	lodsb
+;	mov	ebx, esi
+;	add	esi, eax
+;	jmp	ebx
 %endif
 
 ; asmret above does not directly return
