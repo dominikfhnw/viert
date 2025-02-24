@@ -203,7 +203,7 @@ ASM_OFFSET:
 	;f_zbranch
 	f_while
 	db %$loop - $ - 1
-	f_rspop
+	;f_rspop
 	; f_drop
 	%pop loopctx
 %endmacro

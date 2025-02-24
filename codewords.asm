@@ -227,10 +227,13 @@ DEF "while", no_next
 
 	;pop	ecx
 	lodsb
-	jz	A_NEXT
+	jz	.end
 	movsx	eax, al
 	add	esi, eax
-	;rspop	eax
+	NEXT
+	.end:
+	lea	ebp, [ebp+4]
+
 %elif 0
 	dec	dword [ebp]
 	movsx	eax, byte [esi]

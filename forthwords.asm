@@ -110,8 +110,6 @@ DEFFORTH "dot"
 		f_dotstep
 	endloop
 
-	f_2drop
-
 	doloop 10
 		f_emitdigit
 	endloop
