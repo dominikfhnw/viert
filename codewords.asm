@@ -1,11 +1,30 @@
 ; **** Codeword definitions ****
 
+; ABI
+; esi:	Instruction pointer to next forth word
+; edi:	Base pointer to executable segment. Tbd if needed
+; esp:	Data stack
+; ebp:	Return stack
+; eax:	Contains value of forth word being executed.
+;	Must be set =< 255 when returning from assembler code
+;
+;
+; zero-eax vs before:
+; lit32:	+2
+; divmod:	+2
+; syscall3:	+2
+; DOCOL:	+1
+; lit8:		-2
+; NEXT:		-3
+; while2:	-2
+; string:	-2
+; TOTAL:	-2
+
 ; first definition does not need a NEXT
 DEF "EXIT", no_next
 	rspop	FORTH_OFFSET
 
 DEF "lit8"
-	xor	eax, eax
 	lodsb
 	push	eax
 
@@ -21,6 +40,7 @@ DEF "lit16"
 DEF "lit32"
 	lodsd
 	push	eax
+	xor	eax, eax
 
 DEF "sp_at"
 	push	esp
@@ -121,17 +141,30 @@ A_DOCOL:
 rspush	FORTH_OFFSET
 
 %if !THRESH
-	inc	eax
-	inc	eax
+	inc	ebx
+	inc	ebx
 %endif
 
-xchg	eax, esi
+mov	esi, ebx
 
 
 A_NEXT:
 
-%if !WORD_TABLE && WORD_SIZE == 2
-	mov	eax, TABLE_OFFSET
+%define	BASE	ORG
+%define	BASE	TABLE_OFFSET
+
+%if !WORD_TABLE && WORD_SIZE == 4
+	lodsWORD
+	cmp	eax, (ORG + BREAK)
+	jae	A_DOCOL
+	jmp	eax
+	%if WORD_ALIGN > 1
+		%error not working atm
+		;lea	NEXT_WORD, [WORD_ALIGN*NEXT_WORD+ASM_OFFSET]
+	%endif
+
+%elif !WORD_TABLE && WORD_SIZE == 2
+	mov	eax, BASE
 	lodsWORD
 	cmp	ax, BREAK
 	jae	A_DOCOL
@@ -144,59 +177,63 @@ A_NEXT:
 %elif !WORD_TABLE && WORD_SIZE == 1
 	%if THRESH
 		%if WORD_ALIGN > 1
-			xor	eax, eax
 			lodsWORD
 			cmp	al, BREAK
-			lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
+			lea	ebx, [eax*WORD_ALIGN+BASE]
 		%else
-			mov	eax, TABLE_OFFSET
+			%fatal not working
+			mov	eax, BASE
 			lodsWORD
 			cmp	al, BREAK
 		%endif
 		jae	A_DOCOL
-		jmp	eax
+		jmp	ebx
 	%else
 		%if WORD_ALIGN > 1
-			xor	eax, eax
 			lodsWORD
-			lea	eax, [eax*WORD_ALIGN+TABLE_OFFSET]
+			lea	ebx, [eax*WORD_ALIGN+BASE]
 		%else
-			mov	eax, TABLE_OFFSET
+			%fatal not working
+			mov	eax, BASE
 			lodsWORD
 		%endif
-		jmp	eax
+		jmp	ebx
 	%endif
 %elif WORD_SMALLTABLE
 	%if THRESH
-		taint	eax
-		set	NEXT_WORD, 0
 		lodsWORD
+		movzx	ebx, word [STATIC_TABLE + 2*NEXT_WORD]
+		add	ebx, BASE
 		cmp	al, BREAK
-
-		movzx	eax, word [STATIC_TABLE + 2*NEXT_WORD]
-		lea	eax, [eax + TABLE_OFFSET]
 		jae	A_DOCOL
-		jmp	eax
+		jmp	ebx
 
 	%else
+		%fatal broken
 		set     NEXT_WORD, 0
 		lodsWORD
 		mov     eax, [STATIC_TABLE + 2*NEXT_WORD]
 		cwde
-		add     eax, TABLE_OFFSET
-		jmp	eax
+		add     ebx, BASE
+		jmp	ebx
 
 	%endif
 %else ; table with 4 byte offsets
 	%if THRESH
-		taint	eax
-		set	NEXT_WORD, 0
 		lodsWORD
 		cmp	al, BREAK
-
-		mov	eax, [STATIC_TABLE + 4*NEXT_WORD]
-		jae	A_DOCOL
-		jmp	eax
+		%if 0
+			mov	ebx, [STATIC_TABLE + 4*NEXT_WORD]
+			jae	A_DOCOL
+			jmp	ebx
+		%else
+			jae	.docol
+			jmp	[STATIC_TABLE + 4*NEXT_WORD]
+			.docol:
+			rspush	FORTH_OFFSET
+			mov	esi, [STATIC_TABLE + 4*NEXT_WORD]
+			NEXT
+		%endif
 
 	%else
 		%error unhandled case
@@ -206,7 +243,7 @@ A_NEXT:
 ; **** END INIT ****
 
 ; f_while <imm8>:
-;  1. decrement counter
+;  1. decrement an unspecified loop counter
 ;  2. if counter != 0:
 ;	jump imm8 bytes
 DEF "while", no_next
@@ -221,7 +258,6 @@ DEF "while", no_next
 	lea	ebp, [ebp+4]
 
 DEF "while2"
-	xor	eax, eax
 	dec	dword [ebp]
 	lodsb
 
@@ -230,11 +266,11 @@ DEF "while2"
 	sub	esi, eax
 	NEXT
 	.end:
-	lea	ebp, [ebp+4]
+	;lea	ebp, [ebp+4]
+	add	ebp, 4
 
 
 DEF "string"
-	xor	eax,eax
 	lodsb
 	push	esi
 	push	eax
@@ -261,6 +297,7 @@ DEF "divmod"
 	div	ebx
 	push	edx
 	push	eax
+	xor	eax, eax
 
 %if 1
 DEF "asmjmp"
@@ -293,6 +330,7 @@ DEF "syscall3", no_next
 
 	int	0x80
 	push	eax
+	xor	eax, eax
 
 DEF "int3"
 	int3
