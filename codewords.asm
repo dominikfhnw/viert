@@ -221,7 +221,7 @@ A_NEXT:
 ;  2. if counter != 0:
 ;	jump imm8 bytes
 DEF "while", no_next
-%if 0
+%if 1
 	dec	dword [ebp]
 	;push	dword [ebp]
 
@@ -231,12 +231,20 @@ DEF "while", no_next
 	movsx	eax, al
 	add	esi, eax
 	;rspop	eax
-%else
+%elif 0
 	dec	dword [ebp]
+	movsx	eax, byte [esi]
 	lodsb
 	jz	A_NEXT
-	movsx	eax, al
 	add	esi, eax
+%else
+	dec	dword [ebp]
+	;lodsb
+	movsx	eax, byte [esi]
+	jz	.end
+	add	esi, eax
+	.end:
+	inc	esi
 %endif
 
 
