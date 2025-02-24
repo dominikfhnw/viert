@@ -208,6 +208,12 @@ ASM_OFFSET:
 	%pop loopctx
 %endmacro
 
+%macro endloop2 arg(0)
+	f_while2
+	db $ - %$loop + 1
+	%pop loopctx
+%endmacro
+
 %include "forthwords.asm"
 
 _start:

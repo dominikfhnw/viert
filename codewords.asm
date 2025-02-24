@@ -132,7 +132,7 @@ NEXT
 
 ; TODO: merge with WORDVAL macro
 %if WORD_TABLE
-	%define BREAK 28
+	%define BREAK 29
 %else
 	%define BREAK (END_OF_CODEWORDS - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %endif
@@ -233,12 +233,9 @@ A_NEXT:
 ;  2. if counter != 0:
 ;	jump imm8 bytes
 DEF "while", no_next
-%if 1
 	dec	dword [ebp]
-	;push	dword [ebp]
-
-	;pop	ecx
 	lodsb
+
 	jz	.end
 	movsx	eax, al
 	add	esi, eax
@@ -246,21 +243,17 @@ DEF "while", no_next
 	.end:
 	lea	ebp, [ebp+4]
 
-%elif 0
+DEF "while2"
+	xor	eax, eax
 	dec	dword [ebp]
-	movsx	eax, byte [esi]
 	lodsb
-	jz	A_NEXT
-	add	esi, eax
-%else
-	dec	dword [ebp]
-	;lodsb
-	movsx	eax, byte [esi]
+
 	jz	.end
-	add	esi, eax
+	;movsx	eax, al
+	sub	esi, eax
+	NEXT
 	.end:
-	inc	esi
-%endif
+	lea	ebp, [ebp+4]
 
 
 DEF "string"
