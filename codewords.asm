@@ -173,9 +173,7 @@ A_NEXT:
 		lodsWORD
 		cmp	al, BREAK
 
-		mov	eax, [STATIC_TABLE + 2*NEXT_WORD]
-		cwde
-		;add	eax, TABLE_OFFSET
+		movzx	eax, word [STATIC_TABLE + 2*NEXT_WORD]
 		lea	eax, [eax + TABLE_OFFSET]
 		jae	A_DOCOL
 		jmp	eax
