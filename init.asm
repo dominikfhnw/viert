@@ -40,7 +40,12 @@ rinit
 	; this is slightly confusing, as we're misusing the TABLE_OFFSET
 	; variable for ASM_OFFSET
 	rset	TABLE_OFFSET, 0
-	set	TABLE_OFFSET, ORG
+
+	%if WORD_TABLE ==  1 && WORD_SMALLTABLE == 0
+		mov	TABLE_OFFSET, STATIC_TABLE
+	%else
+		set	TABLE_OFFSET, ORG
+	%endif
 
 	.brk1:
 	;rtaint

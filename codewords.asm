@@ -132,7 +132,7 @@ NEXT
 
 ; TODO: merge with WORDVAL macro
 %if WORD_TABLE
-	%define BREAK 29
+	%define BREAK 28
 %else
 	%define BREAK (END_OF_CODEWORDS - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %endif
@@ -210,8 +210,20 @@ A_NEXT:
 		jmp	eax
 
 	%endif
-%else
-	%error unhandled case
+%else ; table with 4 byte offsets
+	%if THRESH
+		taint	eax
+		set	NEXT_WORD, 0
+		lodsWORD
+		cmp	al, BREAK
+
+		mov	eax, [STATIC_TABLE + 4*NEXT_WORD]
+		jae	A_DOCOL
+		jmp	eax
+
+	%else
+		%error unhandled case
+	%endif
 %endif
 
 ; **** END INIT ****

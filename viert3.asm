@@ -304,7 +304,7 @@ SECTION .rodata align=1
 		%if WORD_SMALLTABLE
 			dw (DEF%[i] - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 		%else
-			%error unsupported atm
+			;%error unsupported atm
 			dd DEF%[i]
 		%endif
 		%assign i i+1
