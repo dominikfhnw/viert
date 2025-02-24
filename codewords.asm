@@ -11,14 +11,14 @@
 ;
 ; zero-eax vs before:
 ; lit32:	+2
-; divmod:	+2
+; divmod:	+1
 ; syscall3:	+2
 ; DOCOL:	+1
 ; lit8:		-2
 ; NEXT:		-3
 ; while2:	-2
 ; string:	-2
-; TOTAL:	-2
+; TOTAL:	-3
 
 ; first definition does not need a NEXT
 DEF "EXIT", no_next
@@ -291,9 +291,9 @@ DEF "dec"
 	dec	dword [esp]
 
 DEF "divmod"
+	cdq
 	pop	ebx
 	pop	eax
-	xor	edx, edx
 	div	ebx
 	push	edx
 	push	eax
