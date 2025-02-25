@@ -19,8 +19,7 @@ rinit
 ;rwx
 
 %if !WORD_TABLE && WORD_SIZE == 4
-	%error borked
-	set	FORTH_OFFSET, FORTH
+	mov	FORTH_OFFSET, FORTH
 	%if WORD_FOOBEL
 		jmp	[FORTH_OFFSET]
 	%else
