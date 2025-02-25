@@ -62,6 +62,12 @@ DEFFORTH "emit"
 	f_drop
 ENDDEF
 
+DEFFORTH "tos"
+	f_sp_at
+	lit 4
+	f_puts
+ENDDEF
+
 DEFFORTH "nl"
 	lit `\n`
 	f_emit
@@ -91,32 +97,50 @@ ENDDEF
 DEFFORTH "nop"
 ENDDEF
 
-DEFFORTH "dotstep"
-	; divide TOS by 10
-	lit 10
-	f_divmod
-ENDDEF
-
-DEFFORTH "emitdigit"
-	; convert to ascii
-	lit '0'
-	f_plus
-	f_emit
-ENDDEF
+;DEFFORTH "emitdigit"
+;	; convert to ascii
+;	lit '0'
+;	f_plus
+;	f_emit
+;ENDDEF
 
 DEFFORTH "dot"
 
 	doloop 10
-		f_dotstep
+		lit 10
+		f_divmod
 	endloop
 
+	f_drop
+
 	doloop 10
-		f_emitdigit
+		lit '0'
+		f_plus
+		f_emit
 	endloop
 
 	f_nl
 
 ENDDEF
+
+DEFFORTH "dbg"
+	f_dup
+	f_dot
+	f_rot
+	f_rot
+
+	f_dup
+	f_dot
+	f_rot
+	f_rot
+
+	f_dup
+	f_dot
+	f_rot
+	f_rot
+
+ENDDEF
+
 
 DEFFORTH "fib"
 	f_2dup
