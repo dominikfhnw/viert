@@ -131,7 +131,7 @@ NEXT
 
 ; TODO: merge with WORDVAL macro
 %if WORD_TABLE
-	%define BREAK 29
+	%define BREAK 30
 %else
 	%define BREAK (END_OF_CODEWORDS - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %endif
@@ -277,18 +277,27 @@ DEF "string"
 	add	esi, eax
 
 DEF "plus"
+%if 0
 	pop	edx
 	pop	ebx
 	add	edx, ebx
 	push	edx
+%else
+	pop	edx
+	add	[esp], edx
+%endif
 
 DEF "negate"
-	pop	ebx
-	neg	ebx
-	push	ebx
+	neg	dword [esp]
 
 DEF "dec"
 	dec	dword [esp]
+
+DEF "inc"
+	inc	dword [esp]
+	;pop	ebx
+	;inc	ebx
+	;push	ebx
 
 DEF "divmod"
 	cdq
