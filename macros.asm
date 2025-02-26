@@ -65,6 +65,8 @@
 
 %if WORD_TABLE
 	%define WORDVAL(a) a
+%elif WORD_SIZE == 4
+	%define WORDVAL(a) DEF%tok(a)
 %else
 	%define WORDVAL(a) (DEF%tok(a) - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %endif
