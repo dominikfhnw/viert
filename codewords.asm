@@ -304,23 +304,11 @@ DEF "divmod"
 	push	eax
 	xor	eax, eax
 
-%if 1
-DEF "asmjmp"
-	pop	ebx
-	pop	ebx
-	jmp	ebx
-%else
+DEF "int3"
+	int3
 
-;DEF "asmret"
-;	xor	eax,eax
-;	lodsb
-;	mov	ebx, esi
-;	add	esi, eax
-;	jmp	ebx
-%endif
 
-; asmret above does not directly return
-DEF "syscall3", no_next
+DEF "syscall3"
 %if 0
 	pop	edx
 	pop	ecx
@@ -337,10 +325,21 @@ DEF "syscall3", no_next
 	push	eax
 	xor	eax, eax
 
-DEF "int3"
-	int3
+%if 1
+DEF "asmjmp"
+	pop	ebx
+	pop	ebx
+	jmp	ebx
+%else
 
-NEXT
+;DEF "asmret"
+;	xor	eax,eax
+;	lodsb
+;	mov	ebx, esi
+;	add	esi, eax
+;	jmp	ebx
+%endif
+
 END_OF_CODEWORDS:
 	%warning "BREAK" WORD_COUNT
 	%if WORD_TABLE == 1 && WORD_COUNT != BREAK
