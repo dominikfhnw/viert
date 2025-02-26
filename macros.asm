@@ -5,7 +5,7 @@
 
 %macro NEXT arg(0)
 	%if BIGJMP
-		jmp    [edi]
+		jmp    [BASE]
 	%else
 		jmp JMPLEN A_NEXT
 	%endif
@@ -100,19 +100,19 @@
 %endmacro
 
 %imacro rspop arg(1)
-	xchg	ebp, esp
+	xchg	RETURN_STACK, esp
 	pop	%1
-	xchg	ebp, esp
+	xchg	RETURN_STACK, esp
 %endmacro
 
 %imacro rspush arg(1)
 %if 0
-	lea	ebp, [ebp-4]
-	mov	[ebp], esi
+	lea	RETURN_STACK, [RETURN_STACK-4]
+	mov	[RETURN_STACK], FORTH_OFFSET
 %else
-	xchg	ebp, esp
+	xchg	RETURN_STACK, esp
 	push	%1
-	xchg	ebp, esp
+	xchg	RETURN_STACK, esp
 %endif
 %endmacro
 

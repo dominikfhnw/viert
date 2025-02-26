@@ -9,11 +9,15 @@ rinit
 	;mmap	0x10000, 0xffff, PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, 0, 0
 	add	eax, eax
 	taint	eax
-	ychg	eax, ebp
+	ychg	eax, RETURN_STACK
 %else
 	enter	0xFFFF, 0
+	taint	ebp
+	%ifnidn RETURN_STACK,ebp
+		ychg	ebp, RETURN_STACK
+	%endif
 	; data stack should be the unlimited segment normally. +2 bytes
-	;xchg	esp, ebp
+	;xchg	esp, RETURN_STACK
 %endif
 
 ;rwx
@@ -26,15 +30,10 @@ rinit
 		jmp	A_NEXT
 	%endif
 %else
-
-	; this is slightly confusing, as we're misusing the TABLE_OFFSET
-	; variable for ASM_OFFSET
-	rset	TABLE_OFFSET, 0
-
 	%if WORD_TABLE ==  1 && WORD_SMALLTABLE == 0
-		mov	TABLE_OFFSET, STATIC_TABLE
+		mov	BASE, STATIC_TABLE
 	%else
-		set	TABLE_OFFSET, ORG
+		set	BASE, ORG
 	%endif
 
 	.brk1:
@@ -55,29 +54,29 @@ rinit
 	%endif
 	.endbrk:
 	;pause
-	;mprotect edi, 0xFFFF,7
+	;mprotect BASE, 0xFFFF,7
 	;mov	ebx, esp
 	;xor	bx, bx
 	;mprotect ebx, 0x2000,6
 	;mprotect 0x10000, 0x1000,6
 
-	;mov	[edi], dword A_NEXT
+	;mov	[BASE], dword A_NEXT
 	%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
 
 	; XXX magic
 	%if 0 ; some magic that doesn't always works
-		mov	eax, TABLE_OFFSET
+		mov	eax, BASE
 		mov	al, OFF
-		;lea	eax, [TABLE_OFFSET + OFF]
+		;lea	eax, [BASE + OFF]
 	%else ; simple but slightly larger
 		%if THRESH
-			mov	esi, FORTH
+			mov	FORTH_OFFSET, FORTH
 		%else
 			mov	eax, FORTH - 2
 		%endif
 	%endif
 
-	;lea	eax, [TABLE_OFFSET  + OFF]
+	;lea	eax, [BASE + OFF]
 	;DOCOL
 %endif
 

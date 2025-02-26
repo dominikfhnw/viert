@@ -78,7 +78,8 @@ exit
 %define THRESH		1
 %endif
 
-%define	TABLE_OFFSET	edi
+%define	BASE		edi
+%define	RETURN_STACK	ebp
 %define	FORTH_OFFSET	esi
 %define	NEXT_WORD	eax
 
@@ -181,7 +182,7 @@ ASM_OFFSET:
 
 	%macro endasm 0
 		NEXT
-		;jmp	[edi + offset(ASM_OFFSET)]
+		;jmp	[BASE + offset(ASM_OFFSET)]
 		%$endasm:
 		f_asmjmp
 		%pop asmctx

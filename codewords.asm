@@ -88,7 +88,7 @@ DEF "cfetch"
 	mov	al, [ebx]
 
 DEF "dupr2d"
-	push	dword [ebp]
+	push	dword [RETURN_STACK]
 
 DEF "rspop"
 	rspop	ebx
@@ -99,15 +99,15 @@ DEF "rspush"
 	pop	ebx
 	rspush	ebx
 	%else ; same amount of bytes, less instructions
-	lea	ebp, [ebp-4]
-	pop	dword [ebp] ; would be one byte less if !ebp
+	lea	RETURN_STACK, [RETURN_STACK-4]
+	pop	dword [RETURN_STACK] ; would be one byte less if !ebp
 	%endif
 
 ;DEF "rsdec"
-;	dec	dword [ebp]
+;	dec	dword [RETURN_STACK]
 
 DEF "rsinc"
-	inc	dword [ebp]
+	inc	dword [RETURN_STACK]
 
 ; **** INIT BLOCK ****
 NEXT
@@ -129,13 +129,10 @@ rspush	FORTH_OFFSET
 	inc	ebx
 %endif
 
-mov	esi, ebx
+mov	FORTH_OFFSET, ebx
 
 
 A_NEXT:
-
-%define	BASE	ORG
-%define	BASE	TABLE_OFFSET
 
 %if !WORD_TABLE && WORD_SIZE == 4
 	lodsWORD
@@ -206,7 +203,8 @@ A_NEXT:
 	%if THRESH
 		lodsWORD
 		cmp	al, BREAK
-		%if 0
+		; small
+		%if 1
 			mov	ebx, [STATIC_TABLE + 4*NEXT_WORD]
 			jae	A_DOCOL
 			jmp	ebx
@@ -215,7 +213,8 @@ A_NEXT:
 			jmp	[STATIC_TABLE + 4*NEXT_WORD]
 			.docol:
 			rspush	FORTH_OFFSET
-			mov	esi, [STATIC_TABLE + 4*NEXT_WORD]
+			mov	FORTH_OFFSET, [STATIC_TABLE + 4*NEXT_WORD]
+			NEXT
 		%endif
 
 	%else
@@ -227,28 +226,28 @@ A_NEXT:
 
 %if 0
 DEF "while", no_next
-	dec	dword [ebp]
+	dec	dword [RETURN_STACK]
 	lodsb
 
 	jz	.end
 	movsx	ebx, al
-	add	esi, ebx
+	add	FORTH_OFFSET, ebx
 	NEXT
 	.end:
-	lea	ebp, [ebp+4]
+	lea	RETURN_STACK, [RETURN_STACK+4]
 %endif
 
-DEF "zbranch"
+DEF "zbranch", no_next
 	pop	ecx
 	jecxz	A_branch
-	inc	esi
+	inc	FORTH_OFFSET
 
 DEF "branch"
-	movsx	ebx, byte [esi]
-	add	esi, ebx
+	movsx	ebx, byte [FORTH_OFFSET]
+	add	FORTH_OFFSET, ebx
 
 ;DEF "branch32"
-;	add	esi, [esi]
+;	add	FORTH_OFFSET, [FORTH_OFFSET]
 
 ; f_while <imm8>:
 ;  1. decrement an unspecified loop counter
@@ -256,21 +255,21 @@ DEF "branch"
 ;	jump imm8 bytes
 DEF "while2"
 	lodsb			; load jump offset
-	dec	dword [ebp]	; decrement loop counter
+	dec	dword [RETURN_STACK]	; decrement loop counter
 
 	jz	A_rdrop		; clean up return stack if we're finished
 	;movsx	eax, al		; convert to -128..127 range
-	sub	esi, eax
+	sub	FORTH_OFFSET, eax
 
 DEF "rdrop"
-	lea	ebp, [ebp+4]
+	lea	RETURN_STACK, [RETURN_STACK+4]
 
 
 DEF "string"
 	lodsb
-	push	esi
+	push	FORTH_OFFSET
 	push	eax
-	add	esi, eax
+	add	FORTH_OFFSET, eax
 
 DEF "plus"
 %if 0
@@ -335,8 +334,8 @@ DEF "asmjmp"
 ;DEF "asmret"
 ;	xor	eax,eax
 ;	lodsb
-;	mov	ebx, esi
-;	add	esi, eax
+;	mov	ebx, FORTH_OFFSET
+;	add	FORTH_OFFSET, eax
 ;	jmp	ebx
 %endif
 
