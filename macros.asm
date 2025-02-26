@@ -45,7 +45,7 @@
 	%endif
 
 	; another align here, to override "align with nop"
-	align WORD_ALIGN, db 0xff
+	align WORD_ALIGN, db 0
 	DEF %1, no_next
 	%if !THRESH
 		DOCOL
