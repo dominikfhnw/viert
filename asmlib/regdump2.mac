@@ -17,7 +17,7 @@
 ;%define SPACE 1
 %define NEWLINE 1
 %define EXTENDED 0
-%define FLAGS 0
+%define FLAGS 1
 %define IP 1
 %define	STACK 3
 
