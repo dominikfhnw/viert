@@ -25,15 +25,6 @@ rinit
 	%else
 		jmp	A_NEXT
 	%endif
-%elif 0 && !WORD_TABLE && WORD_SIZE == 1
-	%error borked
-	rset	TABLE_OFFSET, 0
-	set	TABLE_OFFSET, ORG
-	%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
-	;set	eax, FORTH - 2
-	mov	eax, TABLE_OFFSET
-	mov	al, OFF
-	;DOCOL
 %else
 
 	; this is slightly confusing, as we're misusing the TABLE_OFFSET
