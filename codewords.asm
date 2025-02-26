@@ -232,7 +232,6 @@ A_NEXT:
 			.docol:
 			rspush	FORTH_OFFSET
 			mov	esi, [STATIC_TABLE + 4*NEXT_WORD]
-			NEXT
 		%endif
 
 	%else
