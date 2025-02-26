@@ -109,22 +109,6 @@ DEF "rspush"
 DEF "rsinc"
 	inc	dword [ebp]
 
-DEF "zbranch"
-
-	pop	ecx
-	lodsb
-	jecxz	A_NEXT
-;DEF "branch", no_next
-	;lodsb
-	movsx	ebx, al
-	add	esi, ebx
-
-DEF "branch"
-	lodsb
-	movsx	ebx, al
-	add	esi, ebx
-
-
 ; **** INIT BLOCK ****
 NEXT
 
@@ -241,10 +225,7 @@ A_NEXT:
 
 ; **** END INIT ****
 
-; f_while <imm8>:
-;  1. decrement an unspecified loop counter
-;  2. if counter != 0:
-;	jump imm8 bytes
+%if 0
 DEF "while", no_next
 	dec	dword [ebp]
 	lodsb
@@ -255,18 +236,34 @@ DEF "while", no_next
 	NEXT
 	.end:
 	lea	ebp, [ebp+4]
+%endif
 
+DEF "zbranch"
+	pop	ecx
+	jecxz	A_branch
+	inc	esi
+
+DEF "branch"
+	movsx	ebx, byte [esi]
+	add	esi, ebx
+
+;DEF "branch32"
+;	add	esi, [esi]
+
+; f_while <imm8>:
+;  1. decrement an unspecified loop counter
+;  2. if counter != 0:
+;	jump imm8 bytes
 DEF "while2"
-	dec	dword [ebp]
-	lodsb
+	lodsb			; load jump offset
+	dec	dword [ebp]	; decrement loop counter
 
-	jz	.end
-	;movsx	eax, al
+	jz	A_rdrop		; clean up return stack if we're finished
+	;movsx	eax, al		; convert to -128..127 range
 	sub	esi, eax
-	NEXT
-	.end:
-	;lea	ebp, [ebp+4]
-	add	ebp, 4
+
+DEF "rdrop"
+	lea	ebp, [ebp+4]
 
 
 DEF "string"
