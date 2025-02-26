@@ -26,9 +26,9 @@
 	%warning NEW DEFINITION: DEF%[WORD_COUNT] %1
 	;%define %[%tok(%1)] WORD %[WORD_COUNT]
 	rtaint
-	%if !WORD_SMALLTABLE && WORD_TABLE
+	;%if !WORD_SMALLTABLE && WORD_TABLE
 		rset	NEXT_WORD, WORD_COUNT
-	%endif
+	;%endif
 	%assign WORD_COUNT WORD_COUNT+1
 %endmacro
 
