@@ -87,8 +87,10 @@ DEF "cfetch"
 	pop	ebx
 	mov	al, [ebx]
 
+%if 0
 DEF "dupr2d"
 	push	dword [RETURN_STACK]
+%endif
 
 DEF "rspop"
 	rspop	ebx
@@ -115,7 +117,7 @@ NEXT
 
 ; TODO: merge with WORDVAL macro
 %if WORD_TABLE
-	%define BREAK 30
+	%define BREAK 29
 %else
 	%define BREAK (END_OF_CODEWORDS - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %endif
@@ -208,7 +210,10 @@ A_NEXT:
 			mov	ebx, [STATIC_TABLE + 4*NEXT_WORD]
 			jae	A_DOCOL
 			jmp	ebx
+		; fast
+		; TODO: broken
 		%else
+			;%fatal broken
 			jae	.docol
 			jmp	[STATIC_TABLE + 4*NEXT_WORD]
 			.docol:
