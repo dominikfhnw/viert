@@ -119,7 +119,7 @@ NEXT
 %if WORD_TABLE
 	%define BREAK 29
 %else
-	%define BREAK (END_OF_CODEWORDS - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+	%define BREAK offset(END_OF_CODEWORDS)
 %endif
 
 

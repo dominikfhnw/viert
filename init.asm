@@ -61,12 +61,13 @@ rinit
 	;mprotect 0x10000, 0x1000,6
 
 	;mov	[BASE], dword A_NEXT
-	%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
+	;%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
 
 	; XXX magic
 	%if 0 ; some magic that doesn't always works
-		mov	eax, BASE
-		mov	al, OFF
+		%fatal borked
+		;mov	eax, BASE
+		;mov	al, OFF
 		;lea	eax, [BASE + OFF]
 	%else ; simple but slightly larger
 		%if THRESH

@@ -182,7 +182,6 @@ ASM_OFFSET:
 
 	%macro endasm 0
 		NEXT
-		;jmp	[BASE + offset(ASM_OFFSET)]
 		%$endasm:
 		f_asmjmp
 		%pop asmctx
@@ -309,7 +308,7 @@ SECTION .rodata align=1
 	%assign	i 0
 	%rep	WORD_COUNT
 		%if WORD_SMALLTABLE
-			dw (DEF%[i] - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+			dw offset(DEF%[i])
 		%else
 			;%error unsupported atm
 			dd DEF%[i]
@@ -317,7 +316,7 @@ SECTION .rodata align=1
 		%assign i i+1
 	%endrep
 	%if WORD_SMALLTABLE
-		;times (256-WORD_COUNT) dw (DEF0 - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+		;times (256-WORD_COUNT) dw offset(DEF0)
 		;resw (256-WORD_COUNT)
 	%else
 		;times (256-WORD_COUNT) dd DEF1

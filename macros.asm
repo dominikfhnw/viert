@@ -3,6 +3,8 @@
 %define JMPLEN short
 %endif
 
+%define offset(a)	(a - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+
 %macro NEXT arg(0)
 	%if BIGJMP
 		jmp    [BASE]
@@ -41,7 +43,7 @@
 	%if WORD_TABLE
 		%assign wcurr	WORD_COUNT-1
 	%else
-		%define wcurr	(%$current - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+		%define wcurr	offset(%$current)
 	%endif
 
 	; another align here, to override "align with nop"
@@ -68,7 +70,7 @@
 %elif WORD_SIZE == 4
 	%define WORDVAL(a) DEF%tok(a)
 %else
-	%define WORDVAL(a) (DEF%tok(a) - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+	%define WORDVAL(a) offset(DEF%tok(a))
 %endif
 
 %macro WORD 1
@@ -125,9 +127,3 @@
 		dd %1
 	%endif
 %endmacro
-
-%define offset(a)	(a - $$ + ELF_HEADER_SIZE)
-%macro off2 1
-	(%1 - $$ + ELF_HEADER_SIZE)
-%endmacro
-
