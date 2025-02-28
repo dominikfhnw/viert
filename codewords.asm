@@ -1,4 +1,12 @@
 ; **** Codeword definitions ****
+%if WORD_TABLE
+	%ifndef BREAK
+	%define BREAK 24
+	%endif
+%else
+	%define BREAK offset(END_OF_CODEWORDS)
+%endif
+
 
 ; ABI
 ; esi:	Instruction pointer to next forth word
@@ -6,7 +14,12 @@
 ; esp:	Data stack
 ; ebp:	Return stack
 ; eax:	Contains value of forth word being executed.
-;	Must be set =< 255 when returning from assembler code
+;	Must be set =< 255 when returning from primitive
+; edx:	First working register for primitives
+; ecx:  Second working register for primitives, counter register
+; ebx:	FORTH_OFFSET of calling function. Third working register
+;
+; Currently, f_syscall and f_rot are clobbering ebx.
 ;
 ;
 ; zero-eax vs before:
@@ -112,15 +125,6 @@ DEF "rsinc"
 
 ; **** INIT BLOCK ****
 NEXT
-
-
-; TODO: merge with WORDVAL macro
-%if WORD_TABLE
-	%define BREAK 29
-%else
-	%define BREAK offset(END_OF_CODEWORDS)
-%endif
-
 
 A_DOCOL:
 rspush	FORTH_OFFSET
