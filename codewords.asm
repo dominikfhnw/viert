@@ -232,19 +232,6 @@ A_NEXT:
 
 ; **** END INIT ****
 
-%if 0
-DEF "while", no_next
-	dec	dword [RETURN_STACK]
-	lodsb
-
-	jz	.end
-	movsx	ebx, al
-	add	FORTH_OFFSET, ebx
-	NEXT
-	.end:
-	lea	RETURN_STACK, [RETURN_STACK+4]
-%endif
-
 DEF "zbranch", no_next
 	pop	ecx
 	jecxz	A_branch
