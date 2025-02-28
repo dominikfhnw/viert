@@ -238,8 +238,8 @@ DEF "zbranch", no_next
 	inc	FORTH_OFFSET
 
 DEF "branch"
-	movsx	ebx, byte [FORTH_OFFSET]
-	add	FORTH_OFFSET, ebx
+	movsx	edx, byte [FORTH_OFFSET]
+	add	FORTH_OFFSET, edx
 
 ;DEF "branch32"
 ;	add	FORTH_OFFSET, [FORTH_OFFSET]
