@@ -37,24 +37,6 @@
 DEF "EXIT", no_next
 	rspop	FORTH_OFFSET
 
-DEF "lit8"
-	lodsb
-	push	eax
-
-%if 0
-DEF "lit16"
-	lodsb
-	mov	ah, al
-	lodsb
-	cwde
-	push	eax
-%endif
-
-DEF "lit32"
-	lodsd
-	push	eax
-	xor	eax, eax
-
 DEF "sp_at"
 	push	esp
 
@@ -294,15 +276,34 @@ DEF "divmod"
 	pop	ecx
 	pop	eax
 	div	ecx
+pushedxeax:
 	push	edx
+pusheax:
 	push	eax
 	xor	eax, eax
 
 DEF "int3"
 	int3
 
+DEF "lit8"
+	lodsb
+	jmp	pusheax
 
-DEF "syscall3"
+%if 0
+DEF "lit16"
+	lodsb
+	mov	ah, al
+	lodsb
+	cwde
+	push	eax
+%endif
+
+DEF "lit32", no_next
+	lodsd
+	jmp	pusheax
+
+
+DEF "syscall3", no_next
 %if 0
 	pop	edx
 	pop	ecx
@@ -316,8 +317,8 @@ DEF "syscall3"
 %endif
 
 	int	0x80
-	push	eax
-	xor	eax, eax
+	jmp	pusheax
+
 
 %if 1
 DEF "asmjmp"
