@@ -143,30 +143,11 @@ A_NEXT:
 	%endif
 
 %elif !WORD_TABLE && WORD_SIZE == 1
-	%if THRESH
-		%if WORD_ALIGN > 1
-			lodsWORD
-			cmp	al, BREAK
-			lea	ebx, [eax*WORD_ALIGN+BASE]
-		%else
-			%fatal not working
-			mov	eax, BASE
-			lodsWORD
-			cmp	al, BREAK
-		%endif
-		jae	A_DOCOL
-		jmp	ebx
-	%else
-		%if WORD_ALIGN > 1
-			lodsWORD
-			lea	ebx, [eax*WORD_ALIGN+BASE]
-		%else
-			%fatal not working
-			mov	eax, BASE
-			lodsWORD
-		%endif
-		jmp	ebx
-	%endif
+	lodsWORD
+	cmp	al, BREAK
+	lea	ebx, [eax*WORD_ALIGN+BASE]
+	jae	A_DOCOL
+	jmp	ebx
 %elif WORD_SMALLTABLE
 	%if THRESH
 		lodsWORD
