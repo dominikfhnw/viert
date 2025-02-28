@@ -46,10 +46,10 @@ DEF "sp_at"
 	push	esp
 
 DEF "swap"
-	pop	ebx
 	pop	ecx
-	push	ebx
+	pop	edx
 	push	ecx
+	push	edx
 
 DEF "dup"
 	push	dword [esp]
@@ -58,8 +58,7 @@ DEF "over"
 	push	dword [esp+4]
 
 DEF "drop"
-	; try not to clobber eax with garbage
-	pop	ebx
+	pop	edx
 
 DEF "rot"
 	pop	edx
@@ -71,21 +70,21 @@ DEF "rot"
 
 %define BIGJMP 0
 DEF "store"
-	pop	ebx
-	pop	dword [ebx] ; I have to agree with Kragen here, I'm also amazed this is legal
+	pop	edx
+	pop	dword [edx] ; I have to agree with Kragen here, I'm also amazed this is legal
 
 DEF "fetch"
-	pop	ebx
-	push	dword [ebx] ; This feels less illegal for some reason
+	pop	edx
+	push	dword [edx] ; This feels less illegal for some reason
 
 DEF "cstore"
-	pop	ebx
+	pop	ecx
 	pop	edx
-	mov	[ebx], dl
+	mov	[ecx], dl
 
 DEF "cfetch"
-	pop	ebx
-	mov	al, [ebx]
+	pop	edx
+	mov	al, [edx]
 
 %if 0
 DEF "dupr2d"
@@ -93,13 +92,13 @@ DEF "dupr2d"
 %endif
 
 DEF "rspop"
-	rspop	ebx
-	push	ebx
+	rspop	edx
+	push	edx
 
 DEF "rspush"
 	%if 0
-	pop	ebx
-	rspush	ebx
+	pop	edx
+	rspush	edx
 	%else ; same amount of bytes, less instructions
 	lea	RETURN_STACK, [RETURN_STACK-4]
 	pop	dword [RETURN_STACK] ; would be one byte less if !ebp
@@ -279,8 +278,8 @@ DEF "string"
 DEF "plus"
 %if 0
 	pop	edx
-	pop	ebx
-	add	edx, ebx
+	pop	ecx
+	add	edx, ecx
 	push	edx
 %else
 	pop	edx
@@ -295,15 +294,15 @@ DEF "dec"
 
 DEF "inc"
 	inc	dword [esp]
-	;pop	ebx
-	;inc	ebx
-	;push	ebx
+	;pop	edx
+	;inc	edx
+	;push	edx
 
 DEF "divmod"
 	cdq
-	pop	ebx
+	pop	ecx
 	pop	eax
-	div	ebx
+	div	ecx
 	push	edx
 	push	eax
 	xor	eax, eax
@@ -331,17 +330,17 @@ DEF "syscall3"
 
 %if 1
 DEF "asmjmp"
-	pop	ebx
-	pop	ebx
-	jmp	ebx
+	pop	edx
+	pop	edx
+	jmp	edx
 %else
 
 ;DEF "asmret"
 ;	xor	eax,eax
 ;	lodsb
-;	mov	ebx, FORTH_OFFSET
+;	mov	edx, FORTH_OFFSET
 ;	add	FORTH_OFFSET, eax
-;	jmp	ebx
+;	jmp	edx
 %endif
 
 END_OF_CODEWORDS:
