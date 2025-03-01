@@ -58,9 +58,6 @@
 	%endif
 %endmacro
 
-%macro	RECURSE 0
-	WORD_DEF wcurr
-%endmacro
 
 %macro ENDDEF 0-1
 	%if %0 == 0
@@ -82,26 +79,26 @@
 %endmacro
 
 ; XXX unused?
-%macro OVERRIDE_NEXT 1
-	push n_%[%1]
-	set FORTH_OFFSET, esp
-%endmacro
+;%macro OVERRIDE_NEXT 1
+;	push n_%[%1]
+;	set FORTH_OFFSET, esp
+;%endmacro
 
-%macro DIRECT_EXECUTE 1
-	jmp A_%[%1]
-%endmacro
+;%macro DIRECT_EXECUTE 1
+;	jmp A_%[%1]
+;%endmacro
 
 ; execute 2 words. Undefined behaviour if the second word doesn't exit
 ; Second word has to be already defined.
 ; Second word is expected to be something like "exit"
 ; XXX unused?
-%macro EXECUTE2 2
-	OVERRIDE_NEXT	%2
-	DIRECT_EXECUTE	%1
-%endmacro
+;%macro EXECUTE2 2
+;	OVERRIDE_NEXT	%2
+;	DIRECT_EXECUTE	%1
+;%endmacro
 
 %macro DOCOL arg(0)
-	DIRECT_EXECUTE DOCOL
+	jmp short A_DOCOL
 	%%forth:
 %endmacro
 
