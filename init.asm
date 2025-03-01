@@ -33,7 +33,15 @@ rinit
 	%if WORD_TABLE ==  1 && WORD_SMALLTABLE == 0
 		mov	BASE, STATIC_TABLE
 	%else
-		set	BASE, ORG
+		%if OFFALIGN
+			%if BASEREG
+				set	BASE, ORG
+			%endif
+		%else
+			%if BASEREG
+				set	BASE, ASM_OFFSET
+			%endif
+		%endif
 	%endif
 
 	.brk1:
@@ -63,18 +71,14 @@ rinit
 	;mov	[BASE], dword A_NEXT
 	;%define OFF (FORTH - $$ - 2 + ELF_HEADER_SIZE)
 
-	; XXX magic
-	%if 0 ; some magic that doesn't always works
-		%fatal borked
-		;mov	eax, BASE
-		;mov	al, OFF
-		;lea	eax, [BASE + OFF]
-	%else ; simple but slightly larger
-		%if THRESH
-			mov	FORTH_OFFSET, FORTH
+	%if THRESH
+		%if 0 && !OFFALIGN
+			lea	FORTH_OFFSET, [BASE - ASM_OFFSET + FORTH]
 		%else
-			mov	eax, FORTH - 2
+			mov	FORTH_OFFSET, FORTH
 		%endif
+	%else
+		mov	eax, FORTH - 2
 	%endif
 
 	;lea	eax, [BASE + OFF]
