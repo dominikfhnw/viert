@@ -1,9 +1,60 @@
-DEFFORTH "lit0"
+DEFFORTH "false"
 	lit 0
 ENDDEF
 
-DEFFORTH "exit"
+DEFFORTH "true"
+; defining true as -1 allows use to just use binary "not" to invert booleans
+; this is much more elegant than to use 0 and 1, and then having a special
+; "0=" word like in jonesforth.
+; -1 feels more like the Forth way.
+; This also just uses the first Peano axiom. I don't know any number except
+; 0, and frankly I do not want to know any other numbers.
+	f_false
+	f_not
+ENDDEF
+
+%ifndef f_dec
+DEFFORTH "dec"
+; curiously, we can define dec before inc, even though we only have "plus"
+; and "not" as primitives.
+	f_true
+	f_plus
+ENDDEF
+%endif
+
+%define f_0 f_false
+
+DEFFORTH "1"
+; Ok, let's also use the successor of zero. It makes things easier.
 	lit 1
+ENDDEF
+
+%ifndef f_inc
+DEFFORTH "inc"
+; So this jumps wildly ahead of what started with the first Peano axiom.
+; But truth is, performance is much better with defining increment in terms
+; of plus than the other way around.
+	f_1
+	f_plus
+ENDDEF
+%endif
+
+%ifndef f_negate
+DEFFORTH "negate"
+	f_not
+	f_inc
+ENDDEF
+%endif
+
+%ifndef f_minus
+DEFFORTH "minus"
+	f_negate
+	f_plus
+ENDDEF
+%endif
+
+DEFFORTH "exit"
+	f_1
 	f_syscall3
 ENDDEF noreturn
 
@@ -18,14 +69,6 @@ DEFFORTH "2drop"
 ENDDEF
 
 
-%if 0
-DEFFORTH "dec"
-	lit 1
-	f_negate
-	f_plus
-ENDDEF
-%endif
-
 DEFFORTH "div"
 	f_divmod
 	f_drop
@@ -36,6 +79,17 @@ DEFFORTH "mod"
 	f_swap
 	f_drop
 ENDDEF
+
+%if 0
+DEFFORTH "bool"
+	if
+		f_true
+	else
+		f_false
+	then
+ENDDEF
+%endif
+
 
 DEFFORTH "puts"
 	f_swap
@@ -62,19 +116,36 @@ DEFFORTH "emit"
 	f_drop
 ENDDEF
 
+%if 0
+DEFFORTH "loopdec"
+	;f_upget
+	f_rspop
+	f_dec
+	f_dup
+	f_rspush
+	;f_zbranch
+ENDDEF
+
+DEFFORTH "frdrop"
+	f_rspop
+	f_drop
+ENDDEF
+
 DEFFORTH "tos"
 	f_sp_at
 	lit 4
 	f_puts
 ENDDEF
+%endif
 
 DEFFORTH "nl"
 	lit `\n`
 	f_emit
 ENDDEF
 
+%if 0
 DEFFORTH "brk"
-	f_lit0
+	f_0
 	f_dup
 	f_rot
 	lit 45
@@ -82,7 +153,7 @@ DEFFORTH "brk"
 ENDDEF
 
 DEFFORTH "mem"
-	f_lit0
+	f_0
 	f_brk
 	lit 0x10000
 	f_plus
@@ -96,6 +167,7 @@ ENDDEF
 
 DEFFORTH "nop"
 ENDDEF
+%endif
 
 ;DEFFORTH "emitdigit"
 ;	; convert to ascii
@@ -104,7 +176,7 @@ ENDDEF
 ;	f_emit
 ;ENDDEF
 
-DEFFORTH "dot"
+DEFFORTH "udot"
 
 	doloop 10
 		lit 10
@@ -123,6 +195,18 @@ DEFFORTH "dot"
 
 ENDDEF
 
+DEFFORTH "dot"
+	lit 0x80000000
+	f_and
+	if
+		string "-"
+		f_puts
+		f_negate
+	then
+	f_udot
+ENDDEF
+
+%if 0
 DEFFORTH "dbg"
 	f_dup
 	f_dot
@@ -149,3 +233,4 @@ DEFFORTH "fib"
 	f_dot
 	f_fib
 ENDDEF
+%endif
