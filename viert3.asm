@@ -90,10 +90,27 @@ exit
 %define THRESH		1
 %endif
 
-%define	BASE		edi
-%define	RETURN_STACK	ebp
-%define	FORTH_OFFSET	esi
-%define	NEXT_WORD	eax
+%ifndef OFFALIGN
+%define OFFALIGN	0
+%endif
+
+%ifndef BASEREG
+%define BASEREG		1
+%endif
+
+%if BIT == 64
+	%define	BASE		rdi
+	%define	RETURN_STACK	rbp
+	%define	FORTH_OFFSET	rsi
+	%define	NEXT_WORD	rax
+	%define	native		qword
+%else
+	%define	BASE		edi
+	%define	RETURN_STACK	ebp
+	%define	FORTH_OFFSET	esi
+	%define	NEXT_WORD	eax
+	%define	native		dword
+%endif
 
 %assign	WORD_COUNT	0
 %define zero_seg	1
@@ -150,6 +167,16 @@ exit
 	%define elf_extra_align 4
 %endif
 %define ELF_HEADER_SIZE (52 + 1*32 + elf_extra_align)
+
+%if OFFALIGN
+	%if !BASEREG
+		%define BASE ORG
+	%endif
+%else
+	%if !BASEREG
+		%define BASE ASM_OFFSET
+	%endif
+%endif
 
 ; **** Macros ****
 %include "macros.asm"
