@@ -188,6 +188,14 @@ exit
 
 ; **** Codeword definitions ****
 SECTION .text align=1
+_start:
+; "enter" will push ebp on the stack
+; This means that we can call EXIT to start the forth code at ebp
+; And conveniently, EXIT is the first defined word, so we can "call" it
+; by simply continuing
+mov	ebp, FORTH
+enter	0xFFFF, 0
+
 ASM_OFFSET:
 %include "codewords.asm"
 
@@ -288,9 +296,9 @@ ASM_OFFSET:
 
 %include "forthwords.asm"
 
-_start:
+;_start:
 %include "init.asm"
-jmp	A_NEXT
+;jmp	A_NEXT
 
 
 ; **** Forth code ****
