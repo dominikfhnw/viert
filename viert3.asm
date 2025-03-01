@@ -5,10 +5,24 @@ set -euo pipefail
 #ORG="0x01000000"
 #ORG="0x80000000"
 ORG="0x10000"
-
-OUT=viert
+DUMP="-Mintel"
+#DUMP="--no-addresses -Mintel"
 NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan -Werror=number-overflow"
 #NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan"
+FLAGS="-Map=% -Ttext-segment=$ORG -z noseparate-code"
+#FLAGS="-Map=% -Ttext-segment=$ORG"
+
+BIT=32
+if [ "$BIT" = 64 ]
+then
+	NASMOPT="$NASMOPT -f elf64 -DBIT=$BIT"
+	FLAGS="$FLAGS -m elf_x86_64"
+else
+	NASMOPT="$NASMOPT -f elf32 -DBIT=$BIT"
+	FLAGS="$FLAGS -m elf_i386"
+fi
+
+OUT=viert
 if [ -n "${LINCOM-}" ]; then
 	OUT="$OUT.com"
 	NASMOPT="-DLINCOM=1"
@@ -17,11 +31,8 @@ fi
 
 if [ -n "${FULL-1}" ]; then
 	rm -f $OUT $OUT.o
-	nasm -g -I asmlib/ -f elf32 -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
-	FLAGS="--print-map"
-	FLAGS="-Map=%"
-	FLAGS="-Map=% -Ttext-segment=$ORG"
-	ld $FLAGS -m elf_i386 -z noseparate-code $OUT.o -o $OUT
+	nasm -g -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	ld $FLAGS $OUT.o -o $OUT
 	cp $OUT $OUT.full
 	ls -l $OUT.full
 	sstrip $OUT
@@ -37,14 +48,15 @@ symbols(){
 	#time LC_ALL=C nm -f bsd -td -n $OUT.full
 	time LC_ALL=C eu-nm -f bsd -td -n $OUT.full
 }
+sizes(){
+	time symbols | mawk '/. A_[^.]*$/{sub(/A_/,"");if(name){print $1-size " " name;total+=($1-size)};name=$3;size=$1}END{total+=84;print total " TOTAL"}BEGIN{print "84 ELF"}'|column -tR1
+}
 
-DUMP="-Mintel"
-#DUMP="--no-addresses -Mintel"
 if [ -n "${FULL-1}" ]; then
 	DUMP="$DUMP -j .text -j .rodata"
 	objdump $DUMP -d $OUT.full
-	time symbols | mawk '/. A_[^.]*$/{sub(/A_/,"");if(name){print $1-size " " name;total+=($1-size)};name=$3;size=$1}END{total+=84;print total " TOTAL";print "84 ELF"}'|column -tR1 | sort -nr
-	#time nm -td -n $OUT.full | mawk '/. A_/{sub(/A_/,"");if(name){print $1-size " " name};name=$3;size=$1}'|column -tR1 
+	sizes | sort -nr
+	sizes
 else
 	#OFF=$(  readelf2 -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
 	OFF="0x10000"
