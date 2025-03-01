@@ -18,9 +18,11 @@
 %endmacro
 
 %macro DEF 1-2.nolist
-	%if %0 == 1
-		NEXT
+	%ifctx defcode
+		%fatal Nested DEF not allowed. Did you forget an ENDDEF?
 	%endif
+	%push defcode
+
 	align WORD_ALIGN, nop
 	; objdump prints the lexicographical smallest label. change A to E
 	; or something to get the DEFn labels
@@ -33,38 +35,41 @@
 	;%define %[%tok(%1)] WORD %[WORD_COUNT]
 	rtaint
 	;%if !WORD_SMALLTABLE && WORD_TABLE
-		rset	NEXT_WORD, WORD_COUNT
+		rset	NEXT_WORD, -2 ; 8-bit value
 	;%endif
 	%assign WORD_COUNT WORD_COUNT+1
 %endmacro
 
 %macro DEFFORTH 1
-	%ifctx defforth_ctx
+	%ifctx defforth
 		%fatal Nested DEFFORTH not allowed. Did you forget an ENDDEF?
 	%endif
-	%push defforth_ctx
-	%$current:
-	%if WORD_TABLE
-		%assign wcurr	WORD_COUNT-1
-	%else
-		%define wcurr	offset(%$current)
-	%endif
+	;%push defforth
+	;%$current:
 
 	; another align here, to override "align with nop"
 	align WORD_ALIGN, db 0
 	DEF %1, no_next
+	%repl defforth
 	%if !THRESH
 		DOCOL
 	%endif
 %endmacro
 
-
-%macro ENDDEF 0-1
-	%if %0 == 0
-	f_EXIT
+%macro END 0-1
+	%ifctx defcode
+		%if %0 == 0
+			NEXT
+		%endif
+		%pop defcode
+	%else
+		%if %0 == 0
+			f_EXIT
+		%endif
+		%pop defforth
 	%endif
-	%pop defforth_ctx
 %endmacro
+%define ENDDEF END
 
 %if WORD_TABLE
 	%define WORDVAL(a) a
