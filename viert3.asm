@@ -236,7 +236,7 @@ ASM_OFFSET:
 	%$loop:
 %endmacro
 
-%macro endloop arg(0)
+%macro endloop0 arg(0)
 	;f_rsdec
 	;f_dupr2d
 	;f_zbranch
@@ -247,10 +247,43 @@ ASM_OFFSET:
 	%pop loopctx
 %endmacro
 
-%macro endloop2 arg(0)
+%macro endloop arg(0)
 	f_while2
 	db $ - %$loop + 1
 	%pop loopctx
+%endmacro
+
+%macro endloop2 arg(0)
+	f_loopdec
+	f_zbranch
+	db $ - %$loop + 1
+	%pop loopctx
+%endmacro
+
+%macro if arg(0)
+	%push ifctx
+	f_zbranch
+	db %$jump1 - $
+%endmacro
+
+%macro then arg(0)
+	%$jump1:
+
+	%ifctx elsectx
+		%pop elsectx
+	%endif
+	%pop ifctx
+%endmacro
+
+%macro else arg(0)
+	;string "else"
+	;f_puts
+
+	f_branch
+	%push elsectx
+	db %$jump1 - $
+
+	%$$jump1:
 %endmacro
 
 %include "forthwords.asm"
@@ -265,6 +298,57 @@ jmp	A_NEXT
 
 A_FORTH:
 FORTH:
+
+	lit 0
+	f_bool
+	f_dup
+	f_dot
+
+	f_exit
+
+	lit -12
+	f_dup
+	f_dot
+	f_negate
+	f_dot
+
+
+	f_true
+	;f_false
+	if
+		string "true1"
+		f_puts
+	;else
+	;	string "false1"
+	;	f_puts
+	then
+	string "end1"
+	f_puts
+
+	doloop 3
+		;lit 1
+		;f_plus
+		f_inc
+	endloop
+	f_dot
+
+	f_exit
+
+;	f_false
+;	if
+;		string "true2"
+;		f_puts
+;	else
+;		string "false2"
+;		f_puts
+;	then
+;	string "end2"
+;	f_puts
+;	f_exit
+
+
+
+
 ;	lit 8
 ;	f_rspush
 ;
@@ -274,10 +358,10 @@ FORTH:
 ;	f_dupr2d
 ;	f_zbranch
 ;	db .loop - $ - 1
-	lit 19
-	lit 1234
-	f_dot
-
+	;doloop 10000000
+	;inline_asm
+	;push	12
+	;endasm
 	f_exit
 %if 0
 	;f_exit
