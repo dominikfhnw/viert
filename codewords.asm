@@ -38,10 +38,6 @@ DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
 
-DEF "sp_at"
-	push	esp
-	END
-
 DEF "swap"
 %if 0
 	pop	ecx
@@ -93,8 +89,9 @@ DEF "rot"
 %endif
 
 %define BIGJMP 0
-%if 0
 
+%if 1
+; the minimal primitives
 DEF "store"
 	pop	edx
 	pop	dword [edx] ; I have to agree with Kragen here, I'm also amazed this is legal
@@ -105,6 +102,65 @@ DEF "fetch"
 	push	dword [edx] ; This feels less illegal for some reason
 	END
 
+DEF "sp_at"
+	push	esp
+	END
+
+DEF "rp_at"
+	push	RETURN_STACK
+	END
+
+DEF "0ne"
+	; from milliForth. 2 bytes smaller than my version
+	; neg sets the carry flag if not zero
+	pop	eax
+	neg	eax
+	sbb	eax, eax
+	jmp	pusheax
+	END	no_next
+
+DEF "0lt"
+	; from eForth. Would be 4 bytes smaller than my version
+	; Unfortunately, it clashes with the eax <= 255 condition of this
+	; Forth, making it just 3 bytes smaller
+	pop	eax
+	cdq		; sign extend AX into DX
+	push	edx	; push 0 or -1
+	xchg	eax, edx
+	jmp	pusheax
+	END	no_next
+
+DEF "nand"
+	pop	edx
+	pop	eax
+	and	eax, edx
+	not	eax
+	jmp	pusheax
+	END	no_next
+
+DEF "nand2"
+	pop	edx
+	and	[esp], edx
+	pop	eax
+	not	eax
+	jmp	pusheax
+	END	no_next
+
+DEF "dupemit"
+	; this leaves the stack alone, so technically its a dup and emit combined
+	rset	eax, -2
+	taint	ebx, ecx, edx
+	set	edx, 1
+	set	eax, 4
+	set	ebx, 1
+	set	ecx, esp
+	int	0x80
+	; this will crash spectacularly if write was not successful (eax != 1)
+	END
+
+%endif
+
+%if 0
 DEF "cstore"
 	pop	ecx
 	pop	edx
@@ -366,15 +422,89 @@ DEF "string"
 	add	FORTH_OFFSET, eax
 	END
 
-%if 1
-DEF "bool"
+%if 0
+DEF "0neold"
+	pop	ecx
+	jecxz	.zero
+
+	or	ecx, -1
+	.zero:
+
+	push	ecx
+	END
+%endif
+
+%if 0
+DEF "0eq"
+	pop	ecx
+	jecxz	.zero
+
+	push	0
+	.zero:
+	pop	edx
+
+	push	-1
+	END
+%endif
+
+%if 0
+DEF "0eqjones"
+	pop	eax
+	test	eax, eax
+	setz	al
+	movzx	eax, al
+	push	eax
+	END
+%endif
+
+%if 0
+DEF "0nee"
+	pop	ecx
+	xchg	eax, ecx
+	jecxz	.zero
+	taint	eax
+	set	eax, -1
+	.zero:
+	jmp	pusheax
+	END no_next
+%endif
+
+%if 0
+DEF "0eqq"
+	pop	ecx
+	;xchg	eax, ecx
+	jecxz	.zero
+	mov	al, 0
+	jmp	pusheax
+	.zero:
+	rset	eax, -2
+	set	eax, -1
+	jmp	pusheax
+	END no_next
+%endif
+
+%if 0
+	pop	eax
+	test	eax, eax
+	jz	.zero
+	or	eax, -1
+	.zero:
+	jmp	pusheax
+	END	no_next
+%endif
+
+%if 0
+DEF "0eq2"
 	pop	ecx
 	jecxz	.zero
 	or	ecx, -1
 	.zero:
+	not	ecx
 	push	ecx
 	END
+%endif
 
+%if 0
 DEF "bool2"
         pop	ecx
 	test	ecx, ecx
@@ -420,13 +550,17 @@ DEF "or"
 	or	[esp], edx
 	END
 
-DEF "nand"
+DEF "nor"
 	pop	edx
 	pop	eax
-	and	eax, edx
+	or	eax, edx
+	push	eax
+	END	no_next
+DEF "not2"
+	pop	eax
 	not	eax
 	jmp	pusheax
-	END no_next
+	END	no_next
 
 %if 0
 DEF "dec"
@@ -478,6 +612,7 @@ DEF "lit32"
 	lodsd
 	jmp	pusheax
 	END no_next
+
 
 
 DEF "syscall3"
