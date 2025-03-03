@@ -196,6 +196,7 @@ DEFFORTH "udot"
 ENDDEF
 
 DEFFORTH "dot"
+	f_dup
 	lit 0x80000000
 	f_and
 	if
