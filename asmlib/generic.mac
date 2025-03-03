@@ -384,7 +384,7 @@ rtaint
 %endmacro
 
 %macro rset 2
-	%warning register %1 == %2
+	;%warning register %1 == %2
 	%defstr reg_str %1
 
 	%if %isidn(reg_str, "eax")
