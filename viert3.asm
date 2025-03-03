@@ -55,7 +55,7 @@ sizes(){
 if [ -n "${FULL-1}" ]; then
 	DUMP="$DUMP -j .text -j .rodata"
 	objdump $DUMP -d $OUT.full
-	sizes | sort -nr
+	#sizes | sort -nr
 	sizes
 else
 	#OFF=$(  readelf2 -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
@@ -188,6 +188,7 @@ exit
 
 ; **** Codeword definitions ****
 SECTION .text align=1
+A_INIT1:
 _start:
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
