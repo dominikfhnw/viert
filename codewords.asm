@@ -36,7 +36,7 @@ DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
 
-%if 1
+%if 0
 	DEF "swap"
 		%if 0
 			pop	ecx
@@ -52,11 +52,15 @@ DEF "EXIT"
 		%endif
 %endif
 
-%if 0
-	DEF "dbg"
-		reg
-		END
+%if DEBUG
+DEF "dbg"
+	reg
+	END
+%else
+	%define f_dbg
+%endif
 
+%if 0
 	DEF "dup"
 		%if 1
 			push	dword [esp]
@@ -90,10 +94,11 @@ DEF "EXIT"
 		%endif
 %endif
 
-DEF "drop"
-	pop	edx
-	END
-
+%if 0
+	DEF "drop"
+		pop	edx
+		END
+%endif
 
 %if 1
 ; the minimal primitives
@@ -279,9 +284,9 @@ DEF "exit"
 	%endif
 
 END_OF_CODEWORDS:
-	%warning "BREAK" WORD_COUNT
-	%assign SIZE END_OF_CODEWORDS - $$
-	%warning "SIZE" SIZE
-	%if WORD_TABLE == 1 && WORD_COUNT != BREAK
-		%fatal break constant set to wrong value: WORD_COUNT != BREAK
-	%endif
+%warning "BREAK" WORD_COUNT
+%assign SIZE END_OF_CODEWORDS - $$
+%warning "SIZE" SIZE
+%if WORD_TABLE == 1 && WORD_COUNT != BREAK
+	%fatal break constant set to wrong value: WORD_COUNT != BREAK
+%endif
