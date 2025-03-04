@@ -38,6 +38,7 @@ DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
 
+%if 1
 DEF "swap"
 %if 0
 	pop	ecx
@@ -51,7 +52,17 @@ DEF "swap"
 	jmp	pushedxeax
 	END no_next
 %endif
+%endif
 
+%if 0
+DEF "dbg"
+	;mov	eax, [esp]
+	;taint	eax, ebx, ecx, edx
+	;printnum
+	;set	eax, 0
+	reg
+
+	END
 DEF "dup"
 %if 1
 	push	dword [esp]
@@ -64,10 +75,6 @@ DEF "dup"
 
 DEF "over"
 	push	dword [esp+4]
-	END
-
-DEF "drop"
-	pop	edx
 	END
 
 DEF "rot"
@@ -87,8 +94,12 @@ DEF "rot"
 	jmp	pushedxeax
 	END no_next
 %endif
+%endif
 
-%define BIGJMP 0
+DEF "drop"
+	pop	edx
+	END
+
 
 %if 1
 ; the minimal primitives
@@ -110,15 +121,6 @@ DEF "rp_at"
 	push	RETURN_STACK
 	END
 
-DEF "0ne"
-	; from milliForth. 2 bytes smaller than my version
-	; neg sets the carry flag if not zero
-	pop	eax
-	neg	eax
-	sbb	eax, eax
-	jmp	pusheax
-	END	no_next
-
 DEF "0lt"
 	; from eForth. Would be 4 bytes smaller than my version
 	; Unfortunately, it clashes with the eax <= 255 condition of this
@@ -134,14 +136,6 @@ DEF "nand"
 	pop	edx
 	pop	eax
 	and	eax, edx
-	not	eax
-	jmp	pusheax
-	END	no_next
-
-DEF "nand2"
-	pop	edx
-	and	[esp], edx
-	pop	eax
 	not	eax
 	jmp	pusheax
 	END	no_next
@@ -186,6 +180,7 @@ DEF "rspop"
 
 %endif
 
+%if 1
 DEF "rspush"
 	%if 0
 	pop	edx
@@ -195,6 +190,7 @@ DEF "rspush"
 	pop	dword [RETURN_STACK] ; would be one byte less if !ebp
 	%endif
 	END
+	%endif
 
 ;DEF "rsdec"
 ;	dec	dword [RETURN_STACK]
@@ -304,100 +300,6 @@ DEF "branch"
 	add	FORTH_OFFSET, edx
 	END
 
-%if 0
-DEF "branchstack"
-	;movsx	edx, byte [FORTH_OFFSET]
-	pop	edx
-	add	FORTH_OFFSET, edx
-	END
-
-DEF "upget"
-	xchg	FORTH_OFFSET, ebx
-	lodsb
-	xchg	FORTH_OFFSET, ebx
-	END
-
-DEF "upbranch"
-	xchg	FORTH_OFFSET, ebx
-	lodsb
-	xchg	FORTH_OFFSET, ebx
-	add	FORTH_OFFSET, eax
-	END
-
-DEF "upget"
-	xchg	FORTH_OFFSET, [RETURN_STACK]
-	lodsb
-	xchg	FORTH_OFFSET, [RETURN_STACK]
-	;nop
-	;mov	edx, [RETURN_STACK]
-	;movzx	ecx, byte [edx+1]
-	;inc	dword [RETURN_STACK]
-	END
-
-DEF "while3"
-	lodsb			; load jump offset
-	dec	dword [RETURN_STACK]	; decrement loop counter
-
-	jz	A_rdrop		; clean up return stack if we're finished
-	;movsx	eax, al		; convert to -128..127 range
-	sub	FORTH_OFFSET, eax
-	END
-
-DEF "branchf"
-	lodsb
-	add	FORTH_OFFSET, eax
-	END
-
-DEF "branchb"
-	lodsb
-	sub	FORTH_OFFSET, eax
-	END
-
-DEF "zbranchf"
-	lodsb
-	pop	ecx
-	jecxz	A_NEXT
-	add	FORTH_OFFSET, eax
-	END
-
-DEF "zbranchb"
-	lodsb
-	pop	ecx
-	jecxz	A_NEXT
-	add	FORTH_OFFSET, eax
-	END
-
-DEF "zbranch2"
-	lodsb
-	pop	ecx
-	jecxz	A_NEXT
-	movsx	edx, al
-	add	FORTH_OFFSET, edx
-	END
-
-DEF "zbranch4"
-	;lodsb
-	pop	ecx
-	jecxz	A_NEXT
-	movsx	edx, byte [FORTH_OFFSET]
-	add	FORTH_OFFSET, edx
-	END
-
-
-DEF "upget8"
-	mov	eax, [ebp]
-	inc	dword [ebp]
-	movzx	eax, byte [eax]
-	push	eax
-	END
-
-DEF "upget32"
-	mov	eax, [ebp]
-	inc	dword [ebp]
-	push	dword [eax]
-	END
-%endif
-
 ; f_while <imm8>:
 ;  1. decrement an unspecified loop counter
 ;  2. if counter != 0:
@@ -422,158 +324,14 @@ DEF "string"
 	add	FORTH_OFFSET, eax
 	END
 
-%if 0
-DEF "0neold"
-	pop	ecx
-	jecxz	.zero
-
-	or	ecx, -1
-	.zero:
-
-	push	ecx
-	END
-%endif
-
-%if 0
-DEF "0eq"
-	pop	ecx
-	jecxz	.zero
-
-	push	0
-	.zero:
-	pop	edx
-
-	push	-1
-	END
-%endif
-
-%if 0
-DEF "0eqjones"
-	pop	eax
-	test	eax, eax
-	setz	al
-	movzx	eax, al
-	push	eax
-	END
-%endif
-
-%if 0
-DEF "0nee"
-	pop	ecx
-	xchg	eax, ecx
-	jecxz	.zero
-	taint	eax
-	set	eax, -1
-	.zero:
-	jmp	pusheax
-	END no_next
-%endif
-
-%if 0
-DEF "0eqq"
-	pop	ecx
-	;xchg	eax, ecx
-	jecxz	.zero
-	mov	al, 0
-	jmp	pusheax
-	.zero:
-	rset	eax, -2
-	set	eax, -1
-	jmp	pusheax
-	END no_next
-%endif
-
-%if 0
-	pop	eax
-	test	eax, eax
-	jz	.zero
-	or	eax, -1
-	.zero:
-	jmp	pusheax
-	END	no_next
-%endif
-
-%if 0
-DEF "0eq2"
-	pop	ecx
-	jecxz	.zero
-	or	ecx, -1
-	.zero:
-	not	ecx
-	push	ecx
-	END
-%endif
-
-%if 0
-DEF "bool2"
-        pop	ecx
-	test	ecx, ecx
-	setnz	al                ; AL=0 if ZF=1, else AL=1
-	dec	eax                  ; AL=ff if AL=0, else AL=0
-	;cbw                     ; AH=AL
-	push eax
-	END
-%endif
-
 DEF "plus"
-%if 0
-	pop	edx
-	pop	ecx
-	add	edx, ecx
-	push	edx
-%else
 	pop	edx
 	add	[esp], edx
-%endif
 	END
 
-;DEF "negate"
-;	neg	dword [esp]
-
-DEF "not"
-	not	dword [esp]
-	END
-
-;DEF "not2"
-;	pop	eax
-;	not	eax
-;	jmp	pusheax
-;	END no_next
-
-DEF "and"
-	pop	edx
-	and	[esp], edx
-	END
-
-DEF "or"
-	pop	edx
-	or	[esp], edx
-	END
-
-DEF "nor"
-	pop	edx
-	pop	eax
-	or	eax, edx
-	push	eax
-	END	no_next
-DEF "not2"
-	pop	eax
-	not	eax
-	jmp	pusheax
-	END	no_next
-
-%if 0
-DEF "dec"
-	dec	dword [esp]
-	END
-
-DEF "inc"
-	inc	dword [esp]
-	;pop	edx
-	;inc	edx
-	;push	edx
-	END
-%endif
+;DEF "not"
+;	not	dword [esp]
+;	END
 
 DEF "divmod"
 	cdq		; eax is <= 255, so cdq will always work
@@ -587,23 +345,9 @@ pusheax:
 	xor	eax, eax
 	END
 
-%if 0
-DEF "int3"
-	int3
-	END
-%endif
-
+%if LIT8
 DEF "lit8"
 	lodsb
-	jmp	pusheax
-	END no_next
-
-%if 0
-DEF "lit16"
-	lodsb
-	mov	ah, al
-	lodsb
-	cwde
 	jmp	pusheax
 	END no_next
 %endif
@@ -614,43 +358,27 @@ DEF "lit32"
 	END no_next
 
 
-
-DEF "syscall3"
 %if 0
-	pop	edx
-	pop	ecx
-	pop	ebx
-	pop	eax
-%else
+DEF "syscall3"
 	pop	eax
 	pop	ebx
 	pop	ecx
 	pop	edx
-%endif
 
 	int	0x80
 	jmp	pusheax
 	END no_next
 
-
-%if 0
-DEF "asmjmp"
-	pop	edx
-	pop	edx
-	jmp	edx
-	END no_next
 %else
-
-;DEF "asmret"
-;	xor	eax,eax
-;	lodsb
-;	mov	edx, FORTH_OFFSET
-;	add	FORTH_OFFSET, eax
-;	jmp	edx
-%endif
+DEF "exit"
+	int3
+	END no_next
+	%endif
 
 END_OF_CODEWORDS:
 	%warning "BREAK" WORD_COUNT
+	%assign SIZE END_OF_CODEWORDS - $$
+	%warning "SIZE" SIZE
 	%if WORD_TABLE == 1 && WORD_COUNT != BREAK
 		%fatal break constant set to wrong value: WORD_COUNT != BREAK
 	%endif

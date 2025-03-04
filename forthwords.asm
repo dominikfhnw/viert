@@ -2,6 +2,61 @@ DEFFORTH "false"
 	lit 0
 ENDDEF
 
+%ifndef f_dup
+DEFFORTH "dup"
+	f_sp_at
+	f_fetch
+	END
+	%endif
+
+%ifndef f_not
+DEFFORTH "not"
+	f_dup
+	f_nand
+	END
+	%endif
+
+%ifndef f_over
+DEFFORTH "over"
+	f_sp_at
+	lit 4
+	f_plus
+	f_store
+	END
+	%endif
+
+%ifndef f_and
+DEFFORTH "and"
+	f_nand
+	f_not
+	END
+	%endif
+
+%ifndef f_swap
+DEFFORTH "swap"
+	;: swap ( x y -- y x ) over over sp@ 6 + ! sp@ 2 + ! ;
+	f_over
+	f_over
+	f_sp_at
+	lit 12
+	f_plus
+	f_store
+	f_sp_at
+	lit 4
+	f_plus
+	f_store
+	END
+	%endif
+
+%ifndef f_rspush
+DEFFORTH "rspush"
+	f_not
+	f_and
+	END
+	%endif
+
+
+
 DEFFORTH "true"
 ; defining true as -1 allows use to just use binary "not" to invert booleans
 ; this is much more elegant than to use 0 and 1, and then having a special
@@ -53,10 +108,21 @@ DEFFORTH "minus"
 ENDDEF
 %endif
 
+%ifndef f_drop
+DEFFORTH "drop"
+	f_dup
+	f_plus
+	f_minus
+	END
+	%endif
+
+
+%ifdef	f_syscall3
 DEFFORTH "exit"
 	f_1
 	f_syscall3
-ENDDEF noreturn
+	END noreturn
+	%endif
 
 DEFFORTH "2dup"
 	f_over
@@ -67,7 +133,6 @@ DEFFORTH "2drop"
 	f_drop
 	f_drop
 ENDDEF
-
 
 DEFFORTH "div"
 	f_divmod
@@ -91,6 +156,7 @@ ENDDEF
 %endif
 
 
+%if 0
 DEFFORTH "puts"
 	f_swap
 	lit	1 ;stdout
@@ -98,45 +164,19 @@ DEFFORTH "puts"
 	f_syscall3
 	f_drop
 ENDDEF
-
-%if 0
-DEFFORTH "xputs"
-	f_swap
-	lit	0 ;stdin; yep, that works, as long as stdin is a tty
-	lit	4 ;write
-	f_syscall3
-	f_drop
-ENDDEF
 %endif
 
 DEFFORTH "emit"
-	f_sp_at
-	lit 1
-	f_puts
-	f_drop
+	%if 0
+		f_sp_at
+		lit 1
+		f_puts
+		f_drop
+	%else
+		f_dupemit
+		f_drop
+	%endif
 ENDDEF
-
-%if 0
-DEFFORTH "loopdec"
-	;f_upget
-	f_rspop
-	f_dec
-	f_dup
-	f_rspush
-	;f_zbranch
-ENDDEF
-
-DEFFORTH "frdrop"
-	f_rspop
-	f_drop
-ENDDEF
-
-DEFFORTH "tos"
-	f_sp_at
-	lit 4
-	f_puts
-ENDDEF
-%endif
 
 DEFFORTH "nl"
 	lit `\n`
@@ -165,31 +205,26 @@ DEFFORTH "char"
 	f_emit
 ENDDEF
 
-DEFFORTH "nop"
-ENDDEF
 %endif
 
-;DEFFORTH "emitdigit"
-;	; convert to ascii
-;	lit '0'
-;	f_plus
-;	f_emit
-;ENDDEF
-
 DEFFORTH "udot"
+	;f_dbg
 
-	doloop 10
+	doloop1 10
 		lit 10
 		f_divmod
-	endloop
+		;f_dbg
+	endloop1
 
 	f_drop
 
-	doloop 10
+	doloop1 10
+		;f_dbg
 		lit '0'
 		f_plus
+		;f_dbg
 		f_emit
-	endloop
+	endloop1
 
 	f_nl
 
@@ -200,38 +235,10 @@ DEFFORTH "dot"
 	lit 0x80000000
 	f_and
 	if
-		string "-"
-		f_puts
+		;string "-"
+		lit '-'
+		f_emit
 		f_negate
 	then
 	f_udot
 ENDDEF
-
-%if 0
-DEFFORTH "dbg"
-	f_dup
-	f_dot
-	f_rot
-	f_rot
-
-	f_dup
-	f_dot
-	f_rot
-	f_rot
-
-	f_dup
-	f_dot
-	f_rot
-	f_rot
-
-ENDDEF
-
-
-DEFFORTH "fib"
-	f_2dup
-	f_plus
-	f_dup
-	f_dot
-	f_fib
-ENDDEF
-%endif
