@@ -74,13 +74,17 @@ exit
 %endif
 
 %define REG_OPT		1
-%define REG_SEARCH	0
+%define REG_SEARCH	1
 %define REG_ASSERT	0
 %ifndef	LINCOM
 %define LINCOM		0
 %endif
 
 %include "stdlib.mac"
+
+%ifndef LIT8
+%define LIT8		0
+%endif
 
 %ifndef BIGJMP
 %define BIGJMP		0
@@ -95,7 +99,7 @@ exit
 %endif
 
 %ifndef BASEREG
-%define BASEREG		1
+%define BASEREG		0
 %endif
 
 %if BIT == 64
@@ -113,18 +117,14 @@ exit
 %endif
 
 %assign	WORD_COUNT	0
-%define zero_seg	1
+%define zero_seg	0
 
 %ifndef WORD_ALIGN
-%define WORD_ALIGN	2
-%endif
-
-%ifndef WORD_FOOBEL
-%define WORD_FOOBEL	0
+%define WORD_ALIGN	1
 %endif
 
 %ifndef WORD_SIZE
-%define WORD_SIZE	1
+%define WORD_SIZE	0
 %endif
 
 ; XXX quick&dirty hack
@@ -188,14 +188,14 @@ exit
 
 ; **** Codeword definitions ****
 SECTION .text align=1
-A_INIT1:
+A_INIT:
 _start:
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
 ; by simply continuing
 mov	ebp, FORTH
-enter	0xFFFF, 0
+%include "init.asm"
 
 ASM_OFFSET:
 %include "codewords.asm"
@@ -236,7 +236,7 @@ ASM_OFFSET:
 	%endmacro
 %endif
 
-%macro doloop 0-1
+%macro doloop1 0-1
 	%push loopctx
 	%if %0 == 1
 		lit %1
@@ -256,7 +256,7 @@ ASM_OFFSET:
 	%pop loopctx
 %endmacro
 
-%macro endloop arg(0)
+%macro endloop1 arg(0)
 	f_while2
 	db $ - %$loop + 1
 	%pop loopctx
@@ -295,139 +295,30 @@ ASM_OFFSET:
 	%$$jump1:
 %endmacro
 
+SECTION .text align=1
+%if DEBUG
+A_regdump:
+%include "regdump2.mac"
+%endif
+
+
+SECTION .text align=1 WORD_TYPE
 %include "forthwords.asm"
 
 ;_start:
-%include "init.asm"
 ;jmp	A_NEXT
-
-
 ; **** Forth code ****
 ;SECTION .rodata align=1 WORD_TYPE
 
 A_FORTH:
 FORTH:
 
-	lit 0
-	f_bool
-	f_dup
+	lit 123456
+	;f_0ne
+	;f_dup
 	f_dot
 
-	f_exit
-
-	lit -12
-	f_dup
-	f_dot
-	f_negate
-	f_dot
-
-
-	f_true
-	;f_false
-	if
-		string "true1"
-		f_puts
-	;else
-	;	string "false1"
-	;	f_puts
-	then
-	string "end1"
-	f_puts
-
-	doloop 3
-		;lit 1
-		;f_plus
-		f_inc
-	endloop
-	f_dot
-
-	f_exit
-
-;	f_false
-;	if
-;		string "true2"
-;		f_puts
-;	else
-;		string "false2"
-;		f_puts
-;	then
-;	string "end2"
-;	f_puts
-;	f_exit
-
-
-
-
-;	lit 8
-;	f_rspush
-;
-;	.loop:
-;	f_char
-;	f_rsdec
-;	f_dupr2d
-;	f_zbranch
-;	db .loop - $ - 1
-	;doloop 10000000
-	;inline_asm
-	;push	12
-	;endasm
-	f_exit
-%if 0
 	;f_exit
-	;string "hello, world!"
-	;f_puts
-	;f_mem
-	;lit -1
-	;f_dot
-	lit 0
-	f_dup
-	f_dot
-	lit 1
-	f_dup
-	f_dot
-	f_fib
-	f_exit
-%endif
-
-;%if 0
-;	lit 8
-;	lit 14
-;	f_plus
-;	f_dot
-;%endif
-;
-;%if 0
-;	inline_asm
-;	push	12
-;	endasm
-;%endif
-;
-;%if 0
-;	lit 10
-;	lit 8
-;	f_plus
-;	;lit 123456789
-;	f_dot
-;%endif
-;%if 0
-;	lit 8
-;	.loop:
-;	f_char
-;	f_dec
-;	f_zbranch
-;	db .loop - $ - 1
-;	f_nl
-;	string "finished"
-;	f_puts
-;	f_nl
-;%endif
-;	;string `\033[G\033[F\033[JFoobar`
-;	;string `\033[A\033[G\033[J`
-;	;string `\033[A\033[20D\033[Jclose(0`
-;	;f_xputs
-;
-;
-	f_exit
 
 
 
@@ -442,27 +333,14 @@ SECTION .rodata align=1
 		%if WORD_SMALLTABLE
 			dw offset(DEF%[i])
 		%else
-			;%error unsupported atm
 			dd DEF%[i]
 		%endif
 		%assign i i+1
 	%endrep
-	%if WORD_SMALLTABLE
-		;times (256-WORD_COUNT) dw offset(DEF0)
-		;resw (256-WORD_COUNT)
-	%else
-		;times (256-WORD_COUNT) dd DEF1
-	%endif
 	A_END_TABLE:
-	;db "gugus"
 %endif
 A_REALLY_END:
 
 resb 65536
-; **** Assembler code ****
-;SECTION .text.startup align=1
-SECTION .text align=1
-%if DEBUG
-A_regdump:
-%include "regdump2.mac"
-%endif
+
+%warning "SIZE" SIZE
