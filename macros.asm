@@ -125,7 +125,7 @@
 %endmacro
 
 %imacro lit 1
-	%if (%1 >= 0 && %1 < 256)
+	%if LIT8 && (%1 >= 0 && %1 < 256)
 		f_lit8
 		db %1
 	%else
