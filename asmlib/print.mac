@@ -16,7 +16,7 @@
 	%if %0 == 0
 	set	edx, (`\n` - '0') % 255
 	%else
-	set	edx, (%1 - '0') % 255
+	set	edx, %eval((%1 - '0') % 255)
 	%endif
 	set	ebx, 10
 	set	esi, 0
