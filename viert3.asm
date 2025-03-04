@@ -83,7 +83,7 @@ exit
 %include "stdlib.mac"
 
 %ifndef LIT8
-%define LIT8		0
+%define LIT8		1
 %endif
 
 %ifndef BIGJMP
@@ -305,11 +305,6 @@ A_regdump:
 SECTION .text align=1 WORD_TYPE
 %include "forthwords.asm"
 
-;_start:
-;jmp	A_NEXT
-; **** Forth code ****
-;SECTION .rodata align=1 WORD_TYPE
-
 A_FORTH:
 FORTH:
 
@@ -321,24 +316,6 @@ FORTH:
 	;f_exit
 
 
-
-; **** Jump table ****
-SECTION .rodata align=1 
-%if WORD_TABLE
-	STATIC_TABLE:
-	A_STATIC_TABLE:
-	%warning WORD COUNT: WORD_COUNT
-	%assign	i 0
-	%rep	WORD_COUNT
-		%if WORD_SMALLTABLE
-			dw offset(DEF%[i])
-		%else
-			dd DEF%[i]
-		%endif
-		%assign i i+1
-	%endrep
-	A_END_TABLE:
-%endif
 A_REALLY_END:
 
 resb 65536
