@@ -17,9 +17,9 @@
 ;%define SPACE 1
 %define NEWLINE 1
 %define EXTENDED 0
-%define FLAGS 1
+%define FLAGS 0
 %define IP 1
-%define	STACK 3
+%define	STACK 10
 
 %define LABEL 2
 %define ALTLABEL 0
@@ -89,7 +89,7 @@ call	.begin
 	db "IP"
 	%endif
 	%if STACK > 0
-	db "S0S1S2"
+	db "S0S1S2S3S4S5S6S7S8S9"
 	%endif
 	;db "fldisibpspbxdxcxax"
 	%elif LABEL == 1
@@ -101,7 +101,7 @@ call	.begin
 	db "I"
 	%endif
 	%if STACK > 0
-	db "012"
+	db "0123456789"
 	%endif
 	%endif
 .begin:
