@@ -19,7 +19,7 @@ DEFFORTH "not"
 %ifndef f_over
 DEFFORTH "over"
 	f_sp_at
-	lit 4
+	lit 8
 	f_plus
 	f_store
 	END
@@ -35,6 +35,7 @@ DEFFORTH "and"
 %ifndef f_swap
 DEFFORTH "swap"
 	;: swap ( x y -- y x ) over over sp@ 6 + ! sp@ 2 + ! ;
+	; TODO: can probably be made smaller
 	f_over
 	f_over
 	f_sp_at
@@ -111,8 +112,8 @@ ENDDEF
 %ifndef f_drop
 DEFFORTH "drop"
 	f_dup
-	f_plus
 	f_minus
+	f_plus
 	END
 	%endif
 
