@@ -191,34 +191,19 @@ ASM_OFFSET:
 	%%endstring:
 %endmacro
 
-%if 0
-	%macro inline_asm 0
-		%push asmctx
-		f_asmret
-		db %$endasm - $ - 1
-		%$asm:
-	%endmacro
+%macro inline_asm 0
+	%push asmctx
+	f_string
+	db %$endasm - $ - 1
+	%$asm:
+%endmacro
 
-	%macro endasm 0
-		NEXT
-		%$endasm:
-		%pop asmctx
-	%endmacro
-%else
-	%macro inline_asm 0
-		%push asmctx
-		f_string
-		db %$endasm - $ - 1
-		%$asm:
-	%endmacro
-
-	%macro endasm 0
-		NEXT
-		%$endasm:
-		f_asmjmp
-		%pop asmctx
-	%endmacro
-%endif
+%macro endasm 0
+	NEXT
+	%$endasm:
+	f_asmjmp
+	%pop asmctx
+%endmacro
 
 %macro doloop1 0-1
 	%push loopctx
