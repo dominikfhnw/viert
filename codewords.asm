@@ -43,7 +43,7 @@ DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
 
-%if 0
+%if 1
 	DEF "swap"
 		%if 0
 			pop	ecx
