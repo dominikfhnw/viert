@@ -286,7 +286,8 @@ DEF "syscall3"
 
 %else
 DEF "exit"
-	int3
+	mov	al,1
+	int	0x80
 	END no_next
 	%endif
 
