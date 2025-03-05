@@ -3,7 +3,11 @@
 %define JMPLEN short
 %endif
 
-%define offset(a)	(a - ASM_OFFSET)/WORD_ALIGN
+%if OFFALIGN
+	%define offset(a)	(a - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+%else
+	%define offset(a)	(a - ASM_OFFSET)/WORD_ALIGN
+%endif
 
 %macro NEXT arg(0)
 	jmp JMPLEN A_NEXT
