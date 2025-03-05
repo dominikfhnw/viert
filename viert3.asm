@@ -266,10 +266,6 @@ ASM_OFFSET:
 %endmacro
 
 SECTION .text align=1
-%if DEBUG
-A_regdump:
-%include "regdump2.mac"
-%endif
 
 
 SECTION .text align=1 WORD_TYPE
@@ -286,7 +282,13 @@ FORTH:
 	;f_exit
 
 
-A_REALLY_END:
+A_END:
+%if DEBUG
+	; after A_END, because we don't want to count it towards the total
+	A_regdump:
+	%include "regdump2.mac"
+%endif
+
 
 resb 65536
 
