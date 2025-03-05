@@ -28,6 +28,18 @@ DEFFORTH "and"
 	END
 	%endif
 
+%if 0
+DEFFORTH "true"
+	; lit saves us a lot of space overall, but this was an interesting
+	; exercise nonetheless
+	f_dup
+	f_dup
+	f_not
+	f_nand
+	END
+	%endif
+
+
 %ifndef f_swap
 DEFFORTH "swap"
 	;: swap ( x y -- y x ) over over sp@ 6 + ! sp@ 2 + ! ;
