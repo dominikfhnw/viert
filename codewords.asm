@@ -59,14 +59,6 @@ DEF "EXIT"
 		%endif
 %endif
 
-%if DEBUG
-DEF "dbg"
-	reg
-	END
-%else
-	%define f_dbg
-%endif
-
 %if 0
 	DEF "dup"
 		%if 1
@@ -294,6 +286,14 @@ DEF "exit"
 	int3
 	END no_next
 	%endif
+
+%if DEBUG
+DEF "dbg"
+	reg
+	END
+%else
+	%define f_dbg
+%endif
 
 END_OF_CODEWORDS:
 %warning "BREAK" WORD_COUNT
