@@ -69,6 +69,7 @@ set +e
 ls -l $OUT
 strace -frni ./$OUT
 echo ret $?
+ls -l $OUT
 exit
 
 %endif
@@ -255,9 +256,6 @@ ASM_OFFSET:
 %endmacro
 
 %macro else arg(0)
-	;string "else"
-	;f_puts
-
 	f_branch
 	%push elsectx
 	db %$jump1 - $
@@ -266,9 +264,6 @@ ASM_OFFSET:
 %endmacro
 
 SECTION .text align=1
-
-
-SECTION .text align=1 WORD_TYPE
 %include "forthwords.asm"
 
 A_FORTH:
