@@ -69,9 +69,9 @@ DEFFORTH "false"
 ENDDEF
 
 DEFFORTH "true"
-; defining true as -1 allows use to just use binary "not" to invert booleans
-; this is much more elegant than to use 0 and 1, and then having a special
-; "0=" word like in jonesforth.
+; defining true as -1 allows use to just use binary "not" to invert booleans.
+; This is much more elegant than to use 0 and 1, and then having to use
+; "0=" for negation like in jonesforth.
 ; -1 feels more like the Forth way.
 ; This also just uses the first Peano axiom. I don't know any number except
 ; 0, and frankly I do not want to know any other numbers.
