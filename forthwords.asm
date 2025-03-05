@@ -119,6 +119,18 @@ DEFFORTH "minus"
 ENDDEF
 %endif
 
+%ifndef f_branch2
+DEFFORTH "branch2"
+	f_rp_at
+	f_fetch
+	f_plus
+	f_rp_at
+	;lit 4
+	;f_minus
+	f_store
+	END
+	%endif
+
 %ifndef f_drop
 DEFFORTH "drop"
 	f_dup
