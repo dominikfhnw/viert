@@ -189,7 +189,7 @@ assert_eax_low
 lodsb
 cmp	al, BREAK
 lea	ebx, [eax*WORD_ALIGN+BASE]
-jae	A_DOCOL
+ja	A_DOCOL
 jmp	ebx
 
 ;DEF "0lt"
