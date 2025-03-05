@@ -7,6 +7,13 @@
 	%define BREAK offset(END_OF_CODEWORDS)
 %endif
 
+%if 1
+	%define assert_eax_zero
+	%define eax_tainted	xor eax, eax
+%else
+	%define assert_eax_zero	xor eax, eax
+	%define eax_tainted
+%endif
 ; ABI
 ; esi:	Instruction pointer to next forth word
 ; edi:	Base pointer to executable segment. Tbd if needed
@@ -149,6 +156,7 @@ DEF "dbg"
 		set	ecx, esp
 		int	0x80
 		; this will crash spectacularly if write was not successful (eax != 1)
+		;eax_tainted
 		END
 
 %endif
@@ -184,7 +192,8 @@ rspush	FORTH_OFFSET
 mov	FORTH_OFFSET, ebx
 
 A_NEXT:
-lodsWORD
+assert_eax_zero
+lodsb
 cmp	al, BREAK
 lea	ebx, [eax*WORD_ALIGN+BASE]
 jae	A_DOCOL
@@ -217,6 +226,7 @@ DEF "branch"
 ;  2. if counter != 0:
 ;	jump imm8 bytes
 DEF "while2"
+	assert_eax_zero
 	lodsb			; load jump offset
 	dec	dword [RETURN_STACK]	; decrement loop counter
 
@@ -230,6 +240,7 @@ DEF "rdrop"
 	END
 
 DEF "string"
+	assert_eax_zero
 	lodsb
 	push	FORTH_OFFSET
 	push	eax
@@ -250,11 +261,12 @@ pushedxeax:
 	push	edx
 pusheax:
 	push	eax
-	xor	eax, eax
+	eax_tainted
 	END
 
 %if LIT8
 DEF "lit8"
+	assert_eax_zero
 	lodsb
 	jmp	pusheax
 	END no_next
