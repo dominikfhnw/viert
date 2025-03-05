@@ -177,7 +177,7 @@ _start:
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
-; by simply continuing
+; by simply doing nothing
 mov	ebp, FORTH
 %include "init.asm"
 
