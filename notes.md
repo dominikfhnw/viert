@@ -17,7 +17,7 @@
 * Writeup: http://www.exemark.com/FORTH/eForthOverviewv5.pdf
 * Kragen's writeup: https://dercuano.github.io/notes/eforth-notes.html, https://dercuano.github.io/notes/eforth86-notes.html
 
-# StoneKnifeForth
+## StoneKnifeForth
 * https://github.com/kragen/stoneknifeforth/
 * Very small self-compiler
 
@@ -39,6 +39,7 @@
 ## viert
 * My humble entry
 * Optimized for total size (core, basic words, user program) instead of just core size
+* tethered Forth - words get defined at compile-time, not run-time
 * Linux/x86
 * 3 threading modes implemented (TODO: this changes a lot...):
   * token threading with 8-bit tokens
