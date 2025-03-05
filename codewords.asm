@@ -93,7 +93,7 @@ DEF "EXIT"
 		%endif
 %endif
 
-%if 0
+%if 1
 	DEF "drop"
 		pop	edx
 		END
