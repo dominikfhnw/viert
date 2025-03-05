@@ -180,6 +180,7 @@ _start:
 ; by simply doing nothing
 mov	ebp, FORTH
 %include "init.asm"
+align WORD_ALIGN
 
 ASM_OFFSET:
 %include "codewords.asm"
