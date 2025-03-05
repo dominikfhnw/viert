@@ -1,7 +1,3 @@
-DEFFORTH "false"
-	lit 0
-ENDDEF
-
 %ifndef f_dup
 DEFFORTH "dup"
 	f_sp_at
@@ -56,7 +52,9 @@ DEFFORTH "rspush"
 	END
 	%endif
 
-
+DEFFORTH "false"
+	lit 0
+ENDDEF
 
 DEFFORTH "true"
 ; defining true as -1 allows use to just use binary "not" to invert booleans
