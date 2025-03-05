@@ -8,10 +8,10 @@
 %endif
 
 %if 1
-	%define assert_eax_zero
+	%define assert_eax_low
 	%define eax_tainted	xor eax, eax
 %else
-	%define assert_eax_zero	xor eax, eax
+	%define assert_eax_low	xor eax, eax
 	%define eax_tainted
 %endif
 ; ABI
@@ -140,7 +140,7 @@ DEF "EXIT"
 
 	DEF "dupemit"
 		; this leaves the stack alone, so technically its a dup and emit combined
-		assert_eax_zero
+		assert_eax_low
 		rset	eax, -2
 		taint	ebx, ecx, edx
 		set	edx, 1
@@ -185,7 +185,7 @@ rspush	FORTH_OFFSET
 mov	FORTH_OFFSET, ebx
 
 A_NEXT:
-assert_eax_zero
+assert_eax_low
 lodsb
 cmp	al, BREAK
 lea	ebx, [eax*WORD_ALIGN+BASE]
@@ -221,7 +221,7 @@ DEF "zbranch"
 ;  2. if counter != 0:
 ;	jump imm8 bytes
 DEF "while2"
-	assert_eax_zero
+	assert_eax_low
 	lodsb			; load jump offset
 	dec	dword [RETURN_STACK]	; decrement loop counter
 
@@ -235,7 +235,7 @@ DEF "rdrop"
 	END
 
 DEF "string"
-	assert_eax_zero
+	assert_eax_low
 	lodsb
 	push	FORTH_OFFSET
 	push	eax
@@ -261,7 +261,7 @@ pusheax:
 
 %if LIT8
 DEF "lit8"
-	assert_eax_zero
+	assert_eax_low
 	lodsb
 	jmp	pusheax
 	END no_next
