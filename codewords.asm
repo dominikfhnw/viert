@@ -140,6 +140,7 @@ DEF "EXIT"
 
 	DEF "dupemit"
 		; this leaves the stack alone, so technically its a dup and emit combined
+		assert_eax_zero
 		rset	eax, -2
 		taint	ebx, ecx, edx
 		set	edx, 1
