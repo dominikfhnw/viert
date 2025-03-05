@@ -208,10 +208,12 @@ DEF "zbranch"
 	inc	FORTH_OFFSET
 	END
 
-DEF "branch"
-	movsx	edx, byte [FORTH_OFFSET]
-	add	FORTH_OFFSET, edx
-	END
+%if 1
+	DEF "branch"
+		movsx	edx, byte [FORTH_OFFSET]
+		add	FORTH_OFFSET, edx
+		END
+%endif
 
 ; f_while <imm8>:
 ;  1. decrement an unspecified loop counter
