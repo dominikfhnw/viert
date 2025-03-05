@@ -76,22 +76,11 @@ exit
 %define REG_OPT		1
 %define REG_SEARCH	1
 %define REG_ASSERT	0
-%ifndef	LINCOM
-%define LINCOM		0
-%endif
 
 %include "stdlib.mac"
 
 %ifndef LIT8
 %define LIT8		1
-%endif
-
-%ifndef BIGJMP
-%define BIGJMP		0
-%endif
-
-%ifndef THRESH
-%define THRESH		1
 %endif
 
 %ifndef OFFALIGN
@@ -180,11 +169,6 @@ exit
 
 ; **** Macros ****
 %include "macros.asm"
-
-%if LINCOM
-	[map all nasm.map]
-	jmp	_start
-%endif
 
 ; **** Codeword definitions ****
 SECTION .text align=1
