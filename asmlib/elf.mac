@@ -17,11 +17,11 @@ BITS 32
 EXTERN _start
 
 %ifndef ELF_OFFSET
-%define ELF_OFFSET 3
+%define ELF_OFFSET 0x20
 %endif
 
 %ifndef START
-%define START _start - ELF_OFFSET
+%define START _start + ELF_OFFSET
 %endif
 
 %define startlabel _start:
@@ -33,17 +33,20 @@ EXTERN _start
 ;	org %1
 ;%endmacro
 %define	ELF_ALLINONE 0
+%ifndef EOFF
+%define EOFF 0
+%endif
 
 %macro ELF 0-1
+	startlabel
 		db	0x7F, "ELF"
 		dd	1
-		dd	0
-		dd	$$			; vaddr
+		dd	EOFF
+		dd	$$ + EOFF		; vaddr
 		dw	2
 		dw	3
 		dd	START			; garbage/filesz
 		dd	START			; start/memsz
-	startlabel
 		dd	4
 	%if %0 == 1
 		ELF_PHDR 1
