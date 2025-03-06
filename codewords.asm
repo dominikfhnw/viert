@@ -287,8 +287,12 @@ DEF "exit"
 DEF "dbg"
 	reg
 	END
+DEF "int3"
+	int3
+	END
 %else
 	%define f_dbg
+	%define f_int3
 %endif
 
 END_OF_CODEWORDS:
