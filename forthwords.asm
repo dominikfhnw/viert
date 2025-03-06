@@ -179,15 +179,15 @@ ENDDEF
 %endif
 
 
-%if 0
+%ifdef f_syscall3
 DEFFORTH "puts"
 	f_swap
 	lit	1 ;stdout
 	lit	4 ;write
 	f_syscall3
 	f_drop
-ENDDEF
-%endif
+	END
+	%endif
 
 DEFFORTH "emit"
 	%if 0
@@ -200,6 +200,20 @@ DEFFORTH "emit"
 		f_drop
 	%endif
 ENDDEF
+
+%ifndef f_syscall3
+DEFFORTH "puts"
+	doloop1
+		f_dup
+		f_fetch
+		f_emit
+		f_inc
+	endloop1
+	f_drop
+	f_dbg
+	END
+	%endif
+
 
 DEFFORTH "nl"
 	lit `\n`
