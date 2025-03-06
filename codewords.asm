@@ -4,7 +4,7 @@
 	%define BREAK 24
 	%endif
 %else
-	%define BREAK offset(END_OF_CODEWORDS)
+	%define BREAK offset(END_OF_CODEWORDS-2)
 %endif
 
 %if 1
