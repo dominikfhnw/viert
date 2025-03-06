@@ -13,15 +13,6 @@ FLAGS="-Map=% -Ttext-segment=$ORG -z noseparate-code"
 #FLAGS="-Map=% -Ttext-segment=$ORG"
 
 BIT=32
-if [ "$BIT" = 64 ]
-then
-	NASMOPT="$NASMOPT -f elf64 -DBIT=$BIT"
-	FLAGS="$FLAGS -m elf_x86_64"
-else
-	NASMOPT="$NASMOPT -f elf32 -DBIT=$BIT"
-	FLAGS="$FLAGS -m elf_i386"
-fi
-
 OUT=viert
 if [ -n "${LINCOM-}" ]; then
 	OUT="$OUT.com"
@@ -30,7 +21,18 @@ if [ -n "${LINCOM-}" ]; then
 fi
 
 if [ -n "${FULL-1}" ]; then
+	if [ "$BIT" = 64 ]
+	then
+		NASMOPT="$NASMOPT -f elf64 -DBIT=$BIT"
+		FLAGS="$FLAGS -m elf_x86_64"
+	else
+		NASMOPT="$NASMOPT -f elf32 -DBIT=$BIT"
+		FLAGS="$FLAGS -m elf_i386"
+	fi
+
+	echo FULL
 	rm -f $OUT $OUT.o
+	NASMOPT="$NASMOPT -DFULL=1"
 	nasm -g -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
 	ld $FLAGS $OUT.o -o $OUT
 	cp $OUT $OUT.full
@@ -38,6 +40,8 @@ if [ -n "${FULL-1}" ]; then
 	sstrip $OUT
 	truncate -s -65536 $OUT
 else
+	echo SMALL
+	NASMOPT="$NASMOPT -DBIT=$BIT"
 	rm -f $OUT
 	nasm -I asmlib/ -f bin -o $OUT "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
 fi
@@ -58,10 +62,8 @@ if [ -n "${FULL-1}" ]; then
 	#sizes | sort -nr
 	sizes
 else
-	#OFF=$(  readelf2 -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
-	OFF="0x10000"
-	#START=$(readelf2 -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
-	START="0x10000"
+	OFF=$(  readelf2 -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
+	START=$(readelf2 -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
 	objdump $DUMP -b binary -m i386 -D $OUT --adjust-vma="$OFF" --start-address="$START"
 fi
 
@@ -79,6 +81,10 @@ exit
 %define REG_ASSERT	0
 
 %include "stdlib.mac"
+
+%ifndef FULL
+%define FULL		0
+%endif
 
 %ifndef LIT8
 %define LIT8		1
@@ -173,14 +179,23 @@ exit
 
 ; **** Codeword definitions ****
 SECTION .text align=1
+
+%if !FULL
+	%define ELF_OFFSET 0x20
+	org ORG
+	ELF
+%endif
+
+
 A_INIT:
-_start:
+;_start:
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
 ; by simply doing nothing
 mov	ebp, FORTH
 %include "init.asm"
+ELF_PHDR 1
 align WORD_ALIGN
 
 ASM_OFFSET:
@@ -285,6 +300,8 @@ A_END:
 %endif
 
 
+%if FULL
 resb 65536
+%endif
 
 %warning "SIZE" SIZE
