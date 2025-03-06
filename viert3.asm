@@ -305,3 +305,4 @@ resb 65536
 %endif
 
 %warning "SIZE" SIZE
+%warning "WORDS" WORD_COUNT
