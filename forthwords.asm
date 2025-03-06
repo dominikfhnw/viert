@@ -257,14 +257,9 @@ DEFFORTH "udot"
 		then
 	%endif
 
-
-	;f_drop
-
 	lit '0'
 	f_plus
 	f_emit
-
-
 ENDDEF
 
 DEFFORTH "dot"
@@ -277,4 +272,5 @@ DEFFORTH "dot"
 		f_negate
 	then
 	f_udot
+	f_nl
 ENDDEF
