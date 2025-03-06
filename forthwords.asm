@@ -178,6 +178,12 @@ DEFFORTH "bool"
 ENDDEF
 %endif
 
+%ifndef f_exit
+DEFFORTH "exit"
+	f_1
+	f_syscall3
+	END
+	%endif
 
 %ifdef f_syscall3
 DEFFORTH "puts"
@@ -190,9 +196,9 @@ DEFFORTH "puts"
 	%endif
 
 DEFFORTH "emit"
-	%if 0
+	%ifdef f_syscall3
 		f_sp_at
-		lit 1
+		f_1
 		f_puts
 		f_drop
 	%else

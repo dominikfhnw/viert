@@ -82,6 +82,11 @@ exit
 
 %include "stdlib.mac"
 
+; enable syscall words. If 0, emit/exit will use hardcoded syscalls
+%ifndef SYSCALL
+%define SYSCALL		1
+%endif
+
 %ifndef FULL
 %define FULL		0
 %endif

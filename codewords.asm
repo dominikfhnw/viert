@@ -123,6 +123,7 @@ DEF "over"
 		jmp	pusheax
 		END	no_next
 
+	%if !SYSCALL
 	DEF "dupemit"
 		; this leaves the stack alone, so technically its a dup and emit combined
 		assert_eax_low
@@ -136,6 +137,7 @@ DEF "over"
 		; this will crash spectacularly if write was not successful (eax != 1)
 		;eax_tainted
 		END
+		%endif
 
 %endif
 
@@ -263,7 +265,7 @@ DEF "swap"
 	jmp	pushedxeax
 	END no_next
 
-%if 0
+%if SYSCALL
 DEF "syscall3"
 	pop	eax
 	pop	ebx
