@@ -196,7 +196,7 @@ DEFFORTH "puts"
 	%endif
 
 DEFFORTH "emit"
-	%ifdef f_syscall3
+	%ifdef f_puts
 		f_sp_at
 		f_1
 		f_puts
