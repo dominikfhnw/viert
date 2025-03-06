@@ -250,8 +250,16 @@ ASM_OFFSET:
 %endmacro
 
 %macro endloop1 arg(0)
-	f_while2
-	db $ - %$loop + 1
+	%if FORTHWHILE
+		f_rp_at
+		f_while
+		f_zbranch
+		db %$loop - $
+		f_rdrop
+	%else
+		f_while2
+		db $ - %$loop + 1
+	%endif
 	%pop loopctx
 %endmacro
 

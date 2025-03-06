@@ -207,6 +207,38 @@ DEFFORTH "emit"
 	%endif
 ENDDEF
 
+%if FORTHWHILE
+DEFFORTH "0eq"
+	if
+		f_false
+	else
+		f_true
+	then
+	END
+
+DEFFORTH "while"
+	; fetch 2nd highest element from return stack
+	f_dup
+	f_dup
+	f_fetch
+
+	; decrement counter, dup
+	f_dec
+	f_dbg
+	;f_dup
+
+	; get address again, store back
+	;f_rover
+	f_swap
+	f_store
+	f_dbg
+
+	; check the dup if 0
+	f_fetch
+	f_0eq
+	END
+%endif
+
 %ifndef f_syscall3
 DEFFORTH "puts"
 	doloop1

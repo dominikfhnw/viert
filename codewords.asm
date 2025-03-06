@@ -207,6 +207,7 @@ DEF "zbranch"
 ;  1. decrement an unspecified loop counter
 ;  2. if counter != 0:
 ;	jump imm8 bytes
+%if !FORTHWHILE
 DEF "while2"
 	assert_eax_low
 	lodsb			; load jump offset
@@ -216,6 +217,7 @@ DEF "while2"
 	;movsx	eax, al		; convert to -128..127 range
 	sub	FORTH_OFFSET, eax
 	END
+%endif
 
 DEF "rdrop"
 	lea	RETURN_STACK, [RETURN_STACK+4]
