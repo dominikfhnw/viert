@@ -87,10 +87,12 @@ exit
 %define SYSCALL		1
 %endif
 
+;full ELF file. Version with FULL=0 won't have debug info/won't load in gdb at all
 %ifndef FULL
 %define FULL		0
 %endif
 
+; enable 8 bit literals. Usually a good idea, as it saves a lot of overall space
 %ifndef LIT8
 %define LIT8		1
 %endif
