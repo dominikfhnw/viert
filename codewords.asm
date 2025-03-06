@@ -43,21 +43,10 @@ DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
 
-%if 1
-	DEF "swap"
-		%if 0
-			pop	ecx
-			pop	edx
-			push	ecx
-			push	edx
-			END
-		%else
-			pop	edx
-			pop	eax
-			jmp	pushedxeax
-			END no_next
-		%endif
-%endif
+DEF "over"
+	push	dword [esp+4]
+	END
+
 
 %if 0
 	DEF "dup"
@@ -69,10 +58,6 @@ DEF "EXIT"
 			jmp	pusheax
 			END no_next
 		%endif
-
-	DEF "over"
-		push	dword [esp+4]
-		END
 
 	DEF "rot"
 		%if 0
@@ -272,6 +257,11 @@ DEF "lit32"
 	jmp	pusheax
 	END no_next
 
+DEF "swap"
+	pop	edx
+	pop	eax
+	jmp	pushedxeax
+	END no_next
 
 %if 0
 DEF "syscall3"
