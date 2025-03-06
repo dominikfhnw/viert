@@ -230,26 +230,40 @@ ENDDEF
 
 %endif
 
+%if 0
+DEFFORTH "qdup"
+	f_dup
+	if
+		f_dup
+	then
+	END
+	%endif
+
 DEFFORTH "udot"
-	;f_dbg
+	lit 10
+	f_divmod
 
-	doloop1 10
-		lit 10
-		f_divmod
-		;f_dbg
-	endloop1
+	%ifdef f_qdup
+		f_qdup
+		if
+			f_udot
+		then
+	%else
+		f_dup
+		if
+			f_udot
+		else
+			f_drop
+		then
+	%endif
 
-	f_drop
 
-	doloop1 10
-		;f_dbg
-		lit '0'
-		f_plus
-		;f_dbg
-		f_emit
-	endloop1
+	;f_drop
 
-	f_nl
+	lit '0'
+	f_plus
+	f_emit
+
 
 ENDDEF
 
@@ -258,7 +272,6 @@ DEFFORTH "dot"
 	lit 0x80000000
 	f_and
 	if
-		;string "-"
 		lit '-'
 		f_emit
 		f_negate
