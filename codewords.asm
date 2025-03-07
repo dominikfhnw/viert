@@ -119,11 +119,13 @@ DEF "over"
 
 	DEF "nand"
 		pop	edx
-		pop	eax
-		and	eax, edx
-		not	eax
-		jmp	pusheax
+		and	[esp], edx
+		reg
 		END	no_next
+	DEF "not"
+		not	dword [esp]
+		reg
+		END
 
 	%if !SYSCALL
 	DEF "dupemit"
