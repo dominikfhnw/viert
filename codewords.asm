@@ -104,6 +104,7 @@ DEF "over"
 		push	RETURN_STACK
 		END
 
+	%if 0
 	DEF "0lt"
 		; from eForth. Would be 4 bytes smaller than my version
 		; Unfortunately, it clashes with the eax <= 255 condition of this
@@ -114,6 +115,7 @@ DEF "over"
 		xchg	eax, edx
 		jmp	pusheax
 		END	no_next
+	%endif
 
 	DEF "nand"
 		pop	edx

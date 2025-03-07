@@ -207,15 +207,15 @@ DEFFORTH "emit"
 	%endif
 ENDDEF
 
-%if FORTHWHILE
 DEFFORTH "0eq"
 	if
 		f_false
 	else
 		f_true
 	then
-	END
 
+	END
+%if FORTHWHILE
 DEFFORTH "while"
 	; fetch 2nd highest element from return stack
 	f_dup
