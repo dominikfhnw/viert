@@ -8,10 +8,11 @@
 %endif
 
 %if 1
+	; Nb: xor eax, eax also clears upper 32bits on 64bit
 	%define assert_A_low
-	%define A_tainted	xor A, A
+	%define A_tainted	xor eax, eax
 %else
-	%define assert_A_low	xor A, A
+	%define assert_A_low	xor eax, eax
 	%define A_tainted
 %endif
 ; ABI
