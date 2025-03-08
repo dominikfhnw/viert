@@ -62,6 +62,27 @@
 	WORD_DEF WORDVAL(%1)
 %endmacro
 
+; "A noble spirit embiggens the smallest man."
+%if BIT == 32
+	%define embiggen(a)  a
+%else
+	%define embiggen(a)  %tok(%strcat("r",%substr(a,2,2)))
+%endif
+
+%macro embiggen_reg arg(1)
+	%if BIT == 64
+		%substr reg_prefix %str(%1) 1,1
+		%ifidn reg_prefix,'e'
+			%define out embiggen(%1)
+		%else
+			%define out %1
+		%endif
+	%else
+		%define out %1
+	%endif
+%endmacro
+
+
 %imacro rspop arg(1)
 	xchg	RETURN_STACK, SP
 	pop	%1
