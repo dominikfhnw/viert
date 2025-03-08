@@ -83,6 +83,24 @@
 %endmacro
 
 
+%macro pop arg(1)
+	%if BIT == 64
+		embiggen_reg %1
+		pop out
+	%else
+		pop %1
+	%endif
+%endmacro
+
+%macro push arg(1)
+	%if BIT == 64
+		embiggen_reg %1
+		push out
+	%else
+		push %1
+	%endif
+%endmacro
+
 %imacro rspop arg(1)
 	xchg	RETURN_STACK, DATA_STACK
 	pop	%1
@@ -91,8 +109,8 @@
 
 %imacro rspush arg(1)
 %if 0
-	lea	RETURN_STACK, [RETURN_STACK-CELL_SIZE]
-	mov	[RETURN_STACK], FORTH_OFFSET
+	lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
+	mov	[embiggen(RETURN_STACK)], FORTH_OFFSET
 %else
 	xchg	RETURN_STACK, DATA_STACK
 	push	%1

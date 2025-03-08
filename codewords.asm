@@ -176,8 +176,8 @@ DEF "over"
 		pop	D
 		rspush	D
 		%else ; same amount of bytes, less instructions
-		lea	RETURN_STACK, [RETURN_STACK-CELL_SIZE]
-		pop	native [RETURN_STACK] ; would be one byte less if !BP
+		lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
+		pop	native [embiggen(RETURN_STACK)]
 		%endif
 		END
 %endif
@@ -221,8 +221,8 @@ DEF "zbranch"
 
 ; XXX keep?
 DEF "loopdec"
-	dec	native [RETURN_STACK]	; decrement loop counter
-	push	native [RETURN_STACK]
+	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
+	push	native [embiggen(RETURN_STACK)]
 	END
 
 ; f_while <imm8>:
@@ -233,7 +233,7 @@ DEF "loopdec"
 DEF "while2"
 	assert_A_low
 	lodsb			; load jump offset
-	dec	native [RETURN_STACK]	; decrement loop counter
+	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
 
 	jz	A_rdrop		; clean up return stack if we're finished
 	;movsx	A, al		; convert to -128..127 range
@@ -242,7 +242,7 @@ DEF "while2"
 %endif
 
 DEF "rdrop"
-	lea	RETURN_STACK, [RETURN_STACK+CELL_SIZE]
+	lea	RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
 	END
 
 DEF "string"
