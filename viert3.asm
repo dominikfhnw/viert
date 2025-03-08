@@ -275,6 +275,24 @@ WORD_OFFSET:
 	%pop asmctx
 %endmacro
 
+%macro do arg(0)
+	%push dountilctx
+	%$dountil:
+%endmacro
+
+%macro until arg(0)
+	f_zbranch
+	db %$dountil - $
+	%pop dountilctx
+%endmacro
+
+%macro while arg(0)
+	f_not
+	f_zbranch
+	db %$dountil - $
+	%pop dountilctx
+%endmacro
+
 %macro doloop1 0-1
 	%push loopctx
 	%if %0 == 1
