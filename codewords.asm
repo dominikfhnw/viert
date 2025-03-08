@@ -23,11 +23,8 @@
 ; A:	Contains value of forth word being executed.
 ;	Must be set =< 255 when returning from primitive
 ; D:	First working register for primitives
-; C:  Second working register for primitives, counter register
+; C:	Second working register for primitives, counter register
 ; B:	FORTH_OFFSET of calling function. Third working register
-;
-; Currently, f_syscall and f_rot are clobbering B.
-;
 ;
 ; zero-A vs before:
 ; lit32:	+2
