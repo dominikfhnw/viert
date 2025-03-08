@@ -15,7 +15,7 @@ DEFFORTH "not"
 %ifndef f_over
 DEFFORTH "over"
 	f_sp_at
-	lit 8
+	lit CELL_SIZE*2
 	f_plus
 	f_store
 	END
@@ -47,11 +47,11 @@ DEFFORTH "swap"
 	f_over
 	f_over
 	f_sp_at
-	lit 12
+	lit CELL_SIZE*3
 	f_plus
 	f_store
 	f_sp_at
-	lit 4
+	lit CELL_SIZE
 	f_plus
 	f_store
 	END
@@ -125,8 +125,6 @@ DEFFORTH "branch2"
 	f_fetch
 	f_plus
 	f_rp_at
-	;lit 4
-	;f_minus
 	f_store
 	END
 	%endif
@@ -188,8 +186,8 @@ DEFFORTH "exit"
 %ifdef f_syscall3
 DEFFORTH "puts"
 	f_swap
-	lit	1 ;stdout
-	lit	4 ;write
+	lit	STDOUT
+	lit	SYS_write
 	f_syscall3
 	f_drop
 	END

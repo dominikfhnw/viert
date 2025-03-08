@@ -115,7 +115,9 @@ exit
 	%define	SP		rsp
 	%define	DI		rdi
 	%define	SI		rsi
+	%define	jCz		jrcxz
 	%define	native		qword
+	%define	CELL_SIZE	8
 %else
 	%define	A		eax
 	%define	B		ebx
@@ -125,7 +127,9 @@ exit
 	%define	SP		esp
 	%define	DI		edi
 	%define	SI		esi
+	%define	jCz		jecxz
 	%define	native		dword
+	%define	CELL_SIZE	4
 %endif
 
 %define	RETURN_STACK	DI

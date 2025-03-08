@@ -70,7 +70,7 @@
 
 %imacro rspush arg(1)
 %if 0
-	lea	RETURN_STACK, [RETURN_STACK-4]
+	lea	RETURN_STACK, [RETURN_STACK-CELL_SIZE]
 	mov	[RETURN_STACK], FORTH_OFFSET
 %else
 	xchg	RETURN_STACK, esp
