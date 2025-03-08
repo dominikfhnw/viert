@@ -210,6 +210,9 @@ A_INIT:
 ; by simply doing nothing
 mov	ebp, FORTH
 enter	0xFFFF, 0
+%ifnidn RETURN_STACK,BP
+	xchg	RETURN_STACK,BP
+%endif
 ELF_PHDR 1
 
 WORD_OFFSET:
