@@ -107,16 +107,30 @@ exit
 %endif
 
 %if BIT == 64
-	%define	RETURN_STACK	rbp
-	%define	FORTH_OFFSET	rsi
-	%define	NEXT_WORD	rax
+	%define	A		rax
+	%define	B		rbx
+	%define	C		rcx
+	%define	D		rdx
+	%define	BP		rbp
+	%define	SP		rsp
+	%define	DI		rdi
+	%define	SI		rsi
 	%define	native		qword
 %else
-	%define	RETURN_STACK	ebp
-	%define	FORTH_OFFSET	esi
-	%define	NEXT_WORD	eax
+	%define	A		eax
+	%define	B		ebx
+	%define	C		ecx
+	%define	D		edx
+	%define	BP		ebp
+	%define	SP		esp
+	%define	DI		edi
+	%define	SI		esi
 	%define	native		dword
 %endif
+
+%define	RETURN_STACK	BP
+%define	FORTH_OFFSET	SI
+%define	NEXT_WORD	A
 
 %assign	WORD_COUNT	0
 %define zero_seg	0
