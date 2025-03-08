@@ -184,13 +184,14 @@ DEF "over"
 
 A_DOCOL:
 rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, B
+mov	FORTH_OFFSET, ebx
 
 A_NEXT:
 assert_A_low
 lodsb
 cmp	al, BREAK
-lea	B, [A*WORD_ALIGN+BASE]
+; we assume code size < 2^32
+lea	ebx, [A*WORD_ALIGN+BASE]
 ja	A_DOCOL
 jmp	B
 
@@ -213,8 +214,8 @@ DEF "zbranch"
 
 %if 1
 	DEF "branch"
-		movsx	D, byte [FORTH_OFFSET]
-		add	FORTH_OFFSET, D
+		movsx	edx, byte [embiggen(FORTH_OFFSET)]
+		add	FORTH_OFFSET, edx
 		END
 %endif
 
@@ -236,7 +237,7 @@ DEF "while2"
 
 	jz	A_rdrop		; clean up return stack if we're finished
 	;movsx	A, al		; convert to -128..127 range
-	sub	FORTH_OFFSET, A
+	sub	FORTH_OFFSET, eax
 	END
 %endif
 
@@ -248,8 +249,8 @@ DEF "string"
 	assert_A_low
 	lodsb
 	push	FORTH_OFFSET
-	push	A
-	add	FORTH_OFFSET, A
+	push	eax
+	add	FORTH_OFFSET, eax
 	END
 
 DEF "plus"
