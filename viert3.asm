@@ -12,7 +12,7 @@ NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan -Werror=number-overflow"
 FLAGS="-Map=% -Ttext-segment=$ORG -z noseparate-code"
 #FLAGS="-Map=% -Ttext-segment=$ORG"
 
-BIT=32
+BIT="x32"
 OUT=viert
 if [ -n "${LINCOM-}" ]; then
 	OUT="$OUT.com"
@@ -90,6 +90,7 @@ ls -l $OUT
 exit
 
 %endif
+BITS BIT
 
 %define REG_OPT		1
 %define REG_SEARCH	1
@@ -115,6 +116,10 @@ exit
 ; WHILE in pure forth
 %ifndef FORTHWHILE
 %define FORTHWHILE	0
+%endif
+
+%ifndef X32
+%define X32		0
 %endif
 
 %ifndef OFFALIGN
@@ -147,9 +152,15 @@ exit
 	%define	CELL_SIZE	4
 %endif
 
+%define	DATA_STACK	SP
 %define	RETURN_STACK	DI
-%define	FORTH_OFFSET	SI
+%define	FORTH_OFFSET	esi
 %define	NEXT_WORD	A
+
+%if X32
+	%define	DATA_STACK	esp
+	%define	RETURN_STACK	edi
+%endif
 
 %assign	WORD_COUNT	0
 %define zero_seg	0
@@ -227,12 +238,18 @@ A_INIT:
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
 ; by simply doing nothing
+
+; we chose our base address to be < 2^32
 mov	ebp, FORTH
 enter	0xFFFF, 0
-%ifnidn RETURN_STACK,BP
-	xchg	RETURN_STACK,BP
-%endif
 ELF_PHDR 1
+%ifnidn RETURN_STACK,BP
+	%if X32
+		xchg	RETURN_STACK,ebp
+	%else
+		xchg	RETURN_STACK,BP
+	%endif
+%endif
 
 WORD_OFFSET:
 %include "codewords.asm"
