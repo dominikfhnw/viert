@@ -128,7 +128,7 @@ exit
 	%define	native		dword
 %endif
 
-%define	RETURN_STACK	BP
+%define	RETURN_STACK	DI
 %define	FORTH_OFFSET	SI
 %define	NEXT_WORD	A
 
