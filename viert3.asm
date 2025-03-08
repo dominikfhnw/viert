@@ -97,6 +97,11 @@ exit
 %define LIT8		1
 %endif
 
+; WHILE in pure forth
+%ifndef FORTHWHILE
+%define FORTHWHILE	0
+%endif
+
 %ifndef OFFALIGN
 %define OFFALIGN	0
 %endif
