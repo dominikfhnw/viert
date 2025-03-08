@@ -13,7 +13,6 @@
 %assign ELF_CUSTOM 0
 %endif
 
-BITS 32
 EXTERN _start
 
 %ifndef ELF_OFFSET
@@ -44,7 +43,11 @@ EXTERN _start
 		dd	EOFF
 		dd	$$ + EOFF		; vaddr
 		dw	2
-		dw	3
+		%if X32
+			dw	62
+		%else
+			dw	3
+		%endif
 		dd	START			; garbage/filesz
 		dd	START			; start/memsz
 		dd	4
