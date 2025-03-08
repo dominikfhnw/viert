@@ -63,19 +63,19 @@
 %endmacro
 
 %imacro rspop arg(1)
-	xchg	RETURN_STACK, esp
+	xchg	RETURN_STACK, SP
 	pop	%1
-	xchg	RETURN_STACK, esp
+	xchg	RETURN_STACK, SP
 %endmacro
 
 %imacro rspush arg(1)
 %if 0
-	lea	RETURN_STACK, [RETURN_STACK-4]
+	lea	RETURN_STACK, [RETURN_STACK-CELL_SIZE]
 	mov	[RETURN_STACK], FORTH_OFFSET
 %else
-	xchg	RETURN_STACK, esp
+	xchg	RETURN_STACK, SP
 	push	%1
-	xchg	RETURN_STACK, esp
+	xchg	RETURN_STACK, SP
 %endif
 %endmacro
 
