@@ -4,9 +4,9 @@
 %endif
 
 %if OFFALIGN
-	%define offset(a)	(a - ASM_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
+	%define offset(a)	(a - WORD_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
 %else
-	%define offset(a)	(a - ASM_OFFSET)/WORD_ALIGN
+	%define offset(a)	(a - WORD_OFFSET)/WORD_ALIGN
 %endif
 
 %macro NEXT arg(0)

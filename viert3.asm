@@ -177,7 +177,7 @@ exit
 	%endif
 %else
 	%if !BASEREG
-		%define BASE ASM_OFFSET
+		%define BASE WORD_OFFSET
 	%endif
 %endif
 
@@ -207,12 +207,12 @@ enter	0xFFFF, 0
 	%endif
 %else
 	%if BASEREG
-		mov	BASE, ASM_OFFSET
+		mov	BASE, WORD_OFFSET
 	%endif
 %endif
 ELF_PHDR 1
 
-ASM_OFFSET:
+WORD_OFFSET:
 %include "codewords.asm"
 
 %macro string 1
