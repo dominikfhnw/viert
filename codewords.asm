@@ -40,6 +40,19 @@
 ; string:	-2
 ; TOTAL:	-3
 
+%define FORCE_ARITHMETIC_32	0
+%if FORCE_ARITHMETIC_32
+	%define	aD	edx
+	%define	aC	ecx
+	%define	aB	ebx
+	%define arith	dword
+%else
+	%define	aD	D
+	%define	aC	C
+	%define	aB	B
+	%define arith	native
+%endif
+
 DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
@@ -119,12 +132,12 @@ DEF "over"
 	%endif
 
 	DEF "nand"
-		pop	D
-		and	[SP], D
+		pop	aD
+		and	[SP], aD
 		reg
 		END	no_next
 	DEF "not"
-		not	native [SP]
+		not	arith [SP]
 		reg
 		END
 
@@ -244,14 +257,14 @@ DEF "string"
 
 DEF "plus"
 	pop	D
-	add	[SP], D
+	add	[SP], aD
 	END
 
 DEF "divmod"
 	cdq		; A is <= 255, so cdq will always work
 	pop	C
 	pop	A
-	div	C
+	div	aC
 pushDA:
 	push	D
 pushA:
