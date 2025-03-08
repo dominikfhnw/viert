@@ -25,12 +25,16 @@ if [ -n "${FULL-1}" ]; then
 	then
 		NASMOPT="$NASMOPT -f elf64 -DBIT=$BIT"
 		FLAGS="$FLAGS -m elf_x86_64"
+	elif [ "$BIT" = "x32" ]
+	then
+		NASMOPT="$NASMOPT -f elfx32 -DBIT=64 -DX32=1"
+		FLAGS="$FLAGS -m elf32_x86_64"
 	else
 		NASMOPT="$NASMOPT -f elf32 -DBIT=$BIT"
 		FLAGS="$FLAGS -m elf_i386"
 	fi
 
-	echo FULL
+	echo "FULL $BIT"
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
 	nasm -g -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
@@ -40,8 +44,19 @@ if [ -n "${FULL-1}" ]; then
 	sstrip $OUT
 	truncate -s -65536 $OUT
 else
-	echo SMALL
-	NASMOPT="$NASMOPT -DBIT=$BIT"
+	echo "SMALL $BIT"
+	if [ "$BIT" = "x32" ]
+	then
+		NASMOPT="$NASMOPT -DBIT=64 -DX32=1"
+	else
+		NASMOPT="$NASMOPT -DBIT=$BIT"
+	fi
+
+	if [ "$BIT" != 32 ]
+	then
+		echo "Oh hell no" >&2
+		#exit 66
+	fi
 	rm -f $OUT
 	nasm -I asmlib/ -f bin -o $OUT "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
 fi
