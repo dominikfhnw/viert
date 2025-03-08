@@ -207,6 +207,12 @@ DEF "zbranch"
 		END
 %endif
 
+; XXX keep?
+DEF "loopdec"
+	dec	dword [RETURN_STACK]	; decrement loop counter
+	push	dword [RETURN_STACK]
+	END
+
 ; f_while <imm8>:
 ;  1. decrement an unspecified loop counter
 ;  2. if counter != 0:
