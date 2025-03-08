@@ -106,18 +106,12 @@ exit
 %define OFFALIGN	0
 %endif
 
-%ifndef BASEREG
-%define BASEREG		0
-%endif
-
 %if BIT == 64
-	%define	BASE		rdi
 	%define	RETURN_STACK	rbp
 	%define	FORTH_OFFSET	rsi
 	%define	NEXT_WORD	rax
 	%define	native		qword
 %else
-	%define	BASE		edi
 	%define	RETURN_STACK	ebp
 	%define	FORTH_OFFSET	esi
 	%define	NEXT_WORD	eax
@@ -177,13 +171,9 @@ exit
 %define ELF_HEADER_SIZE (52 + 1*32 + elf_extra_align)
 
 %if OFFALIGN
-	%if !BASEREG
-		%define BASE ORG
-	%endif
+	%define BASE ORG
 %else
-	%if !BASEREG
-		%define BASE WORD_OFFSET
-	%endif
+	%define BASE WORD_OFFSET
 %endif
 
 ; **** Macros ****
@@ -206,15 +196,6 @@ A_INIT:
 ; by simply doing nothing
 mov	ebp, FORTH
 enter	0xFFFF, 0
-%if OFFALIGN
-	%if BASEREG
-		set	BASE, ORG
-	%endif
-%else
-	%if BASEREG
-		mov	BASE, WORD_OFFSET
-	%endif
-%endif
 ELF_PHDR 1
 
 WORD_OFFSET:
