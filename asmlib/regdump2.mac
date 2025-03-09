@@ -53,7 +53,18 @@ rtaint			; we can be called from everywhere
 	mov	[regdump_stack_top], esp
 	mov	esp, regdump_stack_top
 %endif
-pusha
+%ifndef B64
+	pusha
+%else
+	push	eax
+	push	ecx
+	push	edx
+	push	ebx
+	push	esp
+	push	ebp
+	push	esi
+	push	edi
+%endif
 pushf			; save processor state on stack
 
 
@@ -248,7 +259,20 @@ puts	esp, TOTAL
 	pop	eax
 %endif
 popf
-popa
+%ifndef B64
+	popa
+%else
+	pop	edi
+	pop	esi
+	pop	ebp
+	;pop	esp
+	pop	ebx
+	pop	ebx
+	pop	edx
+	pop	ecx
+	pop	eax
+%endif
+
 %if SEPARATE_STACK
 	; popa does NOT restore esp, so we have to do it manually
 	; jump over the fake EIP. no pop/pop because we would either
@@ -282,5 +306,6 @@ section .bss
 	regdump_esp:	resd 1
 %endif
 %endif
+.end:
 
 

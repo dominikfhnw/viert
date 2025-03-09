@@ -44,8 +44,15 @@
 		mov	eax, %1 
 		and	al, 0x0f	; isolate low nibble
 		cmp	al, 10		; set CF according to digit>9
-		sbb	al, 0x69	; read CF, set CF and conditionally set AF, and wrap AL to > 99h
-		das			; magic, which happens to work
+		%ifndef B64
+			sbb	al, 0x69	; read CF, set CF and conditionally set AF, and wrap AL to > 99h
+			das			; magic, which happens to work
+		%else
+			jb	.below
+			add	al, 'A' - '0' - 10
+			.below:
+			add	al, '0'
+		%endif
 		stosb			; *edi++ = al
 		;reg
 	endloop		;}while(--ecx)
