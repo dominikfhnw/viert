@@ -122,6 +122,10 @@
 	%if LIT8 && (%1 >= 0 && %1 < 256)
 		f_lit8
 		db %1
+	; this won't work with large negative numbers
+	%elif (BIT_ARITHMETIC == 64) && (%1 > 0xffffffff)
+		f_lit64
+		dq %1
 	%else
 		f_lit32
 		dd %1

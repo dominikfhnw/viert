@@ -297,6 +297,13 @@ DEF "lit32"
 	jmp	pushA
 	END no_next
 
+%if BIT_ARITHMETIC == 64
+DEF "lit64"
+	lodsq
+	jmp	pushA
+	END no_next
+%endif
+
 DEF "swap"
 	pop	D
 	pop	A
