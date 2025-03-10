@@ -155,15 +155,16 @@ DEF "over"
 	DEF "dupemit"
 		; this leaves the stack alone, so technically its a dup and emit combined
 		assert_A_low
-		rset	A, -2
-		taint	B, C, D
-		set	D, 1
-		set	A, SYS_write
-		set	B, 1
-		set	C, SP
+		rset	eax, -2
+		taint	ebx, ecx, edx
+		set	edx, 1
+		set	eax, SYS_write
+		set	ebx, 1
+		set	ecx, esp
 		int	0x80
 		; this will crash spectacularly if write was not successful (A != 1)
 		;A_tainted
+		;xor	eax, eax
 		END
 		%endif
 
