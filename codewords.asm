@@ -16,15 +16,29 @@
 	%define A_tainted
 %endif
 ; ABI
-; SI:	Instruction pointer to next forth word
-; DI:	Base pointer to executable segment. Tbd if needed
+; esi:	Instruction pointer to next forth word
 ; SP:	Data stack
-; BP:	Return stack
+; DI:	Return stack
 ; A:	Contains value of forth word being executed.
 ;	Must be set =< 255 when returning from primitive
 ; D:	First working register for primitives
 ; C:	Second working register for primitives, counter register
 ; B:	FORTH_OFFSET of calling function. Third working register
+;
+; SP and DI are macros that expand to esp and edi on "32" and "x32" targets.
+; They expand to rsp and rdi on target "64"
+; Instruction pointer is always esi - we do not support programs bigger than 2^32 bytes
+;
+; Ideas what to use rbp for:
+; * address of next (nope: disp8 encoding means 3 bytes)
+; * zero register   (nope: mov is same or more than xor)
+; * comparison register
+; * counter register
+;
+; Ideas for r8-15:
+; * Keep part of stack
+; * debug registers
+;
 ;
 ; zero-A vs before:
 ; lit32:	+2
