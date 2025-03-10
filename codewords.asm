@@ -51,7 +51,6 @@
 ; string:	-2
 ; TOTAL:	-3
 
-%define FORCE_ARITHMETIC_32	0
 %if FORCE_ARITHMETIC_32
 	%define	aD	edx
 	%define	aC	ecx
