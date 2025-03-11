@@ -182,6 +182,12 @@ DEFFORTH "exit"
 	f_syscall3
 	END
 	%endif
+%if SYSCALL64
+DEFFORTH "bye64"
+	lit 60
+	f_syscall3_64
+	END
+	%endif
 
 %ifdef f_syscall3
 DEFFORTH "puts"
@@ -189,6 +195,16 @@ DEFFORTH "puts"
 	lit	STDOUT
 	lit	SYS_write
 	f_syscall3
+	f_drop
+	END
+	%endif
+
+%if SYSCALL64
+DEFFORTH "puts64"
+	f_swap
+	lit	STDOUT
+	f_1
+	f_syscall3_64
 	f_drop
 	END
 	%endif
@@ -204,6 +220,15 @@ DEFFORTH "emit"
 		f_drop
 	%endif
 ENDDEF
+
+%if SYSCALL64
+DEFFORTH "emit64"
+	f_sp_at
+	f_1
+	f_puts64
+	f_drop
+ENDDEF
+%endif
 
 DEFFORTH "0eq"
 	if

@@ -126,6 +126,8 @@ BITS BIT
 %define OFFALIGN	0
 %endif
 
+%define SYSCALL64	0
+
 %if BIT == 64
 	%define	A		rax
 	%define	B		rbx

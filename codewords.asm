@@ -186,14 +186,27 @@ DEF "over"
 
 %if 1
 	DEF "rspush"
-		%if 0
-		pop	D
-		rspush	D
-		%else ; same amount of bytes, less instructions
 		lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
 		pop	native [embiggen(RETURN_STACK)]
-		%endif
 		END
+%endif
+
+%if SYSCALL64
+DEF "emit64b"
+	push	rdi
+	push	rsi
+
+	cdq
+	inc	edx
+	mov	eax, edx
+	mov	edi, edx
+	lea	rsi, [rsp+CELL_SIZE*2]
+
+	syscall
+	pop	rsi
+	pop	rdi
+	pop	rdx	; equivalent to drop
+	END
 %endif
 
 A_DOCOL:
@@ -320,6 +333,32 @@ DEF "syscall3"
 	int	0x80
 	jmp	pushA
 	END no_next
+
+; x64 syscall: syscall number in rax
+; params: rdi, rsi, rdx, r10, r8, r9
+; para32: ebx, ecx, edx, ...
+; num...: 1    2    3
+; clobbered: rax, rcx, r11
+; we got to save rdi and rsi
+; free: rbx, rbp(?), r12, r13, r14, r15
+%if SYSCALL64
+DEF "syscall3_64"
+	push	rdi
+	pop	rbp
+	mov	ebx, esi
+
+	pop	rax
+	pop	rdi
+	pop	rsi
+	pop	rdx
+
+	syscall
+	mov	esi, ebx
+	push	rbp
+	pop	rdi
+	jmp	pushA
+	END no_next
+	%endif
 
 %else
 DEF "exit"
