@@ -325,6 +325,28 @@ DEFFORTH "udot"
 	f_emit
 ENDDEF
 
+DEFFORTH "bshift"
+	;f_1
+	;f_swap
+	doloop1
+		f_dup
+		f_plus
+	endloop1
+	END
+
+DEFFORTH "signbit"
+	%if BIT_ARITHMETIC == 64
+		f_1
+		lit 63
+		f_bshift
+	%else
+		f_1
+		lit 31
+		f_bshift
+		;lit 0x80000000
+	%endif
+	END
+
 DEFFORTH "dot"
 	f_dup
 	lit 0x80000000
@@ -337,3 +359,27 @@ DEFFORTH "dot"
 	f_udot
 	f_nl
 ENDDEF
+
+DEFFORTH "isnegative"
+	f_dup
+	f_signbit
+	f_and
+	END
+
+%if 1
+DEFFORTH "fib"
+	f_2dup
+	f_plus
+
+	f_isnegative
+	if
+		f_EXIT
+	then
+
+	f_dup
+	f_udot
+	f_nl
+
+	f_fib
+ENDDEF
+%endif
