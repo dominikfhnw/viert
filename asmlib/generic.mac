@@ -34,9 +34,9 @@
 
 %imacro alloca arg(1)
 	%if %1 < 129
-		add	esp, -%1
+		add	embiggen(esp), -%1
 	%else
-		sub	esp, %1
+		sub	embiggen(esp), %1
 		;lea	esp, [esp-%1]
 	%endif
 %endmacro

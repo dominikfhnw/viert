@@ -117,7 +117,7 @@ call	.begin
 	%endif
 .begin:
 pop	esi
-mov	edx, esp
+mov	embiggen(edx), embiggen(esp)
 taint	esi, edx
 %else
 mov	esi, esp
@@ -138,7 +138,7 @@ pop	ebx
 
 rdump
 alloca	TOTAL
-mov	edi, esp
+mov	embiggen(edi), embiggen(esp)
 taint	edi
 
 cld
