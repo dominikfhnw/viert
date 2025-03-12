@@ -327,9 +327,9 @@ DEF "syscall3"
 
 %else
 ; x64 syscall: syscall number in rax
-; params: rdi, rsi, rdx, r10, r8, r9
-; para32: ebx, ecx, edx, ...
-; num...: 1    2    3
+; params: rdi, rsi, rdx, r10, r8 , r9
+; para32: ebx, ecx, edx, esi, edi, ebp
+; num...: 1    2    3    5    6    7
 ; clobbered: rax, rcx, r11
 ; we got to save rdi and rsi
 ; free: rbx, rbp(?), r12, r13, r14, r15
