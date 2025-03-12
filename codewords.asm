@@ -200,7 +200,7 @@ DEF "emit32b"
 
 A_DOCOL:
 rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, B
+mov	FORTH_OFFSET, ebx
 
 A_NEXT:
 assert_A_low
@@ -225,7 +225,7 @@ jmp	B
 DEF "zbranch"
 	pop	C
 	jCz	A_branch
-	inc	FORTH_OFFSET
+	lodsb	; inc esi, but smaller on 64bit
 	END
 
 %if 1
@@ -266,7 +266,7 @@ DEF "string"
 	lodsb
 	push	FORTH_OFFSET
 	push	A
-	add	FORTH_OFFSET, A
+	add	FORTH_OFFSET, eax
 	END
 
 DEF "plus"
