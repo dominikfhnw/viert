@@ -13,20 +13,26 @@
 	jmp JMPLEN A_NEXT
 %endmacro
 
+%macro align2 2
+	%assign a1 ($ - WORD_OFFSET) % %1
+	%if a1 != 0
+		times (%1-a1) %2
+	%endif
+%endmacro
+
 %macro DEF 1-2.nolist
 	%ifctx defcode
 		%fatal Nested DEF not allowed. Did you forget an ENDDEF?
 	%endif
 	%push defcode
 
-	align WORD_ALIGN, nop
+	align2 WORD_ALIGN, nop
 	%define DEF%[WORD_COUNT] A_%tok(%1)
 	A_%tok(%1):
-	%define %[n_%tok(%1)] %[WORD_COUNT]
 	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
-	%warning NEW DEFINITION: DEF%[WORD_COUNT] %1
+	%warning NEW DEFINITION: %1 WORD_COUNT
 	rtaint
-	rset	NEXT_WORD, -2 ; 8-bit value
+	rset	eax, -2 ; 8-bit value
 	%assign WORD_COUNT WORD_COUNT+1
 %endmacro
 
@@ -36,7 +42,7 @@
 	%endif
 
 	; another align here, to override "align with nop"
-	align WORD_ALIGN, db 0
+	align2 WORD_ALIGN, db 0
 	DEF %1, no_next
 	%repl defforth
 %endmacro
