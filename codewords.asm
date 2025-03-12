@@ -83,19 +83,19 @@ DEF "over"
 %endif
 
 DEF "drop"
-	pop	D
+	pop	C
 	END
 
 %if 1
 ; the minimal primitives
 	DEF "store"
-		pop	D
-		pop	native [D] ; I have to agree with Kragen here, I'm also amazed this is legal
+		pop	C
+		pop	native [C] ; I have to agree with Kragen here, I'm also amazed this is legal
 		END
 
 	DEF "fetch"
-		pop	D
-		push	native [D] ; This feels less illegal for some reason
+		pop	C
+		push	native [C] ; This feels less illegal for some reason
 		END
 
 	DEF "sp_at"
@@ -119,8 +119,8 @@ DEF "drop"
 	%endif
 
 	DEF "nand"
-		pop	aD
-		and	[SP], aD
+		pop	aC
+		and	[SP], aC
 		END	no_next
 	DEF "not"
 		not	arith [SP]
@@ -229,8 +229,8 @@ DEF "zbranch"
 
 %if 1
 	DEF "branch"
-		movsx	edx, byte [embiggen(FORTH_OFFSET)]
-		add	FORTH_OFFSET, edx
+		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
+		add	FORTH_OFFSET, ecx
 		END
 %endif
 
@@ -269,8 +269,8 @@ DEF "string"
 	END
 
 DEF "plus"
-	pop	D
-	add	[SP], aD
+	pop	C
+	add	[SP], aC
 	END
 
 DEF "divmod"
