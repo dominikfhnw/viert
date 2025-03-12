@@ -1,18 +1,44 @@
 %if 0
 set -euo pipefail
-#set -x
 
+BIT="32"
+HARDEN=0
 #ORG="0x01000000"
 #ORG="0x80000000"
 ORG="0x10000"
 DUMP="-Mintel"
-#DUMP="--no-addresses -Mintel"
-NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan -Werror=number-overflow"
-#NASMOPT="-DORG=$ORG -w+all -Werror=label-orphan"
-FLAGS="-Map=% -Ttext-segment=$ORG -z noseparate-code"
-#FLAGS="-Map=% -Ttext-segment=$ORG"
+DUMP="--no-addresses -Mintel"
+NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan -Werror=number-overflow"
+#NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
 
-BIT="x32"
+LD="gold"
+#LD="ld.lld"
+LD="ld"
+#LD="/home/balou/ELFkickers-3.2/infect/f/isvm-tool/viert.proj/mold/build/mold"
+
+FLAGS="-Ttext-segment=$ORG"
+
+if [ "$LD" != "gold" ]; then
+	FLAGS="$FLAGS -z noseparate-code"
+fi
+
+if [ "$HARDEN" = 1 ]; then
+	NASMOPT="$NASMOPT -DHARDEN=1"
+	FLAGS="$FLAGS -static -pie --no-dynamic-linker"
+	#FLAGS="$FLAGS -T o --verbose -u __stack_chk_fail -u __read_chk -z noexecstack -z ibt -z shstk -z relro -z now --build-id=none --orphan-handling=warn"
+	#FLAGS="$FLAGS -u __stack_chk_fail -u __read_chk -u .cfi -u __safestack_init -z noexecstack -z ibt -z shstk -z relro -z now --build-id=none --orphan-handling=warn"
+	FLAGS="$FLAGS -u __stack_chk_fail -u __read_chk -u .cfi -u __safestack_init -z noexecstack -z ibt -z shstk -z relro -z now --build-id=none"
+	FLAGS="$FLAGS -u .cfi -u __safestack_init" # checksec extended
+	FLAGS="$FLAGS --unresolved-symbols=report-all"
+else
+	if [ "${LD##*/}" = "mold" ]; then
+		FLAGS="$FLAGS --no-eh-frame-hdr -z norelro"
+	elif [ "$LD" = "ld.lld" ]; then
+		FLAGS="$FLAGS -z nognustack --no-rosegment"
+	fi
+fi
+
+
 OUT=viert
 if [ -n "${LINCOM-}" ]; then
 	OUT="$OUT.com"
@@ -37,12 +63,23 @@ if [ -n "${FULL-1}" ]; then
 	echo "FULL $BIT"
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
-	nasm -g -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
-	ld $FLAGS $OUT.o -o $OUT
+	nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	$LD $FLAGS $OUT.o -o $OUT
 	cp $OUT $OUT.full
 	ls -l $OUT.full
 	sstrip $OUT
-	truncate -s -65536 $OUT
+	#truncate -s -65536 $OUT
+
+	if [ "$HARDEN" = 1 ]; then
+		echo
+		echo " * hardening-check:"
+		hardening-check -c viert.full ||:
+
+		echo
+		echo " * checksec:"
+		checksec --file=viert.full ||:
+		exit
+	fi
 else
 	echo "SMALL $BIT"
 	if [ "$BIT" = "x32" ]
@@ -94,9 +131,17 @@ strace -frni ./$OUT
 echo ret $?
 ls -l $OUT
 exit
-
 %endif
+
+; Bitness flags:
+; BIT: 32 or 64. What kind of code is being executed
+; X32: true if we are compiling an "x32" binary - 64-bit code with 32-bit pointers.
+; FORCE_ARITHMETIC_32: use 32-bit arithmetic instructions when running 64-bit code
+; B64: flag for regdump
+
 BITS BIT
+
+;%define B64
 
 %define REG_OPT		1
 %define REG_SEARCH	1
@@ -109,9 +154,20 @@ BITS BIT
 %define SYSCALL		1
 %endif
 
-;full ELF file. Version with FULL=0 won't have debug info/won't load in gdb at all
+; full ELF file. Version with FULL=0 won't have debug info/won't load in gdb at all
 %ifndef FULL
 %define FULL		0
+%endif
+
+; force 32-bit arithmetic, even when compiling for 64-bit systems
+%ifndef FORCE_ARITHMETIC_32
+%define FORCE_ARITHMETIC_32 0
+%endif
+
+%if	(BIT == 64 && !FORCE_ARITHMETIC_32)
+	%define BIT_ARITHMETIC	64
+%else
+	%define BIT_ARITHMETIC	32
 %endif
 
 ; enable 8 bit literals. Usually a good idea, as it saves a lot of overall space
@@ -122,6 +178,10 @@ BITS BIT
 ; WHILE in pure forth
 %ifndef FORTHWHILE
 %define FORTHWHILE	0
+%endif
+
+%ifndef HARDEN
+%define HARDEN		0
 %endif
 
 %ifndef X32
@@ -238,6 +298,8 @@ SECTION .text align=1
 	%define ELF_OFFSET 0x20
 	org ORG
 	ELF
+%else
+	_start:
 %endif
 
 
@@ -246,6 +308,19 @@ A_INIT:
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
 ; by simply doing nothing
+%if HARDEN
+hardening:
+cmp	ax, 0x1000
+;cmp    rsp, rax ; for 64bit codebase, 1 byte shorter
+jz	.end
+sub	ax, 0x1000
+or	al, 0x0
+jmp	hardening
+.end:
+rset	eax, 0x1000
+set	eax, 0
+%endif
+
 
 ; we chose our base address to be < 2^32
 mov	ebp, FORTH
@@ -388,7 +463,12 @@ A_END:
 
 
 %if FULL
-resb 65536
+;resb 65536
+%endif
+
+%if HARDEN
+SECTION txtrp align=1
+db 0
 %endif
 
 %warning "SIZE" SIZE
