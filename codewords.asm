@@ -334,9 +334,7 @@ DEF "syscall3"
 ; we got to save rdi and rsi
 ; free: rbx, rbp(?), r12, r13, r14, r15
 DEF "syscall3"
-	push	rdi
-	pop	rbp
-	mov	ebx, esi
+	mov	ebp, esi
 
 	pop	rax
 	pop	rdi
@@ -344,9 +342,7 @@ DEF "syscall3"
 	pop	rdx
 
 	syscall
-	mov	esi, ebx
-	push	rbp
-	pop	rdi
+	mov	esi, ebp
 	END	pushA
 %endif
 

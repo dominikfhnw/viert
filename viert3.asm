@@ -192,7 +192,13 @@ BITS BIT
 %define OFFALIGN	0
 %endif
 
-%define SYSCALL64	0
+%ifndef SYSCALL64
+	%if BIT == 64 && !X32
+		%define SYSCALL64	1
+	%else
+		%define SYSCALL64	0
+	%endif
+%endif
 
 %if BIT == 64
 	%define	A		rax
@@ -221,9 +227,12 @@ BITS BIT
 %endif
 
 %define	DATA_STACK	SP
-%define	RETURN_STACK	DI
+%if SYSCALL64
+	%define	RETURN_STACK	B
+%else
+	%define	RETURN_STACK	DI
+%endif
 %define	FORTH_OFFSET	esi
-%define	NEXT_WORD	A
 
 %if X32
 	%xdefine	DATA_STACK	emsmallen(DATA_STACK)
