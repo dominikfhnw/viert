@@ -84,22 +84,12 @@ DEF "over"
 		%endif
 
 	DEF "rot"
-		%if 0
-			pop	D
-			pop	B
-			pop	C
-			push	B
-			push	D
-			push	C
-			END
-		%else
-			pop	D
-			pop	C
-			pop	A
-			ush	C
-			jmp	pushDA
-			END no_next
-		%endif
+		pop	D
+		pop	C
+		pop	A
+		push	C
+		jmp	pushDA
+		END no_next
 %endif
 
 %if 1
