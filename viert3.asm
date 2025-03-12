@@ -429,7 +429,7 @@ WORD_OFFSET:
 	%$$jump1:
 %endmacro
 
-SECTION .text align=1
+;SECTION .text align=1
 %include "forthwords.asm"
 
 A_FORTH:
