@@ -349,7 +349,7 @@ DEFFORTH "signbit"
 
 DEFFORTH "dot"
 	f_dup
-	lit 0x80000000
+	f_signbit
 	f_and
 	if
 		lit '-'
