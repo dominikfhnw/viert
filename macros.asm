@@ -100,6 +100,7 @@
 %macro pop arg(1)
 	%if BIT == 64
 		embiggen_reg %1
+		%warning POPWRAP %1 -> out
 		pop out
 	%else
 		pop %1
