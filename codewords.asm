@@ -54,12 +54,10 @@
 %if FORCE_ARITHMETIC_32
 	%define	aD	edx
 	%define	aC	ecx
-	%define	aB	ebx
 	%define arith	dword
 %else
 	%define	aD	D
 	%define	aC	C
-	%define	aB	B
 	%define arith	native
 %endif
 
@@ -201,16 +199,16 @@ DEF "emit32b"
 
 A_DOCOL:
 rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, ebx
+mov	FORTH_OFFSET, ebp
 
 A_NEXT:
 assert_A_low
 lodsb
 cmp	al, BREAK
 ; we assume code size < 2^32
-lea	ebx, [A*WORD_ALIGN+BASE]
+lea	ebp, [A*WORD_ALIGN+BASE]
 ja	A_DOCOL
-jmp	B
+jmp	BP
 
 ;DEF "0lt"
 ;	; from eForth. Would be 4 bytes smaller than my version
