@@ -64,11 +64,12 @@ ls -l $OUT
 chmod +x $OUT
 
 symbols(){
-	#time LC_ALL=C nm -f bsd -td -n $OUT.full
-	time LC_ALL=C eu-nm -f bsd -td -n $OUT.full
+	# binutils nm sometimes has a weird ~0.5s lag, while eu-nm is consistently fast
+	OPT="-f bsd -td -n $OUT.full"
+	time LC_ALL=C eu-nm $OPT || nm $OPT
 }
 sizes(){
-	time symbols | mawk '/. A_[^.]*$/{sub(/A_/,"");if(name){print $1-size " " name;total+=($1-size)};name=$3;size=$1}END{total+=84;print total " TOTAL"}BEGIN{print "84 ELF"}'|column -tR1
+	symbols | mawk '/. A_[^.]*$/{sub(/A_/,"");if(name){print $1-size " " name;total+=($1-size)};name=$3;size=$1}END{total+=84;print total " TOTAL"}BEGIN{print "84 ELF"}'|column -tR1
 }
 
 if [ -n "${FULL-1}" ]; then
