@@ -79,8 +79,7 @@ DEF "over"
 			END
 		%else
 			pop	A
-			jmp	pushA
-			END no_next
+			END	pushA
 		%endif
 %endif
 
@@ -117,8 +116,7 @@ DEF "drop"
 		cdq		; sign extend AX into DX
 		push	D	; push 0 or -1
 		xchg	A, D
-		jmp	pushA
-		END	no_next
+		END	pushA
 	%endif
 
 	DEF "nand"
@@ -292,35 +290,30 @@ pushA:
 DEF "lit8"
 	assert_A_low
 	lodsb
-	jmp	pushA
-	END no_next
+	END	pushA
 %endif
 
 DEF "lit32"
 	lodsd
-	jmp	pushA
-	END no_next
+	END	pushA
 
 %if BIT_ARITHMETIC == 64
 DEF "lit64"
 	lodsq
-	jmp	pushA
-	END no_next
+	END	pushA
 %endif
 
 DEF "swap"
 	pop	D
 	pop	A
-	jmp	pushDA
-	END no_next
+	END	pushDA
 
 DEF "rot"
 	pop	D
 	pop	C
 	pop	A
 	push	C
-	jmp	pushDA
-	END no_next
+	END	pushDA
 
 %if SYSCALL
 %if !SYSCALL64
@@ -331,8 +324,7 @@ DEF "syscall3"
 	pop	D
 
 	int	0x80
-	jmp	pushA
-	END no_next
+	END	pushA
 
 %else
 ; x64 syscall: syscall number in rax
@@ -356,16 +348,14 @@ DEF "syscall3"
 	mov	esi, ebx
 	push	rbp
 	pop	rdi
-	jmp	pushA
-	END no_next
-	%endif
+	END	pushA
 %endif
 
 %else
 DEF "bye"
 	mov	al, SYS_exit
 	int	0x80
-	END no_next
+	END	no_next
 	%endif
 
 %if DEBUG

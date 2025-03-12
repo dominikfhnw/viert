@@ -45,6 +45,14 @@
 	%ifctx defcode
 		%if %0 == 0
 			NEXT
+		%elif %1 == pushA
+			jmp short pushA
+		%elif %1 == pushDA
+			jmp short pushDA
+		%elif %1 == no_next
+			; nothing
+		%else
+			%error unknown statement after END: %1
 		%endif
 		%pop defcode
 	%else
