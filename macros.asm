@@ -116,15 +116,20 @@
 %endmacro
 
 %imacro rspop arg(1)
+%if 1
+	mov	%1, [embiggen(RETURN_STACK)]
+	lea     RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
+%else
 	xchg	RETURN_STACK, DATA_STACK
 	pop	%1
 	xchg	RETURN_STACK, DATA_STACK
+%endif
 %endmacro
 
 %imacro rspush arg(1)
-%if 0
+%if 1
 	lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
-	mov	[embiggen(RETURN_STACK)], FORTH_OFFSET
+	mov	[embiggen(RETURN_STACK)], %1
 %else
 	xchg	RETURN_STACK, DATA_STACK
 	push	%1
