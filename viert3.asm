@@ -234,7 +234,7 @@ BITS BIT
 %define zero_seg	0
 
 %ifndef WORD_ALIGN
-%define WORD_ALIGN	1
+%define WORD_ALIGN	2
 %endif
 
 %ifndef WORD_SIZE
