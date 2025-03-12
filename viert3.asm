@@ -385,17 +385,6 @@ WORD_OFFSET:
 	%$loop:
 %endmacro
 
-%macro endloop0 arg(0)
-	;f_rsdec
-	;f_dupr2d
-	;f_zbranch
-	f_while
-	db %$loop - $ - 1
-	;f_rspop
-	; f_drop
-	%pop loopctx
-%endmacro
-
 %macro endloop1 arg(0)
 	%if FORTHWHILE
 		f_rp_at
