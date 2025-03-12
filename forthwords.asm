@@ -214,20 +214,18 @@ DEFFORTH "while"
 ; ( rp@ -- ... )
 	; make copy of address, fetch from return stack
 	f_dup
-	f_dup
 	f_fetch
 
 	; decrement counter
 	f_dec
+	; save a copy
+	f_dup
 
-	f_dbg
-	; swap value + address
-	f_swap
 	; store value back to return stack
+	f_rot
 	f_store
 
-	; fetch again, check if zero
-	f_fetch
+	; check copy if zero
 	f_0eq
 	END
 %endif
