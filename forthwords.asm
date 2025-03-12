@@ -39,7 +39,6 @@ DEFFORTH "true"
 	END
 	%endif
 
-
 %ifndef f_swap
 DEFFORTH "swap"
 	;: swap ( x y -- y x ) over over sp@ 6 + ! sp@ 2 + ! ;
@@ -239,7 +238,6 @@ DEFFORTH "puts"
 		f_inc
 	endloop1
 	f_drop
-	f_dbg
 	END
 	%endif
 
