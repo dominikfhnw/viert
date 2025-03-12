@@ -226,25 +226,25 @@ DEFFORTH "0eq"
 	then
 
 	END
+
 %if FORTHWHILE
 DEFFORTH "while"
-	; fetch 2nd highest element from return stack
+; ( rp@ -- ... )
+	; make copy of address, fetch from return stack
 	f_dup
 	f_dup
 	f_fetch
 
-	; decrement counter, dup
+	; decrement counter
 	f_dec
-	f_dbg
-	;f_dup
 
-	; get address again, store back
-	;f_rover
+	f_dbg
+	; swap value + address
 	f_swap
+	; store value back to return stack
 	f_store
-	f_dbg
 
-	; check the dup if 0
+	; fetch again, check if zero
 	f_fetch
 	f_0eq
 	END
