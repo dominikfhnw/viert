@@ -33,7 +33,7 @@
 ; * address of next (nope: disp8 encoding means 3 bytes)
 ; * zero register   (nope: mov is same or more than xor)
 ; * comparison register
-; * counter register
+; * counter register: only gain is not having to have rdrop
 ;
 ; Ideas for r8-15:
 ; * Keep part of stack
