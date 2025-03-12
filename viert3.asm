@@ -434,14 +434,75 @@ WORD_OFFSET:
 
 A_FORTH:
 FORTH:
-
-	lit 123456
-	;f_0ne
-	;f_dup
+	lit 12345678
+	f_dot
+	f_bye
+%if 0
+	f_dup
+	f_udot
+	f_nl
+	f_dot
+	f_exit
+	;lit 1
+	;lit 63
+	f_0
+	f_dec
+	;f_bshift
+	lit 62
+	f_bshift
 	f_dot
 
-	;f_exit
+	lit -1
+	lit 0
+	f_exit
+	f_fib
 
+	f_dot
+	do
+		string "hello world!"
+		f_puts
+	f_true	
+	until
+	f_exit
+.branch2:
+	f_branch2
+.exit1:
+	f_exit
+.incsled:
+	f_inc
+	f_inc
+	f_inc
+	f_inc
+	f_inc
+	f_inc
+	f_inc
+	f_inc
+.hi:
+	lit 'h'
+	f_emit
+	lit 'i'
+	f_emit
+.exit2:
+	f_exit
+
+
+
+
+
+
+
+
+	f_true
+	lit 12345
+	f_dbg
+	f_udot
+	f_dbg
+
+	;f_dbg
+	;f_drop
+	;f_dbg
+	f_exit
+%endif
 
 A_END:
 %if DEBUG
