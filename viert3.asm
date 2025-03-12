@@ -78,9 +78,14 @@ if [ -n "${FULL-1}" ]; then
 	#sizes | sort -nr
 	sizes
 else
-	OFF=$(  readelf2 -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
-	START=$(readelf2 -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
-	objdump $DUMP -b binary -m i386 -D $OUT --adjust-vma="$OFF" --start-address="$START"
+	OFF=$(  readelf -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
+	START=$(readelf -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
+	if [ "$BIT" = "x32" ]; then
+		m="x86-64"
+	else
+		m="i386"
+	fi
+	objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
 fi
 
 set +e
