@@ -57,13 +57,6 @@ DEFFORTH "swap"
 	END
 	%endif
 
-%ifndef f_rspush
-DEFFORTH "rspush"
-	f_not
-	f_and
-	END
-	%endif
-
 DEFFORTH "false"
 	lit 0
 ENDDEF
@@ -137,13 +130,6 @@ DEFFORTH "drop"
 	END
 	%endif
 
-
-%ifdef	f_syscall3
-DEFFORTH "exit"
-	f_1
-	f_syscall3
-	END noreturn
-	%endif
 
 DEFFORTH "2dup"
 	f_over
