@@ -82,7 +82,7 @@
 	%define embiggen(a)  %tok(%strcat("r",%substr(a,2,2)))
 %endif
 
-%macro embiggen_reg arg(1)
+%macro embiggen_conditional arg(1)
 	%if BIT == 64
 		%substr reg_prefix %str(%1) 1,1
 		%ifidn reg_prefix,'e'
@@ -98,7 +98,7 @@
 
 %macro pop arg(1)
 	%if BIT == 64
-		embiggen_reg %1
+		embiggen_conditional %1
 		%warning POPWRAP %1 -> out
 		pop out
 	%else
@@ -108,7 +108,7 @@
 
 %macro push arg(1)
 	%if BIT == 64
-		embiggen_reg %1
+		embiggen_conditional %1
 		push out
 	%else
 		push %1
