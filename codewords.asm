@@ -211,7 +211,7 @@ DEF "emit64b"
 
 A_DOCOL:
 rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, ebx
+mov	FORTH_OFFSET, B
 
 A_NEXT:
 assert_A_low
@@ -276,8 +276,8 @@ DEF "string"
 	assert_A_low
 	lodsb
 	push	FORTH_OFFSET
-	push	eax
-	add	FORTH_OFFSET, eax
+	push	A
+	add	FORTH_OFFSET, A
 	END
 
 DEF "plus"
