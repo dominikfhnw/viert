@@ -82,6 +82,8 @@
 	%define embiggen(a)  %tok(%strcat("r",%substr(a,2,2)))
 %endif
 
+%define emsmallen(a)  %tok(%strcat("e",%substr(a,2,2)))
+
 %macro embiggen_conditional arg(1)
 	%if BIT == 64
 		%substr reg_prefix %str(%1) 1,1

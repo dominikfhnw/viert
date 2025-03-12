@@ -226,8 +226,8 @@ BITS BIT
 %define	NEXT_WORD	A
 
 %if X32
-	%define	DATA_STACK	esp
-	%define	RETURN_STACK	edi
+	%xdefine	DATA_STACK	emsmallen(DATA_STACK)
+	%xdefine	RETURN_STACK	emsmallen(RETURN_STACK)
 %endif
 
 %assign	WORD_COUNT	0
