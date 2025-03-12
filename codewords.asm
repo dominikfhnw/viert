@@ -169,7 +169,7 @@ DEF "drop"
 		END
 %endif
 
-%if SYSCALL64
+%if SYSCALL64 && 0
 DEF "emit64b"
 	push	rdi
 	push	rsi
@@ -185,6 +185,19 @@ DEF "emit64b"
 	pop	rdi
 	pop	rdx	; equivalent to drop
 	END
+
+DEF "emit32b"
+	assert_A_low
+	rset	eax, -2
+	taint	ebx, ecx, edx
+	set	edx, 1
+	set	eax, SYS_write
+	set	ebx, 1
+	set	ecx, esp
+	int	0x80
+	pop	edx	; equivalent to drop
+	END
+
 %endif
 
 A_DOCOL:
@@ -310,6 +323,7 @@ DEF "rot"
 	END no_next
 
 %if SYSCALL
+%if !SYSCALL64
 DEF "syscall3"
 	pop	A
 	pop	B
@@ -320,6 +334,7 @@ DEF "syscall3"
 	jmp	pushA
 	END no_next
 
+%else
 ; x64 syscall: syscall number in rax
 ; params: rdi, rsi, rdx, r10, r8, r9
 ; para32: ebx, ecx, edx, ...
@@ -327,8 +342,7 @@ DEF "syscall3"
 ; clobbered: rax, rcx, r11
 ; we got to save rdi and rsi
 ; free: rbx, rbp(?), r12, r13, r14, r15
-%if SYSCALL64
-DEF "syscall3_64"
+DEF "syscall3"
 	push	rdi
 	pop	rbp
 	mov	ebx, esi
@@ -345,6 +359,7 @@ DEF "syscall3_64"
 	jmp	pushA
 	END no_next
 	%endif
+%endif
 
 %else
 DEF "bye"

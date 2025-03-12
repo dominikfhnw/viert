@@ -164,35 +164,26 @@ ENDDEF
 
 %ifndef f_bye
 DEFFORTH "bye"
-	f_1
+	%if SYSCALL64
+		lit 60
+	%else
+		f_1
+	%endif
 	f_syscall3
 	END
 	%endif
 %define f_exit f_bye
 
-%if SYSCALL64
-DEFFORTH "bye64"
-	lit 60
-	f_syscall3_64
-	END
-	%endif
-
 %ifdef f_syscall3
 DEFFORTH "puts"
 	f_swap
 	lit	STDOUT
-	lit	SYS_write
-	f_syscall3
-	f_drop
-	END
+	%if SYSCALL64
+		f_1
+	%else
+		lit	SYS_write
 	%endif
-
-%if SYSCALL64
-DEFFORTH "puts64"
-	f_swap
-	lit	STDOUT
-	f_1
-	f_syscall3_64
+	f_syscall3
 	f_drop
 	END
 	%endif
@@ -208,15 +199,6 @@ DEFFORTH "emit"
 		f_drop
 	%endif
 ENDDEF
-
-%if SYSCALL64
-DEFFORTH "emit64"
-	f_sp_at
-	f_1
-	f_puts64
-	f_drop
-ENDDEF
-%endif
 
 DEFFORTH "0eq"
 	if
