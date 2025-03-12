@@ -351,7 +351,7 @@ DEF "syscall3_64"
 	%endif
 
 %else
-DEF "exit"
+DEF "bye"
 	mov	al, SYS_exit
 	int	0x80
 	END no_next
@@ -369,6 +369,7 @@ DEF "int3"
 	%define f_int3
 %endif
 
+A___BREAK__:
 END_OF_CODEWORDS:
 %warning "BREAK" WORD_COUNT
 %assign SIZE END_OF_CODEWORDS - $$

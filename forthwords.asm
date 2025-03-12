@@ -176,12 +176,14 @@ DEFFORTH "bool"
 ENDDEF
 %endif
 
-%ifndef f_exit
-DEFFORTH "exit"
+%ifndef f_bye
+DEFFORTH "bye"
 	f_1
 	f_syscall3
 	END
 	%endif
+%define f_exit f_bye
+
 %if SYSCALL64
 DEFFORTH "bye64"
 	lit 60
