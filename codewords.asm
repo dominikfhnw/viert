@@ -124,11 +124,9 @@ DEF "drop"
 	DEF "nand"
 		pop	aD
 		and	[SP], aD
-		reg
 		END	no_next
 	DEF "not"
 		not	arith [SP]
-		reg
 		END
 
 	%if !SYSCALL
