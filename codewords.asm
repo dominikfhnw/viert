@@ -84,14 +84,6 @@ DEF "over"
 		%endif
 %endif
 
-DEF "rot"
-	pop	D
-	pop	C
-	pop	A
-	push	C
-	jmp	pushDA
-	END no_next
-
 DEF "drop"
 	pop	D
 	END
@@ -308,6 +300,14 @@ DEF "lit64"
 DEF "swap"
 	pop	D
 	pop	A
+	jmp	pushDA
+	END no_next
+
+DEF "rot"
+	pop	D
+	pop	C
+	pop	A
+	push	C
 	jmp	pushDA
 	END no_next
 
