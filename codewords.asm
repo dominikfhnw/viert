@@ -82,21 +82,19 @@ DEF "over"
 			jmp	pushA
 			END no_next
 		%endif
-
-	DEF "rot"
-		pop	D
-		pop	C
-		pop	A
-		push	C
-		jmp	pushDA
-		END no_next
 %endif
 
-%if 1
-	DEF "drop"
-		pop	D
-		END
-%endif
+DEF "rot"
+	pop	D
+	pop	C
+	pop	A
+	push	C
+	jmp	pushDA
+	END no_next
+
+DEF "drop"
+	pop	D
+	END
 
 %if 1
 ; the minimal primitives
