@@ -74,11 +74,12 @@ DEF "over"
 
 %if 0
 	DEF "dup"
-		%if 1
+		%if 0
 			push	native [SP]
 			END
 		%else
 			pop	A
+			push	A
 			END	pushA
 		%endif
 %endif
