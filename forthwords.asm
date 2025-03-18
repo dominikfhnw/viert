@@ -349,6 +349,24 @@ DEFFORTH "isnegative"
 	f_and
 	END
 
+DEFFORTH "i"
+	f_rp_at
+	lit CELL_SIZE
+	f_plus
+	f_fetch
+	END
+
+DEFFORTH "isdiv"
+	f_over
+	f_swap
+	f_mod
+	if
+		f_false
+	else
+		f_true
+	then
+	END
+
 %if 1
 DEFFORTH "fib"
 	f_2dup
