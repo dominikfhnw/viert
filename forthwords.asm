@@ -140,12 +140,12 @@ DEFFORTH "2drop"
 	f_drop
 ENDDEF
 
-DEFFORTH "div"
+DEFFORTH "mod"
 	f_divmod
 	f_drop
 ENDDEF
 
-DEFFORTH "mod"
+DEFFORTH "div"
 	f_divmod
 	f_swap
 	f_drop
