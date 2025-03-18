@@ -247,6 +247,11 @@ DEFFORTH "nl"
 	f_emit
 ENDDEF
 
+DEFFORTH "spc"
+	lit ' '
+	f_emit
+ENDDEF
+
 %if 0
 DEFFORTH "brk"
 	f_0
@@ -335,7 +340,7 @@ DEFFORTH "dot"
 		f_negate
 	then
 	f_udot
-	f_nl
+	f_spc
 ENDDEF
 
 DEFFORTH "isnegative"
