@@ -350,16 +350,23 @@ rset	eax, 0x1000
 set	eax, 0
 %endif
 
-
-; we chose our base address to be < 2^32
-mov	ebp, FORTH
-enter	0xFFFF, 0
-ELF_PHDR 1
-%ifnidn RETURN_STACK,BP
-	%if X32
-		xchg	RETURN_STACK,ebp
-	%else
-		xchg	RETURN_STACK,BP
+%if 0 && %isnidn(RETURN_STACK,BP)
+	; does not require EXIT, but is +2b
+	enter	0xFFFF, 0
+	xchg	RETURN_STACK,ebp
+	mov	FORTH_OFFSET, FORTH
+	jmp	NEXT
+%else
+	; we chose our base address to be < 2^32
+	mov	ebp, FORTH
+	enter	0xFFFF, 0
+	ELF_PHDR 1
+	%ifnidn RETURN_STACK,BP
+		%if X32
+			xchg	RETURN_STACK,ebp
+		%else
+			xchg	RETURN_STACK,BP
+		%endif
 	%endif
 %endif
 
