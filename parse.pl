@@ -27,7 +27,8 @@ sub name {
 		s/!/store/;
 		s/\+/plus/;
 		s/-/minus/;
-		s/\./dot/;
+		s/=/eq/;
+		s/<>/ne/;
 	}
 	return $name;
 }
@@ -57,7 +58,7 @@ while(scalar(@stream)){
 			say "DEFFORTH \"$name\"";
 			$optional = 1;
 		}
-		when(/^\d+$/) {
+		when(/^-?\d+$/) {
 			say "lit $_";
 		}
 		when(";") {
