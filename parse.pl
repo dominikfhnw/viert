@@ -5,8 +5,8 @@ no warnings qw(uninitialized experimental::smartmatch);
 
 use Data::Dumper;
 
-my $contents = do { local $/; <> };
-$contents =~ s/\\.*$//gm;
+my $contents = do { local $/; <> || die "read failed: $!" };
+$contents =~ s/\\\s.*$//gm;
 $contents =~ s/\(\s+[^)]*\)//g;
 my @stream = split ' ', $contents;
 my $str = join " ",@stream;
@@ -36,6 +36,13 @@ my $optional = 0;
 while(scalar(@stream)){
 
 	given(shift@stream){
+		when(/^(doloop1|endloop1|if|then|else|jump)$/) {
+			say $_;
+		}
+		when('string') {
+			my $str = name(shift @stream);
+			say "string $str";
+		}
 		when(':') {
 			my $name = name(shift @stream);
 			$known{$name}++;
@@ -59,6 +66,10 @@ while(scalar(@stream)){
 		}
 		when(/^'/) {
 			say "lit ${_}";
+		}
+		when('MAIN') {
+			say "A_FORTH:";
+			say "FORTH:";
 		}
 		when(/^[A-Z]/) {
 			# XXX fix
