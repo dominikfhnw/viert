@@ -106,7 +106,27 @@ symbols(){
 	time LC_ALL=C eu-nm $OPT || nm $OPT
 }
 sizes(){
-	symbols | mawk '/. A_[^.]*$/{sub(/A_/,"");if(name){print $1-size " " name;total+=($1-size)};name=$3;size=$1}END{total+=84;print total " TOTAL"}BEGIN{print "84 ELF"}'|column -tR1
+	symbols | gawk '
+		BEGIN { print "84 ELF" }
+
+		/. A_[^.]*$/ {
+			sub(/A_/,"")
+			if(name){
+				print $1-size " " name
+				total+=($1-size)
+			}
+			if(name == "__BREAK__"){
+				print total " SUBTOTAL"
+			}
+			name=$3
+			size=$1
+		}
+
+		END {
+			total+=84
+			print total " TOTAL"
+		}
+	'|column -tR1
 }
 
 if [ -n "${FULL-1}" ]; then
