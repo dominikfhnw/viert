@@ -15,6 +15,10 @@
 	%define assert_A_low	xor eax, eax
 	%define A_tainted
 %endif
+
+%define f_spfetch f_sp_at
+%define f_rpfetch f_rp_at
+
 ; ABI
 ; esi:	Instruction pointer to next forth word
 ; SP:	Data stack
@@ -221,23 +225,33 @@ jmp	BP
 ;	jmp	pushA
 ;	END	no_next
 
+; XXX keep?
+%if 0
+DEF "while3"
+	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
+	push	native [embiggen(RETURN_STACK)]
+	reg
+	END	no_next
+%endif
+
 DEF "zbranch"
 	pop	C
 	jCz	A_branch
 	lodsb	; inc esi, but smaller on 64bit
 	END
 
-%if 1
-	DEF "branch"
-		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
-		add	FORTH_OFFSET, ecx
-		END
+%if 0
+DEF "while4"
+	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
+	jnz	A_branch		; clean up return stack if we're finished
+	lodsb
+	jz	A_rdrop
+	END	no_next
 %endif
 
-; XXX keep?
-DEF "loopdec"
-	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
-	push	native [embiggen(RETURN_STACK)]
+DEF "branch"
+	movsx	ecx, byte [embiggen(FORTH_OFFSET)]
+	add	FORTH_OFFSET, ecx
 	END
 
 ; f_while <imm8>:
@@ -284,6 +298,12 @@ pushA:
 	push	A
 	A_tainted
 	END
+
+%if 0
+DEF "i2"
+	push	arith [embiggen(RETURN_STACK)+CELL_SIZE]	; decrement loop counter
+	END
+%endif
 
 %if LIT8
 DEF "lit8"
