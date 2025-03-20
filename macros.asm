@@ -30,6 +30,8 @@
 	%define DEF%[WORD_COUNT] A_%tok(%1)
 	A_%tok(%1):
 	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
+	%define lastoff offset(A_%tok(%1))
+	%define lastoff2 A_%tok(%1)
 	%warning NEW DEFINITION: %1 WORD_COUNT
 	rtaint
 	rset	eax, -2 ; 8-bit value

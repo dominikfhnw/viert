@@ -532,3 +532,5 @@ db 0
 
 %warning "SIZE" SIZE
 %warning "WORDS" WORD_COUNT
+%warning "LASTOFF" %eval(lastoff)
+%warning "LASTOFF2" %eval(((lastoff2 - $$)/WORD_ALIGN)+ELF_HEADER_SIZE)
