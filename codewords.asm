@@ -314,6 +314,18 @@ DEF "plus"
 	add	[SP], aC
 	END
 
+%if DEBUG
+DEF "dbg"
+	reg
+	END
+;DEF "int3"
+;	int3
+;	END
+%else
+	%define f_dbg
+	;%define f_int3
+%endif
+
 DEF "divmod"
 	cdq		; A is <= 255, so cdq will always work
 	pop	C
@@ -399,18 +411,6 @@ DEF "bye"
 	int	0x80
 	END	no_next
 	%endif
-
-%if DEBUG
-DEF "dbg"
-	reg
-	END
-DEF "int3"
-	int3
-	END
-%else
-	%define f_dbg
-	%define f_int3
-%endif
 
 A___BREAK__:
 END_OF_CODEWORDS:
