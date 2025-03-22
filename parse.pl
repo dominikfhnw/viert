@@ -130,6 +130,11 @@ while(scalar(@stream)){
 			say "END";
 			say "%endif" if $optional;
 		}
+		when(";NORETURN") {
+			dbg;
+			say "END no_next";
+			say "%endif" if $optional;
+		}
 		when(/^'/) {
 			dbg;
 			say "lit ${_}";
