@@ -40,6 +40,7 @@ else
 	fi
 fi
 
+DEBUG=0 perl parse.pl ${SOURCE:-forthwords.fth} > compiled.asm
 
 OUT=viert
 if [ -n "${LINCOM-}" ]; then
@@ -278,6 +279,8 @@ BITS BIT
 %define WORD_SIZE	0
 %endif
 
+%assign BITM1		BIT - 1
+
 ; XXX quick&dirty hack
 %if   WORD_SIZE == 0
 	%define WORD_TABLE	0
@@ -479,84 +482,24 @@ WORD_OFFSET:
 	%$$jump1:
 %endmacro
 
-;SECTION .text align=1
-%include "forthwords.asm"
 %macro jump arg(1)
 	f_branch
 	db %1 - $
 %endmacro
 
-A_FORTH:
-FORTH:
-	lit 12345678
-	f_dot
-	f_bye
-%if 0
-	f_dup
-	f_udot
-	f_nl
-	f_dot
-	f_exit
-	;lit 1
-	;lit 63
-	f_0
-	f_dec
-	;f_bshift
-	lit 62
-	f_bshift
-	f_dot
+%macro do 0
+	%push infloop
+	%$loop:
+%endmacro
 
-	lit -1
-	lit 0
-	f_exit
-	f_fib
+%macro loop 0
+	f_branch
+	db %$loop - $
+	%pop infloop
+%endmacro
 
-	f_dot
-	do
-		string "hello world!"
-		f_puts
-	f_true	
-	until
-	f_exit
-.branch2:
-	f_branch2
-.exit1:
-	f_exit
-.incsled:
-	f_inc
-	f_inc
-	f_inc
-	f_inc
-	f_inc
-	f_inc
-	f_inc
-	f_inc
-.hi:
-	lit 'h'
-	f_emit
-	lit 'i'
-	f_emit
-.exit2:
-	f_exit
-
-
-
-
-
-
-
-
-	f_true
-	lit 12345
-	f_dbg
-	f_udot
-	f_dbg
-
-	;f_dbg
-	;f_drop
-	;f_dbg
-	f_exit
-%endif
+FORTH_START:
+%include "compiled.asm"
 
 A_END:
 %if DEBUG
