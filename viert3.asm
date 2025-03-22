@@ -109,7 +109,7 @@ symbols(){
 	time LC_ALL=C eu-nm $OPT || nm $OPT
 }
 sizes(){
-	symbols | gawk '
+	symbols | awk '
 		BEGIN { print "84 ELF" }
 
 		/. A_[^.]*$/ {
