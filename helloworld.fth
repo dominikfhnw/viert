@@ -1,6 +1,6 @@
 ( 
 	# I'm also a bash script
-	FULL= SOURCE=$0 bash viert3.asm -DWORD_ALIGN=1
+	FULL=${FULL-} SOURCE=$0 bash viert3.asm -DWORD_ALIGN=1
 	kill $$ # the forth comment counts as a subshell, so this is the easiest way to exit
 )
 
