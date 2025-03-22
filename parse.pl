@@ -36,6 +36,12 @@ no warnings qw(uninitialized experimental::smartmatch);
 
 use Data::Dumper;
 
+# set boolean constant DEBUG according to environment variable DEBUG
+BEGIN {
+	my $d = !!$ENV{DEBUG};
+	*DEBUG = sub(){ $d };
+}
+
 my $contents = do { local $/; <> || die "read failed: $!" };
 $contents =~ s/\\\s.*$//gm;
 $contents =~ s/\(\s+[^)]*\)//g;
@@ -58,62 +64,96 @@ sub name {
 		s/!/store/;
 		s/\+/plus/;
 		s/-/minus/;
+		s/\./dot/;
 		s/=/eq/;
 		s/<>/ne/;
+		s/>/to/;
+		s/'/_/g;
+		s/;/EXIT/g;
 	}
 	return $name;
 }
 
 my $optional = 0;
+my $word;
+our $i = 0;
+sub dbg {
+	print "._",name($_),"_$i:\t" if DEBUG;
+}
 while(scalar(@stream)){
+	$i++;
 
 	given(shift@stream){
-		when(/^(doloop1|endloop1|if|then|else|jump)$/) {
+		when(/^(doloop1|endloop1|do|loop|if|then|else|jump)$/) {
+			dbg;
 			say $_;
 		}
-		when('string') {
-			my $str = name(shift @stream);
-			say "string $str";
+		when(/^(dotstr|string).?$/) {
+			my $str = shift @stream;
+			dbg;
+			say "$_ $str";
 		}
 		when(':') {
 			my $name = name(shift @stream);
 			$known{$name}++;
+			#say STDERR "WORD $name";
+			$word = $name;
 			say "";
 			say "DEFFORTH \"$name\"";
 			$optional = 0;
 		}
 		when(':?') {
 			my $name = name(shift @stream);
+			$known{$name}++;
+			#say STDERR "WORD $name";
+			$word = $name;
+			say "";
 			say "";
 			say "%ifndef f_$name";
 			say "DEFFORTH \"$name\"";
 			$optional = 1;
 		}
 		when(/^-?\d+$/) {
-			say "lit $_";
+			dbg;
+			if($known{$_} and $word ne $_){
+				say STDERR "LITf $word $_";
+				say "f_$_";
+			}
+			else{
+				say STDERR "LITn $word $_";
+				say "lit $_";
+			}
+
 		}
 		when(";") {
+			dbg;
 			say "END";
 			say "%endif" if $optional;
 		}
 		when(/^'/) {
+			dbg;
 			say "lit ${_}";
 		}
 		when('MAIN') {
+			say "";
+			say "";
 			say "A_FORTH:";
 			say "FORTH:";
 		}
 		when(/^[A-Z]/) {
+			dbg;
 			# XXX fix
 			if($_ eq "EXIT"){
 				say "f_EXIT";
 			}
 			else {
+				say STDERR "LITc $word $_";
 				say "lit $_";
 			}
 
 		}
 		default {
+			dbg;
 			my $name = name($_);
 			if($name =~ /^(if|else|then|endloop1|doloop1)$/){
 				say "$name";
