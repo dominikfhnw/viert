@@ -388,6 +388,13 @@ WORD_OFFSET:
 	%%endstring:
 %endmacro
 
+%macro dotstr 1
+	f_dotstr
+	db %%endstring - $ - 1
+	db %1
+	%%endstring:
+%endmacro
+
 %macro inline_asm 0
 	%push asmctx
 	f_string
@@ -444,9 +451,9 @@ WORD_OFFSET:
 %endmacro
 
 %macro endloop2 arg(0)
-	f_loopdec
-	f_zbranch
+	f_while4
 	db $ - %$loop + 1
+	f_rdrop
 	%pop loopctx
 %endmacro
 
@@ -458,7 +465,6 @@ WORD_OFFSET:
 
 %macro then arg(0)
 	%$jump1:
-
 	%ifctx elsectx
 		%pop elsectx
 	%endif
@@ -475,6 +481,10 @@ WORD_OFFSET:
 
 ;SECTION .text align=1
 %include "forthwords.asm"
+%macro jump arg(1)
+	f_branch
+	db %1 - $
+%endmacro
 
 A_FORTH:
 FORTH:
