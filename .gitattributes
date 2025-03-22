@@ -1,0 +1,2 @@
+# Forth comments *require* a trailing whitespace
+*.fth whitespace=-trailing-space
