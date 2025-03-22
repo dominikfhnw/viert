@@ -1,4 +1,35 @@
 #!/usr/bin/perl
+=pod
+
+TODO: SYS_exit/SYS_write are broken for 64bit!
+
+Some ideas/improvements:
+
+* better string handling (whitespace)
+* parse whole words as a stream of tokens, this allows us to:
+* recognize single token words as aliases
+* inline words only used once, or if inlining takes the same amount of bytes
+* define new words for all literals. Seldom used literals then get inlined again
+* inline if word alignment gives us free bytes
+* optimizer?
+* true as lit64 takes a lot of space, 'false not' is smaller
+* bshift instead of lit for some cases?
+* special handling for all 3 byte words? create them on startup?
+
+const func:
+3 bytes: lit8 <val> EXIT
+inline: 2 byte
+
+func: 3 + n*1
+inline: n*2
+breakeven: 3 times, saved: 4 times
+breakeven:
+w/align==2: 4 + n*1
+inline:         n*2
+breakeven 4, saved: 5
+
+=cut
+
 use v5.34;
 use warnings;
 no warnings qw(uninitialized experimental::smartmatch);
