@@ -1,6 +1,3 @@
-\ %define f_exit f_bye
-\ %define f_0 f_false
-
 :? dup
 	sp@
 	@
@@ -10,6 +7,8 @@
 	dup
 	nand
 	;
+
+:? invert not ;
 
 :? over
 	sp@
@@ -22,6 +21,10 @@
 	nand
 	not
 	;
+
+\ :? or ( x y -- x|y ) invert swap invert and invert ;
+:? or ( x y -- x|y ) not swap not nand ;
+:? nor ( x y -- x|y ) or not ;
 
 \ :? true
 \	\ lit saves us a lot of space overall, but this was an interesting
@@ -68,6 +71,7 @@
 	true
 	+
 	;
+: 1- dec ;
 
 : 1
 	\ Ok, let's also use the successor of zero. It makes things easier.
@@ -81,6 +85,7 @@
 	1
 	+
 	;
+: 1+ inc ;
 
 : negate
 	not
@@ -91,6 +96,30 @@
 	negate
 	+
 	;
+
+\ :? minus2
+\ 	not
+\ 	1
+\ 	+
+\ 	+
+\ 	;
+\ 
+\ 
+\ :? minus3
+\ 	dup
+\ 	nand
+\ 	1
+\ 	+
+\ 	+
+\ 	;
+\ 
+\ :? minus4
+\ 	sp@ @
+\ 	nand
+\ 	1
+\ 	+
+\ 	+
+\ 	;
 
 :? branch2
 	rp@
@@ -141,6 +170,8 @@
 	drop
 	;
 
+\ : miau string "miau" puts ;
+
 : emit
 	sp@
 	1
@@ -148,7 +179,14 @@
 	drop
 	;
 
-: 0eq
+: emit4
+	sp@
+	4
+	puts
+	drop
+	;
+
+: 0=
 	if
 		false
 	else
@@ -160,6 +198,8 @@
 	10
 	emit
 	;
+
+: cr nl ;
 
 : space
 	32
@@ -192,7 +232,6 @@
 	;
 
 : signbit
-	1
 	BITM1
 	bshift
 	;
@@ -240,20 +279,66 @@
 	@
 	;
 
-: isdiv
-	over
-	swap
-	mod
-	if
-		false
-	else
-		true
-	then
+\ : fizzbuzz ( x -- )
+\     nl 1 + 1 do
+\         i 3 mod 0= dup if string "Fizz" puts then
+\         i 5 mod 0= dup if string "Buzz" puts then
+\         or invert if i . then
+\         cr
+\     loop ;
+
+: c
+	21
+	rp@
+	CELL_SIZE
+	+
+	@
+	- ;
+
+
+: .d
+	dup .
+;
+
+
+: mod2
+	divmod
+	drop
+	\ drop
+	.d
 	;
 
+\ : 0=
+\ 	if
+\ 		false
+\ 	else
+\ 		true
+\ 	then
+\ 	;
+
+: fiz2
+20 doloop1
+\	c 3 mod2 0= dup if string `F\40` puts else string `\40\40` puts then
+	false
+	c 3 mod 0= if 1+ string `Fizz` puts then
+	c 5 mod 0= if 1+ string `Buzz` puts then
+\	c 5 mod2 if string `\40\40` puts else string `B\40` puts then
+\ 	c 3 isdiv dup if
+\ 		string "Fizz"
+\ 		puts
+\ 	then
+\ 
+\ 	c 5 isdiv dup if
+\ 		string "Buzz"
+\ 		puts
+\ 	then
+
+	+ 0= if c . then
+	nl
+endloop1 ;
 
 MAIN
-string "foobar"
+\ fiz2
+string "fizz"
 puts
-nl
 bye
