@@ -48,6 +48,19 @@ then ;
 : fzbranch ( r:addr -- r:addr | r:addr+offset)
     0= rp@ @ @ 2 - and rp@ @ + 2 + rp@ ! ;
 
+\ push/pop return stack
+: >rexit ( addr r:addr0 -- r:addr )
+    rp@ ! ;                 \ override return address with original return
+                            \ address from >r
+: >r ( x -- r:x)
+    rp@ @                   \ get current return address
+    swap rp@ !              \ replace top of return stack with value
+    >rexit ;                \ push new address to return stack
+
+\ get do...loop index
+: i ( -- index ) rp@ 4 + @ ;
+
+
 
 :? bye
 	SYS_exit
@@ -61,7 +74,54 @@ then ;
 	syscall3
 	drop
 	;
+
+: emit sp@ 1 puts drop ;
+: cr 10 emit ;
+: space 32 emit ;
+
+: mod divmod swap drop ;
+
+: udot
+        10
+        divmod
+
+        dup
+        if
+                udot
+        else
+                drop
+        then
+
+        '0'
+        +
+        emit
+        ;
+
+: dot
+        dup
+        \ signbit
+	-9223372036854775808
+        and
+
+        if
+                '-'
+                emit
+                negate
+        then
+        udot
+        space
+        ;
+
+
+: fizzbuzz ( x -- )
+    cr 1 + 1 do
+        i 3 mod 0= dup if string "Fizz" puts then
+        i 5 mod 0= dup if string "Buzz" puts then
+        or invert if i . then
+        cr
+    loop ;
+
+
 MAIN
-string `hello\40world\n`
-puts
+fizzbuzz
 bye
