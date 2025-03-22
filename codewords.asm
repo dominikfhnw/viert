@@ -16,9 +16,6 @@
 	%define A_tainted
 %endif
 
-%define f_spfetch f_sp_at
-%define f_rpfetch f_rp_at
-
 A_DOCOL:
 rspush	FORTH_OFFSET
 mov	FORTH_OFFSET, ebp
@@ -117,11 +114,11 @@ DEF "drop"
 		push	native [C] ; This feels less illegal for some reason
 		END
 
-	DEF "sp_at"
+	DEF "spfetch"
 		push	SP
 		END
 
-	DEF "rp_at"
+	DEF "rpfetch"
 		push	RETURN_STACK
 		END
 
