@@ -254,7 +254,7 @@ DEF "while4"
 DEF "branch"
 	movsx	ecx, byte [embiggen(FORTH_OFFSET)]
 	add	FORTH_OFFSET, ecx
-	END
+NEXT2:	END
 
 ; f_while <imm8>:
 ;  1. decrement an unspecified loop counter
@@ -337,7 +337,8 @@ pushDA:
 pushA:
 	push	A
 	A_tainted
-	END
+	jmp	NEXT2
+	END	no_next
 
 %if 0
 DEF "i2"
