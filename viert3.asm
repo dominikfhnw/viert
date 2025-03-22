@@ -361,12 +361,18 @@ rset	eax, 0x1000
 set	eax, 0
 %endif
 
-%if 0 && %isnidn(RETURN_STACK,BP)
-	; does not require EXIT, but is +2b
+%if 1
 	enter	0xFFFF, 0
-	xchg	RETURN_STACK,ebp
-	mov	FORTH_OFFSET, FORTH
-	jmp	NEXT
+	%ifnidn RETURN_STACK,BP
+		%if X32
+			xchg	RETURN_STACK,ebp
+		%else
+			xchg	RETURN_STACK,BP
+		%endif
+	%endif
+	ELF_PHDR 1
+	; we chose our base address to be < 2^32
+	mov	ebp, FORTH
 %else
 	; we chose our base address to be < 2^32
 	mov	ebp, FORTH
@@ -381,7 +387,6 @@ set	eax, 0
 	%endif
 %endif
 
-WORD_OFFSET:
 %include "codewords.asm"
 
 %macro string 1

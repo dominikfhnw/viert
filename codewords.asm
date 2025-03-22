@@ -19,6 +19,20 @@
 %define f_spfetch f_sp_at
 %define f_rpfetch f_rp_at
 
+A_DOCOL:
+rspush	FORTH_OFFSET
+mov	FORTH_OFFSET, ebp
+
+A_NEXT:
+assert_A_low
+lodsb
+xt:
+cmp	al, BREAK
+; we assume code size < 2^32
+lea	ebp, [A*WORD_ALIGN+BASE]
+ja	A_DOCOL
+jmp	BP
+
 ; ABI
 ; esi:	Instruction pointer to next forth word
 ; SP:	Data stack
@@ -65,6 +79,7 @@
 	%define arith	native
 %endif
 
+WORD_OFFSET:
 DEF "EXIT"
 	rspop	FORTH_OFFSET
 	END
@@ -200,20 +215,6 @@ DEF "emit32b"
 	END
 
 %endif
-
-A_DOCOL:
-rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, ebp
-
-A_NEXT:
-assert_A_low
-lodsb
-xt:
-cmp	al, BREAK
-; we assume code size < 2^32
-lea	ebp, [A*WORD_ALIGN+BASE]
-ja	A_DOCOL
-jmp	BP
 
 ;DEF "0lt"
 ;	; from eForth. Would be 4 bytes smaller than my version
