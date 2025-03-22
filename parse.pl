@@ -44,7 +44,7 @@ BEGIN {
 
 my $contents = do { local $/; <> || die "read failed: $!" };
 $contents =~ s/\\\s.*$//gm;
-$contents =~ s/\(\s+[^)]*\)//g;
+$contents =~ s/\(\s+[^)]*\)//gm;
 my @stream = split ' ', $contents;
 my $str = join " ",@stream;
 $str =~ s/ :(\??) /\n:$1 /g;
