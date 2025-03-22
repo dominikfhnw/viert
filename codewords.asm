@@ -387,9 +387,10 @@ DEF "int3"
 
 A___BREAK__:
 END_OF_CODEWORDS:
-%warning "BREAK" WORD_COUNT
-%assign SIZE END_OF_CODEWORDS - $$
-%warning "SIZE" SIZE
+%assign ASM_WORDS WORD_COUNT
+;%define ASM_SIZE END_OF_CODEWORDS - $$ - ELF_HEADER_SIZE
+%assign ASM_SIZE lastoff2 - WORD_OFFSET
+%warning "ASM_SIZE" ASM_SIZE
 %if WORD_TABLE == 1 && WORD_COUNT != BREAK
 	%fatal break constant set to wrong value: WORD_COUNT != BREAK
 %endif

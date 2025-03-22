@@ -556,8 +556,15 @@ A_END:
 SECTION txtrp align=1
 db 0
 %endif
-
-%warning "SIZE" SIZE
-%warning "WORDS" WORD_COUNT
+%assign FORTH_WORDS WORD_COUNT - ASM_WORDS
+%define FORTH_SIZE %eval(lastoff2 - FORTH_START)
+%warning "ASM_SIZE" ASM_SIZE
+%warning "ASM_WORDS" ASM_WORDS
+%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
+%warning "FORTH_SIZE" FORTH_SIZE
+%warning "FORTH_WORDS" FORTH_WORDS
+%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
+%warning "WORDS TOTAL" WORD_COUNT
+%warning "BREAK" %eval(BREAK)
 %warning "LASTOFF" %eval(lastoff)
 %warning "LASTOFF2" %eval(((lastoff2 - $$)/WORD_ALIGN)+ELF_HEADER_SIZE)
