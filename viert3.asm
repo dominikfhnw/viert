@@ -145,7 +145,7 @@ else
 	else
 		m="i386"
 	fi
-	[ "${DIS-1}" ] && oobjdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
+	[ "${DIS-1}" ] && objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
 fi
 
 set +e
