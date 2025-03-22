@@ -1,15 +1,17 @@
 %if 0
 set -euo pipefail
 
-BIT="32"
+BIT="x32"
 HARDEN=0
 #ORG="0x01000000"
 #ORG="0x80000000"
 ORG="0x10000"
-DUMP="-Mintel"
-DUMP="--no-addresses -Mintel"
-NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan -Werror=number-overflow"
-#NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
+DUMP="-z -Mintel"
+#DUMP="--no-addresses -z -Mintel"
+NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
+if [ -z ${FORCE-} ]; then
+	NASMOPT="$NASMOPT -Werror=number-overflow"
+fi
 
 LD="gold"
 #LD="ld.lld"
@@ -131,7 +133,7 @@ sizes(){
 
 if [ -n "${FULL-1}" ]; then
 	DUMP="$DUMP -j .text -j .rodata"
-	objdump $DUMP -d $OUT.full
+	[ "${DIS-1}" ] && objdump $DUMP -d $OUT.full
 	#sizes | sort -nr
 	sizes
 else
@@ -142,7 +144,7 @@ else
 	else
 		m="i386"
 	fi
-	objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
+	[ "${DIS-1}" ] && oobjdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
 fi
 
 set +e
