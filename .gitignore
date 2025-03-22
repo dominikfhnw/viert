@@ -1,0 +1,8 @@
+.*.swp
+bak/*
+
+compiled.asm
+*.o
+
+viert
+viert.full
