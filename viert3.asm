@@ -200,6 +200,12 @@ BITS BIT
 %define FORTHWHILE	0
 %endif
 
+; dotstr and string mixed:
+%ifndef COMBINED_STRINGOP
+%define COMBINED_STRINGOP 0
+%endif
+
+
 %ifndef HARDEN
 %define HARDEN		0
 %endif

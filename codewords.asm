@@ -208,6 +208,7 @@ mov	FORTH_OFFSET, ebp
 A_NEXT:
 assert_A_low
 lodsb
+xt:
 cmp	al, BREAK
 ; we assume code size < 2^32
 lea	ebp, [A*WORD_ALIGN+BASE]
@@ -274,13 +275,39 @@ DEF "rdrop"
 	lea	RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
 	END
 
-DEF "string"
-	assert_A_low
-	lodsb
-	push	FORTH_OFFSET
-	push	A
-	add	FORTH_OFFSET, eax
-	END
+%if COMBINED_STRINGOP
+	DEF "dotstr"
+		clc
+		END	no_next
+	DEF "string"
+		assert_A_low
+		lodsb
+		push	FORTH_OFFSET
+		push	A
+		lea	FORTH_OFFSET, [embiggen(FORTH_OFFSET)+A]
+		jc	A_NEXT
+		mov	al, offset(A_puts)
+		jmp	xt
+		END	no_next
+%else
+	DEF "dotstr"
+		assert_A_low
+		lodsb
+		push	FORTH_OFFSET
+		push	A
+		add	FORTH_OFFSET, eax
+		mov	al, offset(A_puts)
+		jmp	xt
+		END	no_next
+
+	DEF "string"
+		assert_A_low
+		lodsb
+		push	FORTH_OFFSET
+		push	A
+		add	FORTH_OFFSET, eax
+		END
+%endif
 
 DEF "plus"
 	pop	C
