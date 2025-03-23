@@ -92,7 +92,7 @@
 	inc
 	;
 
-:? minus
+:? -
 	negate
 	+
 	;
@@ -206,13 +206,13 @@
 	emit
 	;
 
-: udot
+: u.
 	10
 	divmod
 
 	dup
 	if
-		udot
+		u.
 	else
 		drop
 	then
@@ -236,7 +236,7 @@
 	bshift
 	;
 
-: dot
+: .
 	dup
 	signbit
 	and
@@ -246,7 +246,7 @@
 		emit
 		negate
 	then
-	udot
+	u.
 	space
 	;
 
@@ -266,7 +266,7 @@
 	then
 
 	dup
-	udot
+	u.
 	nl
 
 	fib
