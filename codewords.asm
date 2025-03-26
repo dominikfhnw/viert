@@ -25,7 +25,6 @@ assert_A_low
 lodsb
 xt:
 cmp	al, BREAK
-; we assume code size < 2^32
 lea	ebp, [A*WORD_ALIGN+BASE]
 ja	A_DOCOL
 jmp	BP
@@ -233,6 +232,13 @@ DEF "while3"
 	END	no_next
 %endif
 
+DEF "nzbranch"
+	pop	C
+	test	aC, aC
+	jnz	A_branch
+	lodsb	; inc esi, but smaller on 64bit
+	END
+
 DEF "zbranch"
 	pop	C
 	jCz	A_branch
@@ -288,6 +294,7 @@ DEF "rdrop"
 		jmp	xt
 		END	no_next
 %else
+	%ifdef A_puts
 	DEF "dotstr"
 		assert_A_low
 		lodsb
@@ -297,6 +304,7 @@ DEF "rdrop"
 		mov	al, offset(A_puts)
 		jmp	xt
 		END	no_next
+	%endif
 
 	DEF "string"
 		assert_A_low
@@ -316,12 +324,12 @@ DEF "plus"
 DEF "dbg"
 	reg
 	END
-;DEF "int3"
-;	int3
-;	END
+DEF "int3"
+	int3
+	END
 %else
 	%define f_dbg
-	;%define f_int3
+	%define f_int3
 %endif
 
 DEF "divmod"
@@ -341,6 +349,15 @@ pushA:
 DEF "i2"
 	push	arith [embiggen(RETURN_STACK)+CELL_SIZE]	; decrement loop counter
 	END
+%endif
+
+%if 1
+	DEF "rsinc"
+		inc	native [DI]
+		END	no_next
+	DEF "i"
+		mov	A, [DI]
+		END	pushA
 %endif
 
 %if LIT8
