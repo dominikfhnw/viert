@@ -255,13 +255,46 @@ BITS BIT
 	%define	CELL_SIZE	4
 %endif
 
+; those two are pretty much fixed, due to push/pop and lods*
 %define	DATA_STACK	SP
-%if SYSCALL64
-	%define	RETURN_STACK	B
-%else
-	%define	RETURN_STACK	DI
-%endif
 %define	FORTH_OFFSET	esi
+
+%if SYSCALL64
+	; A: used by syscall, lodsb
+	; B: unused
+	; C: used by jCz, divmod(?) and rot(?)
+	; D: used by syscall, 0lt(?)
+	; SP: used by DATA_STACK
+	; SI: used by syscall, FORTH_OFFSET
+	; DI: used by syscall
+	; BP: unused
+	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11
+	; leaves us with B, BP, R12-R15. BP and R12-R15 have additional encoding overhead
+	%define	RETURN_STACK	B
+	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
+	; leaves us with B, C, D, DI, BP, R12-R15. BP and R12-R15 have additional encoding overhead
+	%define	TEMP_ADDR	edi
+	; SYSCALL_SAVE:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11 
+	; leaves us with B, BP, R12-R15. R12-R15 have additional encoding overhead
+	%define	SYSCALL_SAVE	ebp	; FORTH_OFFSET will get saved here during syscalls
+	%define SYS_write	1
+	%define SYS_exit	60
+%else
+	; A: used by syscall, lodsb
+	; B: used by syscall
+	; C: used by syscall, jCz, divmod(?) and rot(?)
+	; D: used by syscall, 0lt(?)
+	; SP: used by DATA_STACK
+	; SI: used by FORTH_OFFSET
+	; DI: unused
+	; BP: unused
+	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, B, C, D
+	; leaves us with DI, BP. BP has additional encoding overhead
+	%define	RETURN_STACK	DI
+	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
+	; leaves us with B, C, D, DI, BP. BP has additional encoding overhead
+	%define	TEMP_ADDR	ebx
+%endif
 
 %if X32
 	%xdefine	DATA_STACK	emsmallen(DATA_STACK)
@@ -363,7 +396,7 @@ set	eax, 0
 
 %if 1
 	enter	0xFFFF, 0
-	%ifnidn RETURN_STACK,BP
+	%ifnidn embiggen(RETURN_STACK),BP
 		%if X32
 			xchg	RETURN_STACK,ebp
 		%else
@@ -372,13 +405,13 @@ set	eax, 0
 	%endif
 	ELF_PHDR 1
 	; we chose our base address to be < 2^32
-	mov	ebp, FORTH
+	mov	TEMP_ADDR, FORTH
 %else
 	; we chose our base address to be < 2^32
 	mov	ebp, FORTH
 	enter	0xFFFF, 0
 	ELF_PHDR 1
-	%ifnidn RETURN_STACK,BP
+	%ifnidn embiggen(RETURN_STACK),BP
 		%if X32
 			xchg	RETURN_STACK,ebp
 		%else

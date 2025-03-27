@@ -18,16 +18,16 @@
 
 A_DOCOL:
 rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, ebp
+mov	FORTH_OFFSET, TEMP_ADDR
 
 A_NEXT:
 assert_A_low
 lodsb
 xt:
 cmp	al, BREAK
-lea	ebp, [A*WORD_ALIGN+BASE]
+lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 ja	A_DOCOL
-jmp	BP
+jmp	embiggen(TEMP_ADDR)
 
 ; ABI
 ; esi:	Instruction pointer to next forth word
@@ -353,10 +353,10 @@ DEF "i2"
 
 %if 1
 	DEF "rsinc"
-		inc	native [DI]
+		inc	native [RETURN_STACK]
 		END	no_next
 	DEF "i"
-		mov	A, [DI]
+		mov	A, [RETURN_STACK]
 		END	pushA
 %endif
 
@@ -392,6 +392,9 @@ DEF "rot"
 %if SYSCALL
 %if !SYSCALL64
 DEF "syscall3"
+	%ifidn RETURN_STACK,B
+		%fatal invalid return stack register
+	%endif
 	pop	A
 	pop	B
 	pop	C
@@ -409,15 +412,18 @@ DEF "syscall3"
 ; we got to save rdi and rsi
 ; free: rbx, rbp(?), r12, r13, r14, r15
 DEF "syscall3"
-	mov	ebp, esi
+	%ifidn RETURN_STACK,DI
+		%fatal invalid return stack register
+	%endif
+	mov	SYSCALL_SAVE, FORTH_OFFSET
 
-	pop	rax
-	pop	rdi
-	pop	rsi
-	pop	rdx
+	pop	A
+	pop	DI
+	pop	SI
+	pop	D
 
 	syscall
-	mov	esi, ebp
+	mov	FORTH_OFFSET, SYSCALL_SAVE
 	END	pushA
 %endif
 
