@@ -18,7 +18,15 @@ LD="gold"
 LD="ld"
 #LD="/home/balou/ELFkickers-3.2/infect/f/isvm-tool/viert.proj/mold/build/mold"
 
-FLAGS="-Ttext-segment=$ORG"
+if [ -z "${PIC-}" ]; then
+	FLAGS="-Ttext-segment=$ORG"
+else
+	FLAGS="-pie --no-dynamic-linker -z norelro --hash-style=sysv --no-eh-frame-hdr --disable-new-dtags --no-ld-generated-unwind-info --as-needed"
+	FLAGS="-pie --no-dynamic-linker -z norelro --hash-style=sysv"
+	#FLAGS="-pie --no-dynamic-linker -z relro -z noexecstack -z now --hash-style=sysv --export-dynamic-symbol=__stack_chk_fail"
+	#FLAGS="-pie --no-dynamic-linker -z relro -z noexecstack -z now --hash-style=sysv --export-dynamic-symbol=__stack_chk_fail --build-id=sha1"
+	NASMOPT="$NASMOPT -DPIC=1"
+fi
 
 if [ "$LD" != "gold" ]; then
 	FLAGS="$FLAGS -z noseparate-code"
@@ -208,6 +216,11 @@ BITS BIT
 %define COMBINED_STRINGOP 0
 %endif
 
+; Position independent code
+%ifndef PIC
+%define PIC		0
+%endif
+
 
 %ifndef HARDEN
 %define HARDEN		0
@@ -301,6 +314,11 @@ BITS BIT
 	%xdefine	RETURN_STACK	emsmallen(RETURN_STACK)
 %endif
 
+%if 0 && PIC ; 64 bit PIC support currentl broken - needs some more refactoring
+	%define	FORTH_OFFSET	rsi
+	%define	TEMP_ADDR	rdi
+%endif
+
 %assign	WORD_COUNT	0
 %define zero_seg	0
 
@@ -371,7 +389,11 @@ set	eax, 0
 	%endif
 	ELF_PHDR 1
 	; we chose our base address to be < 2^32
-	mov	TEMP_ADDR, FORTH
+	%if PIC
+		lea	TEMP_ADDR, [rel FORTH]
+	%else
+		mov	TEMP_ADDR, FORTH
+	%endif
 %else
 	; we chose our base address to be < 2^32
 	mov	ebp, FORTH

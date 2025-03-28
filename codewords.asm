@@ -19,7 +19,19 @@ assert_A_low
 lodsb
 xt:
 cmp	al, BREAK
-lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+%if PIC
+	%if 0
+		call	.below
+	.below:	pop	TEMP_ADDR
+		;add	TEMP_ADDR, byte (BASE-.below)
+		lea	TEMP_ADDR, [A+embiggen(TEMP_ADDR) +(BASE-.below)]
+	%else
+		lea	TEMP_ADDR, [rel BASE]
+		lea	TEMP_ADDR, [embiggen(TEMP_ADDR)+A]
+	%endif
+%else
+	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+%endif
 ja	A_DOCOL
 jmp	embiggen(TEMP_ADDR)
 
