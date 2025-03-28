@@ -111,6 +111,8 @@ DEF "drop"
 	DEF "fetch"
 		pop	C
 		push	native [C] ; This feels less illegal for some reason
+		END	no_next
+	DEF "nop"
 		END
 
 	DEF "spfetch"
