@@ -314,40 +314,6 @@ BITS BIT
 
 %assign BITM1		BIT - 1
 
-; XXX quick&dirty hack
-%if   WORD_SIZE == 0
-	%define WORD_TABLE	0
-	%define WORD_SMALLTABLE 0
-	%define lodsWORD lodsb
-	%define WORD_TYPE byte
-	%define WORD_DEF db
-	%define WORD_SIZE 1
-
-%elif WORD_SIZE == 1
-	%define WORD_TABLE	1
-	%define WORD_SMALLTABLE 1
-	%define lodsWORD lodsb
-	%define WORD_TYPE byte
-	%define WORD_DEF db
-	%define WORD_ALIGN 1
-%elif WORD_SIZE == 2
-	%define WORD_TABLE	0
-	%define WORD_SMALLTABLE 0
-	%define lodsWORD lodsw
-	%define WORD_TYPE word
-	%define WORD_DEF dw
-	%define WORD_ALIGN 1
-%elif WORD_SIZE == 4
-	%define WORD_TABLE	0
-	%define WORD_SMALLTABLE 0
-	%define lodsWORD lodsd
-	%define WORD_TYPE dword
-	%define WORD_DEF dd
-	%define WORD_ALIGN 1
-%else
-	%error illegal word size WORD_SIZE
-%endif
-
 ; 52 byte for ELF header, 32 byte for each program header
 %define elf_extra_align 0
 %if WORD_ALIGN == 8

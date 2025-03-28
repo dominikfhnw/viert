@@ -1,11 +1,5 @@
 ; **** Codeword definitions ****
-%if WORD_TABLE
-	%ifndef BREAK
-	%define BREAK 24
-	%endif
-%else
-	%define BREAK offset(END_OF_CODEWORDS-2)
-%endif
+%define BREAK offset(END_OF_CODEWORDS-2)
 
 %if 1
 	; Nb: xor eax, eax also clears upper 32bits on 64bit
@@ -442,6 +436,3 @@ END_OF_CODEWORDS:
 ;%define ASM_SIZE END_OF_CODEWORDS - $$ - ELF_HEADER_SIZE
 %assign ASM_SIZE lastoff2 - WORD_OFFSET
 %warning "ASM_SIZE" ASM_SIZE
-%if WORD_TABLE == 1 && WORD_COUNT != BREAK
-	%fatal break constant set to wrong value: WORD_COUNT != BREAK
-%endif
