@@ -44,7 +44,7 @@
 	%endif
 
 	; another align here, to override "align with nop"
-	align2 WORD_ALIGN, db 0
+	align2 WORD_ALIGN, db offset(A_nop)
 	DEF %1, no_next
 	%repl defforth
 %endmacro
