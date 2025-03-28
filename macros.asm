@@ -73,8 +73,7 @@
 %define ENDDEF END
 
 %macro WORD 1
-	; WORD_DEF is dw/dd/dq
-	WORD_DEF offset(DEF%tok(%1))
+	db offset(DEF%tok(%1))
 %endmacro
 
 ; "A noble spirit embiggens the smallest man."
