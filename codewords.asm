@@ -10,6 +10,16 @@
 	%define A_tainted
 %endif
 
+; ENTER - set up stack frame for function
+;       - push EBP on stack, move esp to ebp, subtracct imm from esp
+;push	ebp
+;mov	ebp, esp
+;sub	esp, imm
+
+; LEAVE - Set ESP to EBP, then pop EBP.
+;mov	esp, ebp
+;pop	ebp
+
 A_DOCOL:
 rspush	FORTH_OFFSET
 mov	FORTH_OFFSET, TEMP_ADDR
@@ -189,6 +199,22 @@ DEF "drop"
 		END
 %endif
 
+%if 0
+	DEF "rspush2"
+		pop	ecx
+		xchg	RETURN_STACK, DATA_STACK
+		push	ecx
+		push	0
+		xchg	RETURN_STACK, DATA_STACK
+		END
+%endif
+%if 0
+	DEF "rspush2b"
+		rspush	ecx
+		rspush	byte 0
+		END
+%endif
+
 %if SYSCALL64 && 0
 DEF "emit64b"
 	push	rdi
@@ -240,12 +266,14 @@ DEF "while3"
 	END	no_next
 %endif
 
+%if 0
 DEF "nzbranch"
 	pop	C
 	test	aC, aC
 	jnz	A_branch
 	lodsb	; inc esi, but smaller on 64bit
 	END
+%endif
 
 DEF "zbranch"
 	pop	C
@@ -302,7 +330,7 @@ DEF "rdrop"
 		jmp	xt
 		END	no_next
 %else
-	%ifdef A_puts
+	%if 0
 	DEF "dotstr"
 		assert_A_low
 		lodsb
@@ -321,6 +349,15 @@ DEF "rdrop"
 		push	A
 		add	FORTH_OFFSET, eax
 		END
+	%if 1
+	DEF "stringr"
+		assert_A_low
+		lodsb
+		push	A
+		push	FORTH_OFFSET
+		add	FORTH_OFFSET, eax
+		END
+	%endif
 %endif
 
 DEF "plus"
@@ -338,6 +375,26 @@ DEF "int3"
 %else
 	%define f_dbg
 	%define f_int3
+%endif
+
+%ifdef W5
+DEF "while5"
+	assert_A_low
+	lodsb			; load jump offset
+	xchg	DATA_STACK, RETURN_STACK
+	pop	aC
+	inc	aC
+	pop	aD
+	cmp	aC, aD
+
+	je	.end
+	sub	FORTH_OFFSET, eax
+	push	aD
+	push	aC
+	.end:
+	xchg	DATA_STACK, RETURN_STACK
+	jmp	NEXT2
+	END	no_next
 %endif
 
 DEF "divmod"
