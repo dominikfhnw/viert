@@ -18,10 +18,12 @@ Some ideas/improvements:
 
 const func:
 3 bytes: lit8 <val> EXIT
-inline: 2 byte
+inline: 2 byte (lit8 <val>)
 
-func: 3 + n*1
-inline: n*2
+called n times:
+(align 1 or 3)
+func: 3 + n*1 (3 byte func, 1 byte call)
+inline:   n*2 (2 byte value)
 breakeven: 3 times, saved: 4 times
 breakeven:
 w/align==2: 4 + n*1
@@ -49,27 +51,44 @@ my @stream = split ' ', $contents;
 my $str = join " ",@stream;
 $str =~ s/ :(\??) /\n:$1 /g;
 
-my %defined = map { $_ => 1 } qw(doloop1 endloop1 do loop if then else);
+my %defined = map { $_ => 1 } qw(doloop1 endloop1 do loop if unless then endif else);
 my %seen;
 # SOURCE=empty.fth bash viert3.asm 2>/dev/null |  sed -n '/^.*NEW DEFINITION: /s///p' | awk '{print$1}' | tr -d '"' | tr '\n' ' '
-my %builtin = map { $_ => 1 } qw(EXIT over drop store fetch spfetch rpfetch nand not rspush zbranch branch while2 rdrop dotstr string plus divmod lit8 lit32 swap rot syscall3);
+#my %builtin = map { $_ => 1 } qw(rsinc rsdup i rspop EXIT int3 over drop store fetch spfetch rpfetch nand not rspush zbranch nzbranch branch while2 rdrop dotstr string stringr plus divmod lit8 lit32 swap rot syscall3);
+# XXX external swap, over, drop
+my %builtin = map { $_ => 1 } qw(for next begin again while rsdup rspop EXIT int3 store fetch spfetch xrpspfetch nand not rspush zbranch nzbranch branch while2 rdrop dotstr string stringr plus lit8 lit32 rot syscall3);
 my %dep;
 $dep{doloop1}{rspush}++;
 $dep{endloop1}{while2}++;
 $dep{endloop1}{rdrop}++;
+$dep{loop}{branch}++;
 $dep{if}{zbranch}++;
 $dep{if}{branch}++;
+$dep{unless}{nzbranch}++;
+$dep{unless}{branch}++;
 $dep{else}{branch}++;
 $dep{jump}{branch}++;
 #my @filter = qw(1 - . 0= 1+ and bshift bye c dup emit false fiz2 inc mod negate nl puts signbit space true u.);
-my @filter = qw(- 0= 1+ bye c doloop1 dup else emit endloop1 false fiz2 if inc mod negate nl puts space then true u. 1);
+#my @filter = qw(- 0= 1+ bye c doloop1 dup else emit endloop1 false fiz2 if inc mod negate nl puts space then true u. 1);
+#my @filter = qw(emit4b - 0= 1+ bye c doloop1 dup else emit endloop1 false fiz2 if inc mod negate nl space then true u. 1);
+#my @filter = qw(- 0= 1+ bye c doloop1 dup else emit emit4b emitx endloop1 false fiz2 if inc mod negate nl then true u.);
+my @filter = qw(- c doloop1 else emit emit4b emitx endloop1 if then endif u. unless);
 
 #my $filter = @filter;
-my $filter = 1;
+my $filter = 0;
+my $LIT8 = 1;
 
 
 our $i = 0;
 
+sub dp {
+	say STDERR @_;
+}
+
+my %alias = (
+	"false"	=>	"0",
+	"-1"	=>	"true",
+);
 sub name {
 	my $name = shift;
 	given($name){
@@ -82,142 +101,164 @@ sub name {
 		s/<>/ne/;
 		s/>/to/;
 		s/'/_/g;
+		s/:/dcol/g;
 		s/;/EXIT/g;
 	}
 	return $name;
 }
 
 sub dbg {
-	print "._",name($_),"_$i:\t" if DEBUG;
+	my $name = name($_);
+	$name =~ y/*/x/;
+	print "._",$name,"_$i:\t" if DEBUG;
 }
 
-my $optional = 0;
-my $word;
-while(scalar(@stream)){
-	$i++;
+sub parse {
+	my @stream = @_;
+	my $optional = 0;
+	my $word;
+	while(scalar(@stream)){
+		$i++;
 
-	given(shift@stream){
-		when(/^(doloop1|endloop1|do|loop|if|then|else)$/) {
-			$dep{$word}{$_}++;
-			dbg;
-			say $_;
-		}
-		when(/^(dotstr|string|jump)$/) {
-			$dep{$word}{$_}++;
-			my $str = shift @stream;
-			dbg;
-			say "$_ $str";
-		}
-		when(':') {
-			$word = shift @stream;
-			my $name = name($word);
-			$defined{$word}++;
-			say "";
-			if(!$filter || grep {$_ eq $word} @filter){
-				$defined{$word}++;
-				say "DEFFORTH \"$name\"";
-				$optional = 0;
+		given(shift@stream){
+			when(/^(for|next|begin|again|doloop1|endloop1|do|loop|if|unless|then|endif|else)$/) {
+				$dep{$word}{$_}++;
+				dbg;
+				say $_;
 			}
-			else {
-				say "%if 0 ; $word";
+			when(/^(dotstr|string|stringr|jump)$/) {
+				$dep{$word}{$_}++;
+				my $str = shift @stream;
+				dbg;
+				say "$_ $str";
+			}
+			when(':') {
+				$word = shift @stream;
+				my $name = name($word);
+				$defined{$word}++;
+				say "";
+				if(!$filter || grep {$_ eq $word} @filter){
+					$defined{$word}++;
+					say "DEFFORTH \"$name\"";
+					$optional = 0;
+				}
+				else {
+					say "%if 0 ; $word";
+					$optional = 1;
+				}
+			}
+			when(':?') {
+				$word = shift @stream;
+				my $name = name($word);
+				say "";
+				if($builtin{$name}){
+					say "%if 0 ; BUILTIN OVERRIDE $word";
+				}
+				elsif(!$filter || grep {$_ eq $word} @filter){
+					$defined{$word}++;
+					say "%ifndef f_$name";
+					say "DEFFORTH \"$name\"";
+				}
+				else {
+					say "%if 0 ; FILTER OVERRIDE $word";
+				}
 				$optional = 1;
 			}
-		}
-		when(':?') {
-			$word = shift @stream;
-			my $name = name($word);
-			say "";
-			if($builtin{$name}){
-				say "%if 0 ; $word";
+			when(':x') {
+				$word = shift @stream;
+				my $name = name($word);
+				say "";
+				say "%if 0 ; DISABLE OVERRIDE $word";
+				$optional = 1;
 			}
-			elsif(!$filter || grep {$_ eq $word} @filter){
-				$defined{$word}++;
-				say "%ifndef f_$name";
-				say "DEFFORTH \"$name\"";
-			}
-			else {
-				say "%if 0 ; $word";
-			}
-			$optional = 1;
-		}
-		when(/^-?\d+$/) {
-			dbg;
-			if($defined{$_} and $word ne $_){
-				say STDERR "LITf $word $_";
-				say "f_$_";
-			}
-			else{
-				if($_ < 256 && $_ >= 0){
-					$dep{$word}{lit8}++;
-					say "f_lit8";
-					say "db $_";
-				}elsif($_ > 0xffffffff && $_ < -2147483648){
-					$dep{$word}{lit64}++;
-					say "f_lit64";
-					say "dq $_";
-				}else{
-					$dep{$word}{lit32}++;
-					say "f_lit32";
-					say "dd $_";
+			when(/^-?\d+$/) {
+				dbg;
+				if($defined{$_} and $word ne $_){
+					say STDERR "LITf $word $_";
+					say "f_$_";
 				}
-				say STDERR "LITn $word $_";
-			}
+				else{
+					if($LIT8 && $_ < 256 && $_ >= 0){
+						$dep{$word}{lit8}++;
+						say "f_lit8";
+						say "db $_";
+						say STDERR "LIT8 $word $_";
+					}elsif($_ > 0xffffffff && $_ < -2147483648){
+						$dep{$word}{lit64}++;
+						say "f_lit64";
+						say "dq $_";
+						say STDERR "LIT64 $word $_";
+					}else{
+						$dep{$word}{lit32}++;
+						say "f_lit32";
+						say "dd $_";
+						say STDERR "LIT32 $word $_";
+					}
+				}
 
-		}
-		when(";") {
-			dbg;
-			say "END";
-			say "%endif" if $optional;
-		}
-		when(";NORETURN") {
-			dbg;
-			say "END no_next";
-			say "%endif" if $optional;
-		}
-		when(/^'/) {
-			dbg;
-			say "lit ${_}";
-		}
-		when('MAIN') {
-			$word = $_;
-			say "";
-			say "";
-			say "A_FORTH:";
-			say "FORTH:";
-		}
-		when(/^[A-Z]/) {
-			dbg;
-			# XXX fix
-			if($_ eq "EXIT"){
-				say "f_EXIT";
 			}
-			else {
-				say STDERR "LITc $word $_";
-				say "lit $_";
+			when(";") {
+				dbg;
+				say "END";
+				say "%endif" if $optional;
 			}
+			when(";NORETURN") {
+				dbg;
+				say "END no_next";
+				say "%endif" if $optional;
+			}
+			when(/^'/) {
+				dbg;
+				say "lit ${_}";
+			}
+			when('MAIN') {
+				$word = $_;
+				say "";
+				say "";
+				say "A_FORTH:";
+				say "FORTH:";
+			}
+			when(/^[A-Z]/) {
+				dbg;
+				# XXX fix
+				if($_ eq "EXIT"){
+					say "f_EXIT";
+				}
+				else {
+					say STDERR "LITc $word $_";
+					say "lit $_";
+				}
 
-		}
-		default {
-			dbg;
-			my $name = name($_);
-			say "f_$name";
-			# prevent infinite recursion
-			#TODO: mutually recursive words will probably break
-			$dep{$word}{$_}++ if $_ ne $word;
-			$seen{$name}++;
-		}
+			}
+			default {
+				dbg;
+				my $name = name($_);
+				dp "F $name $_ $alias{$name} in $word";
+				if($alias{$name}){
+					dp "ALIAS $name $alias{$name}";
+					$name = $alias{$name};
+				}
 
+				say "f_$name";
+				# prevent infinite recursion
+				#TODO: mutually recursive words will probably break
+				$dep{$word}{$_}++ if $_ ne $word;
+				$seen{$name}++;
+			}
+		}
 	}
-	
-
-};
-
-sub dp {
-	say STDERR @_;
 }
 
+parse(@stream);
+
 dp "SEEN:";
+foreach my $name (reverse sort { $seen{$a} <=> $seen{$b} } sort keys %seen) {
+	dp "$name\t$seen{$name}";
+}
+
 dp Dumper(\%seen);
+dp "ALIAS:";
+dp Dumper(\%alias);
 #dp Dumper(\%builtin);
 
 my %out;
@@ -244,7 +285,7 @@ for(sort keys %out){
 			push @b, $_;
 		}
 		else {
-			die "UNKNOWN ",name($_)," ";
+			warn "UNKNOWN ",name($_)," ",$_;
 		}
 	}
 	else {
@@ -253,7 +294,21 @@ for(sort keys %out){
 	}
 }
 
-say STDERR join$",@out;
-say STDERR "BUILTIN:";
-say STDERR join$/,sort map{name($_)}@b;
+dp "UNUSED:";
+for(sort keys %defined){
+	if(!$out{$_}){
+		my $name = name($_);
+		warn "UNUSED\t",name($_)," (",$_,")\n";
+	}
+	else {
+		#dp $_;
+		#push @out, $_;
+	}
+}
 
+say STDERR "JOINED OUT:";
+say STDERR join$",@out;
+#say STDERR "BUILTIN:";
+#say STDERR join$/,sort map{name($_)}@b;
+
+#say STDERR Dumper(\%dep);

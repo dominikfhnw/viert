@@ -32,7 +32,7 @@
 	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
 	%define lastoff offset(A_%tok(%1))
 	%define lastoff2 A_%tok(%1)
-	%warning NEW DEFINITION: %1 WORD_COUNT
+	%warning NEW DEFINITION: %1 WORD_COUNT %eval(lastoff)
 	rtaint
 	rset	eax, -2 ; 8-bit value
 	%assign WORD_COUNT WORD_COUNT+1
@@ -49,10 +49,12 @@
 	%repl defforth
 %endmacro
 
-%macro END 0-1
+%macro END 0-1.nolist
 	%ifctx defcode
 		%if %0 == 0
 			NEXT
+		%elif %1 == clearA
+			jmp short clearA
 		%elif %1 == pushA
 			jmp short pushA
 		%elif %1 == pushDA
@@ -121,7 +123,11 @@
 %imacro rspop arg(1)
 %if 1
 	mov	%1, [embiggen(RETURN_STACK)]
-	lea     RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
+	%if CELL_SIZE == 4
+		scasd
+	%else
+		lea     RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
+	%endif
 %else
 	xchg	RETURN_STACK, DATA_STACK
 	pop	%1

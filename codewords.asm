@@ -1,4 +1,4 @@
-; **** Codeword definitions ****
+;;; **** Codeword definitions ****
 %define BREAK offset(END_OF_CODEWORDS-2)
 
 %if 1
@@ -19,6 +19,31 @@
 ; LEAVE - Set ESP to EBP, then pop EBP.
 ;mov	esp, ebp
 ;pop	ebp
+
+; fizz3.fth:
+%define C_branch
+%define C_zbranch
+%define C_spfetch
+;%define C_swap
+;%define C_drop
+;%define C_divmod
+%define C_EXIT
+%define C_fetch
+%define C_plus
+;%define C_rsinci
+%define C_not
+%define C_lit32
+
+; less asm fizz4:
+%define C_store
+%define C_nand
+%define C_rpfetch
+%define C_rpspfetch
+;%define C_over
+%define C_rspush
+
+; sample.fth:
+; everything undefined
 
 A_DOCOL:
 rspush	FORTH_OFFSET
@@ -43,6 +68,7 @@ cmp	al, BREAK
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 %endif
 ja	A_DOCOL
+jmpTEMP:
 jmp	embiggen(TEMP_ADDR)
 
 ; ABI
@@ -92,13 +118,28 @@ jmp	embiggen(TEMP_ADDR)
 %endif
 
 WORD_OFFSET:
+%ifdef C_EXIT
 DEF "EXIT"
-	rspop	FORTH_OFFSET
-	END
+	mov     FORTH_OFFSET, [embiggen(RETURN_STACK)]
+	END	no_next
+%endif
 
+%if %isdef(C_EXIT) || %isdef(C_rsdrop)
+DEF "rsdrop"
+	%if CELL_SIZE == 4
+		scasd
+	%else
+		lea     RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
+	%endif
+
+	END
+%endif
+
+%ifdef C_over
 DEF "over"
 	push	native [SP+CELL_SIZE]
 	END
+%endif
 
 
 %if 0
@@ -113,31 +154,46 @@ DEF "over"
 		%endif
 %endif
 
+%ifdef C_drop
 DEF "drop"
 	pop	C
 	END
+%endif
 
 %if 1
 ; the minimal primitives
+%ifdef C_store
 	DEF "store"
 		pop	C
 		pop	native [C] ; I have to agree with Kragen here, I'm also amazed this is legal
 		END
+%endif
 
+%ifdef C_fetch
 	DEF "fetch"
 		pop	C
 		push	native [C] ; This feels less illegal for some reason
 		END	no_next
 	DEF "nop"
 		END
+%endif
 
-	DEF "spfetch"
-		push	SP
-		END
-
+%ifdef C_rpfetch
 	DEF "rpfetch"
 		push	RETURN_STACK
 		END
+%endif
+
+%ifdef C_rpspfetch
+	DEF "rpspfetch"
+		push	RETURN_STACK
+		END	no_next
+%endif
+%if %isdef(C_rpspfetch) || %isdef(C_spfetch)
+	DEF "spfetch"
+		push	SP
+		END
+%endif
 
 	%if 0
 	DEF "0lt"
@@ -151,13 +207,17 @@ DEF "drop"
 		END	pushA
 	%endif
 
+%ifdef C_nand
 	DEF "nand"
 		pop	aC
 		and	[SP], aC
 		END	no_next
+%endif
+%if %isdef(C_not) || %isdef(C_nand)
 	DEF "not"
 		not	arith [SP]
 		END
+%endif
 
 	%if !SYSCALL
 	DEF "dupemit"
@@ -192,7 +252,7 @@ DEF "drop"
 
 %endif
 
-%if 1
+%ifdef C_rspush
 	DEF "rspush"
 		lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
 		pop	native [embiggen(RETURN_STACK)]
@@ -271,35 +331,44 @@ DEF "nzbranch"
 	pop	C
 	test	aC, aC
 	jnz	A_branch
-	lodsb	; inc esi, but smaller on 64bit
-	END
+	incbr
+	END	clearA
 %endif
 
+%ifdef C_zbranch
 DEF "zbranch"
 	pop	C
 	jCz	A_branch
-	lodsb	; inc esi, but smaller on 64bit
-	END
+	incbr
+	END	clearA
+%endif
 
 %if 0
 DEF "while4"
 	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
 	jnz	A_branch		; clean up return stack if we're finished
-	lodsb
+	incbr
 	jz	A_rdrop
 	END	no_next
 %endif
 
+;%define C_branch
+%ifdef C_branch
 DEF "branch"
-	movsx	ecx, byte [embiggen(FORTH_OFFSET)]
-	add	FORTH_OFFSET, ecx
+	%if BRANCH8
+		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
+		add	FORTH_OFFSET, ecx
+	%else
+		mov	FORTH_OFFSET, [embiggen(FORTH_OFFSET)]
+	%endif
 NEXT2:	END
+%endif
 
 ; f_while <imm8>:
 ;  1. decrement an unspecified loop counter
 ;  2. if counter != 0:
 ;	jump imm8 bytes
-%if !FORTHWHILE
+%if !FORTHWHILE && %isdef(C_while2)
 DEF "while2"
 	assert_A_low
 	lodsb			; load jump offset
@@ -311,9 +380,11 @@ DEF "while2"
 	END
 %endif
 
+%ifdef C_rdrop
 DEF "rdrop"
 	lea	RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
 	END
+%endif
 
 %if COMBINED_STRINGOP
 	DEF "dotstr"
@@ -341,7 +412,7 @@ DEF "rdrop"
 		jmp	xt
 		END	no_next
 	%endif
-
+	%ifdef C_string
 	DEF "string"
 		assert_A_low
 		lodsb
@@ -349,7 +420,9 @@ DEF "rdrop"
 		push	A
 		add	FORTH_OFFSET, eax
 		END
-	%if 1
+	%endif
+
+	%ifdef C_stringr
 	DEF "stringr"
 		assert_A_low
 		lodsb
@@ -360,10 +433,12 @@ DEF "rdrop"
 	%endif
 %endif
 
+%ifdef C_plus
 DEF "plus"
 	pop	C
 	add	[SP], aC
 	END
+%endif
 
 %if DEBUG
 DEF "dbg"
@@ -397,6 +472,8 @@ DEF "while5"
 	END	no_next
 %endif
 
+;%define C_divmod
+%ifdef C_divmod
 DEF "divmod"
 	cdq		; A is <= 255, so cdq will always work
 	pop	C
@@ -406,67 +483,63 @@ pushDA:
 	push	D
 pushA:
 	push	A
+clearA:
 	A_tainted
-	jmp	NEXT2
-	END	no_next
-
-%if 0
-DEF "i2"
-	push	arith [embiggen(RETURN_STACK)+CELL_SIZE]	; decrement loop counter
+	;jmp	NEXT2
+	;END	no_next
 	END
 %endif
 
-%if 1
-	DEF "rsinc"
-		inc	native [RETURN_STACK]
-		END	no_next
-	DEF "i"
-		mov	A, [RETURN_STACK]
-		END	pushA
-%endif
-
-%if LIT8
-DEF "lit8"
-	assert_A_low
-	lodsb
-	END	pushA
-%endif
-
-DEF "lit32"
-	lodsd
-	END	pushA
-
-%if BIT_ARITHMETIC == 64
-DEF "lit64"
-	lodsq
-	END	pushA
-%endif
-
-DEF "swap"
-	pop	D
-	pop	A
-	END	pushDA
-
-DEF "rot"
-	pop	D
-	pop	C
-	pop	A
-	push	C
-	END	pushDA
-
 %if SYSCALL
 %if !SYSCALL64
-DEF "syscall3"
-	%ifidn RETURN_STACK,B
-		%fatal invalid return stack register
-	%endif
-	pop	A
-	pop	B
-	pop	C
-	pop	D
+	DEF "syscall3"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		pop	A
+		pop	B
+		pop	C
+		pop	D
 
-	int	0x80
-	END	pushA
+		int	0x80
+	%ifndef C_divmod
+		pushA:
+			push	A
+		clearA:
+			A_tainted
+		END
+	%else
+		END	pushA
+	%endif
+
+	%if 0
+		DEF "syscall7"
+			%ifidn RETURN_STACK,B
+				%fatal invalid return stack register
+			%endif
+			pop	A
+			pop	B
+			pop	C
+			pop	D
+			push	esi
+			mov	esi, [esp+4]
+			push	edi
+			mov	esi, [esp+12]
+			push	ebp
+			mov	esi, [esp+20]
+
+			int	0x80
+			pop	ebp
+			pop	edi
+			pop	esi
+
+			pop	edx
+			pop	edx
+			pop	edx
+
+			END	pushA
+	%endif
+
 
 %else
 ; x64 syscall: syscall number in rax
@@ -498,6 +571,56 @@ DEF "bye"
 	int	0x80
 	END	no_next
 	%endif
+
+%if 0
+DEF "i2"
+	push	arith [embiggen(RETURN_STACK)+CELL_SIZE]	; decrement loop counter
+	END
+%endif
+
+%ifdef C_rsinci
+	DEF "rsinci"
+		inc	native [RETURN_STACK]
+		END	no_next
+	DEF "i"
+		mov	A, [RETURN_STACK]
+		END	pushA
+%endif
+
+%if LIT8
+DEF "lit8"
+	assert_A_low
+	lodsb
+	END	pushA
+%endif
+
+%ifdef C_lit32
+DEF "lit32"
+	lodsd
+	END	pushA
+%endif
+
+%if BIT_ARITHMETIC == 64
+DEF "lit64"
+	lodsq
+	END	pushA
+%endif
+
+%ifdef C_swap
+DEF "swap"
+	pop	D
+	pop	A
+	END	pushDA
+%endif
+
+%ifdef C_rot
+DEF "rot"
+	pop	D
+	pop	C
+	pop	A
+	push	C
+	END	pushDA
+%endif
 
 A___BREAK__:
 END_OF_CODEWORDS:

@@ -1,7 +1,8 @@
 %if 0
+set -x
 set -euo pipefail
 
-BIT="x32"
+BIT="32"
 HARDEN=0
 #ORG="0x01000000"
 #ORG="0x80000000"
@@ -9,6 +10,7 @@ ORG="0x10000"
 DUMP="-z -Mintel"
 #DUMP="--no-addresses -z -Mintel"
 NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
+#NASMOPT="-g -DORG=$ORG -w+all"
 if [ -z ${FORCE-} ]; then
 	NASMOPT="$NASMOPT -Werror=number-overflow"
 fi
@@ -48,7 +50,7 @@ else
 	fi
 fi
 
-DEBUG=0 perl parse.pl ${SOURCE:-forthwords.fth} > compiled.asm
+DEBUG=1 perl parse.pl ${SOURCE:-forthwords.fth} > compiled.asm
 
 OUT=viert
 if [ -n "${LINCOM-}" ]; then
@@ -60,13 +62,16 @@ fi
 if [ -n "${FULL-1}" ]; then
 	if [ "$BIT" = 64 ]
 	then
+		echo "Mode: full x64"
 		NASMOPT="$NASMOPT -f elf64 -DBIT=$BIT"
 		FLAGS="$FLAGS -m elf_x86_64"
 	elif [ "$BIT" = "x32" ]
 	then
+		echo "Mode: full x32"
 		NASMOPT="$NASMOPT -f elfx32 -DBIT=64 -DX32=1"
 		FLAGS="$FLAGS -m elf32_x86_64"
 	else
+		echo "Mode: full 386"
 		NASMOPT="$NASMOPT -f elf32 -DBIT=$BIT"
 		FLAGS="$FLAGS -m elf_i386"
 	fi
@@ -75,7 +80,7 @@ if [ -n "${FULL-1}" ]; then
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
 	nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
-	$LD $FLAGS $OUT.o -o $OUT
+	$LD -V $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
 	ls -l $OUT.full
 	sstrip $OUT
@@ -118,23 +123,27 @@ symbols(){
 }
 sizes(){
 	symbols | awk '
-		BEGIN { print "84 ELF" }
+		BEGIN {
+			elf=84
+			total=elf
+			print elf, "ELF"
+		}
 
 		/. A_[^.]*$/ {
 			sub(/A_/,"")
 			if(name){
-				print $1-size " " name
+				print $1-size, name
 				total+=($1-size)
 			}
 			if(name == "__BREAK__"){
-				print total " SUBTOTAL"
+				print total, "SUBTOTAL"
+				print total-elf, "ASM"
 			}
 			name=$3
 			size=$1
 		}
 
 		END {
-			total+=84
 			print total " TOTAL"
 		}
 	'|column -tR1
@@ -148,6 +157,7 @@ if [ -n "${FULL-1}" ]; then
 else
 	OFF=$(  readelf -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
 	START=$(readelf -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
+	echo "OFF $OFF START $START"
 	if [ "$BIT" = "x32" ]; then
 		m="x86-64"
 	else
@@ -158,7 +168,7 @@ fi
 
 set +e
 ls -l $OUT
-strace -frni ./$OUT
+[ "${RUN-1}" ] && strace -frni ./$OUT
 echo ret $?
 ls -l $OUT
 exit
@@ -204,6 +214,25 @@ BITS BIT
 ; enable 8 bit literals. Usually a good idea, as it saves a lot of overall space
 %ifndef LIT8
 %define LIT8		1
+%endif
+
+; branching with 8 bit values. Bigger asm part because of movsx, probably smaller overall
+%ifndef BRANCH8
+%define BRANCH8		1
+%endif
+
+%if BRANCH8
+	%macro dbr 1
+		;%warning BRANCH8 %1
+		db %1 - $
+	%endmacro
+	%define incbr	lodsb
+%else
+	%macro dbr 1
+		;%warning BRANCH32 %1
+		dd %1
+	%endmacro
+	%define incbr	lodsd
 %endif
 
 ; WHILE in pure forth
@@ -306,7 +335,7 @@ BITS BIT
 	%define	RETURN_STACK	DI
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP. BP has additional encoding overhead
-	%define	TEMP_ADDR	ebx
+	%define	TEMP_ADDR	ecx
 %endif
 
 %if X32
@@ -367,15 +396,20 @@ A_INIT:
 ; by simply doing nothing
 %if HARDEN
 hardening:
-cmp	ax, 0x1000
-;cmp    rsp, rax ; for 64bit codebase, 1 byte shorter
+%if BIT == 64
+	cmp	rsp, rsp 
+%else
+	cmp	ax, 4096
+%endif
 jz	.end
-sub	ax, 0x1000
-or	al, 0x0
+sub	ax, 4096
+or	al, 0
 jmp	hardening
 .end:
-rset	eax, 0x1000
+%if BIT != 64
+rset	eax, 4096
 set	eax, 0
+%endif
 %endif
 
 %if 1
@@ -410,8 +444,18 @@ set	eax, 0
 
 %include "codewords.asm"
 
+; IMMEDIATE WORDS
+; TODO: handle better
+
 %macro string 1
 	f_string
+	db %%endstring - $ - 1
+	db %1
+	%%endstring:
+%endmacro
+
+%macro stringr 1
+	f_stringr
 	db %%endstring - $ - 1
 	db %1
 	%%endstring:
@@ -424,19 +468,19 @@ set	eax, 0
 	%%endstring:
 %endmacro
 
-%macro inline_asm 0
-	%push asmctx
-	f_string
-	db %$endasm - $ - 1
-	%$asm:
-%endmacro
-
-%macro endasm 0
-	NEXT
-	%$endasm:
-	f_asmjmp
-	%pop asmctx
-%endmacro
+;%macro inline_asm 0
+;	%push asmctx
+;	f_string
+;	db %$endasm - $ - 1
+;	%$asm:
+;%endmacro
+;
+;%macro endasm 0
+;	NEXT
+;	%$endasm:
+;	f_asmjmp
+;	%pop asmctx
+;%endmacro
 
 %macro do arg(0)
 	%push dountilctx
@@ -445,51 +489,65 @@ set	eax, 0
 
 %macro until arg(0)
 	f_zbranch
-	db %$dountil - $
+	dbr %$dountil
 	%pop dountilctx
 %endmacro
 
 %macro while arg(0)
 	f_not
 	f_zbranch
-	db %$dountil - $
+	dbr %$dountil
 	%pop dountilctx
 %endmacro
 
-%macro doloop1 0-1
-	%push loopctx
-	%if %0 == 1
-		lit %1
-	%endif
-	f_rspush
-	%$loop:
-%endmacro
+;%macro doloop1 0-1
+;	%push loopctx
+;	%if %0 == 1
+;		lit %1
+;	%endif
+;	f_rspush
+;	%$loop:
+;%endmacro
+;
+;%macro endloop3 arg(0)
+;	f_while2
+;	db $ - %$loop + 1
+;	%pop loopctx
+;%endmacro
+;
+;%macro endloop1 arg(0)
+;	%if FORTHWHILE
+;		f_rp_at
+;		f_while
+;		f_zbranch
+;		dbr %$loop
+;		f_rdrop
+;	%else
+;		f_while2
+;		db $ - %$loop + 1
+;	%endif
+;	%pop loopctx
+;%endmacro
+;
+;%macro endloop2 arg(0)
+;	f_while4
+;	db $ - %$loop + 1
+;	f_rdrop
+;	%pop loopctx
+;%endmacro
 
-%macro endloop1 arg(0)
-	%if FORTHWHILE
-		f_rp_at
-		f_while
-		f_zbranch
-		db %$loop - $
-		f_rdrop
-	%else
-		f_while2
-		db $ - %$loop + 1
-	%endif
-	%pop loopctx
-%endmacro
-
-%macro endloop2 arg(0)
-	f_while4
-	db $ - %$loop + 1
-	f_rdrop
-	%pop loopctx
+%macro unless arg(0)
+	;%push ifctx
+	;f_nzbranch
+	;dbr %$jump1
+	if
+	else
 %endmacro
 
 %macro if arg(0)
 	%push ifctx
 	f_zbranch
-	db %$jump1 - $
+	dbr %$jump1
 %endmacro
 
 %macro then arg(0)
@@ -499,29 +557,57 @@ set	eax, 0
 	%endif
 	%pop ifctx
 %endmacro
+%defalias endif then
 
 %macro else arg(0)
 	f_branch
 	%push elsectx
-	db %$jump1 - $
+	dbr %$jump1
 
 	%$$jump1:
 %endmacro
 
 %macro jump arg(1)
 	f_branch
-	db %1 - $
+	dbr %1
 %endmacro
 
-%macro do 0
-	%push infloop
+%macro begin 0
+	%push beginloop
 	%$loop:
 %endmacro
 
-%macro loop 0
+%macro again 0
 	f_branch
-	db %$loop - $
-	%pop infloop
+	dbr %$loop
+	%pop beginloop
+%endmacro
+
+%macro for 0
+	f_rspush
+	%push forloop
+	%$forloop:
+%endmacro
+
+%macro next 0
+%$i:	f_i
+%$dec:	f_dec
+%$dup:	f_dup
+%$rpfe:	f_rpfetch
+%$stor:	f_store
+
+%$if:
+if
+
+%$branch:
+	f_branch
+	dbr %$$forloop ; we're inside an ifctx
+%$then:
+then
+%$rsdrop:
+f_rsdrop
+%$end:
+	%pop forloop
 %endmacro
 
 FORTH_START:
@@ -550,7 +636,7 @@ db 0
 %warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
 %warning "FORTH_SIZE" FORTH_SIZE
 %warning "FORTH_WORDS" FORTH_WORDS
-%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
+;%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
 %warning "WORDS TOTAL" WORD_COUNT
 %warning "BREAK" %eval(BREAK)
 %warning "LASTOFF" %eval(lastoff)

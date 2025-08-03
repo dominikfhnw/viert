@@ -34,3 +34,6 @@
 * limit start ?DO .. LOOP
 
 
+currently implemented:
+* BEGIN .. AGAIN
+* n FOR .. NEXT
