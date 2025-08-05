@@ -1,5 +1,4 @@
 %if 0
-set -x
 set -euo pipefail
 
 BIT="32"
@@ -79,8 +78,9 @@ if [ -n "${FULL-1}" ]; then
 	echo "FULL $BIT"
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
-	nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
-	$LD -V $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
+	#nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro ' | grep -a --color=always -E '|error:'
+	nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	$LD $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
 	ls -l $OUT.full
 	sstrip $OUT
@@ -166,11 +166,14 @@ else
 	[ "${DIS-1}" ] && objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
 fi
 
-set +e
 ls -l $OUT
-[ "${RUN-1}" ] && strace -frni ./$OUT
-echo ret $?
-ls -l $OUT
+if [ "${RUN-1}" ]; then
+	set +e
+	strace -frni ./$OUT
+	echo ret $?
+	ls -l $OUT
+	set -e
+fi
 exit
 %endif
 
