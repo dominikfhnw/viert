@@ -2,6 +2,10 @@
 %define LINCOM 0
 %endif
 
+%ifndef PIC
+%define PIC 0
+%endif
+
 %ifidn __OUTPUT_FORMAT__, bin
 	%if !LINCOM
 		%assign ELF_CUSTOM 1
@@ -42,7 +46,11 @@ EXTERN _start
 		dd	1
 		dd	EOFF
 		dd	$$ + EOFF		; vaddr
-		dw	2
+		%if PIC
+			dw	3
+		%else
+			dw	2
+		%endif
 		%if X32
 			dw	62
 		%else
