@@ -271,7 +271,7 @@
 	%endrep
 %endmacro
 
-%macro rdump 0
+%macro rdump 0.nolist
 	%warning DUMP
 	%warning eax: reg_eax_val
 	%warning ebx: reg_ebx_val
