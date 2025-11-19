@@ -19,7 +19,7 @@
 %define EXTENDED 0
 %define FLAGS 1
 %define IP 1
-%define	STACK 4
+%define	STACK 6
 
 %define LABEL 2
 %define ALTLABEL 0
