@@ -12,6 +12,7 @@
 * ":?" words: inside should not be checked for reachability if it isn't clear that they are needed
   (e.g. syscall3 defined as :?-word, syscall7 now required. but should not be required if syscall7
   never used elswehere)
+* options that are probably broken: PIC, SMALLINIT, whole 64bit stuff
 
 
 
