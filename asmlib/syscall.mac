@@ -582,7 +582,7 @@ SECTION .text
 
 ; add an extra param to get the hackish version (-2 bytes)
 %imacro rwx 0-1
-	%ifidn __OUTPUT_FORMAT__, bin
+	%if ELF_CUSTOM
 		%ifdef ORG
 			set	ebx, ORG
 		%else
