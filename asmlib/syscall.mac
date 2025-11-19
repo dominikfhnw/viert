@@ -583,11 +583,17 @@ SECTION .text
 ; add an extra param to get the hackish version (-2 bytes)
 %imacro rwx 0-1
 	%if %0 == 0
-		set	ebx, $$
-		;lea	ecx, [ebx+START-$$]
-		set	ecx, 0x10000-1
+		%ifdef ORG
+			set	ebx, ORG
+		%elifidn __OUTPUT_FORMAT__, bin
+			set	ebx, $$
+		%else
+			mov	ebx, $$
+			and	ebx, 0xfffff000
+			taint	ebx
+		%endif
 
-		mprotect ebx, ecx, 7
+		mprotect ebx, 0xffff, 7
 	%else
 		mprotect $$, -1, 7
 	%endif
