@@ -18,6 +18,11 @@ BITS BIT
 
 %include "stdlib.mac"
 
+; make our memory writable. Needed for variables
+%ifndef RWMEM
+%define RWMEM		1
+%endif
+
 ; branching with 8 bit values. Bigger asm part because of movsx, probably smaller overall
 %ifndef BRANCH8
 %define BRANCH8		0
@@ -264,7 +269,20 @@ rdump
 	%else
 		; we chose our base address to be < 2^32. So no embiggen
 		%if SMALLINIT != 2
+			%if RWMEM
+				rinit
+				%ifdef ORG
+					set	ebx, ORG
+				%else
+					set	ecx, 0xffff
+				%endif
+			%endif
 			ELF_PHDR 1
+			%if RWMEM
+				_rwx:
+				taint	RETURN_STACK
+				rwx
+			%endif
 			mov	TEMP_ADDR, FORTH
 		%else
 			mov	al, offset(FORTH)
