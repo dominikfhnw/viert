@@ -221,10 +221,6 @@ SECTION .text align=1
 
 
 A_INIT:
-; "enter" will push ebp on the stack
-; This means that we can call EXIT to start the forth code at ebp
-; And conveniently, EXIT is the first defined word, so we can "call" it
-; by simply doing nothing
 rdump
 
 %ifndef SMALLINIT
@@ -243,6 +239,10 @@ rdump
 
 	ELF_PHDR 1
 %else
+; "enter" will push ebp on the stack
+; This means that we can call EXIT to start the forth code at ebp
+; And conveniently, EXIT is the first defined word, so we can "call" it
+; by simply doing nothing
 	enter	0xFFFF, 0
 	%ifnidn embiggen(RETURN_STACK),BP
 		%if X32
