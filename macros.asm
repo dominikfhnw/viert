@@ -3,11 +3,7 @@
 %define JMPLEN short
 %endif
 
-%if OFFALIGN
-	%define offset(a)	(a - WORD_OFFSET + ELF_HEADER_SIZE)/WORD_ALIGN
-%else
-	%define offset(a)	(a - WORD_OFFSET)/WORD_ALIGN
-%endif
+%define offset(a)	(a - WORD_OFFSET)/WORD_ALIGN
 
 %macro NEXT arg(0)
 	jmp JMPLEN A_NEXT
@@ -29,16 +25,19 @@
 	align2 WORD_ALIGN, nop
 	%define DEF%[WORD_COUNT] A_%tok(%1)
 	A_%tok(%1):
+	%assign xx ($ - WORD_OFFSET)/WORD_ALIGN
+	Z_%tok(%1)_%[xx]:
 	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
 	%define lastoff offset(A_%tok(%1))
 	%define lastoff2 A_%tok(%1)
+	%define f_recurse %[f_%tok(%1)] 
 	%warning NEW DEFINITION: %1 WORD_COUNT %eval(lastoff)
 	rtaint
 	rset	eax, -2 ; 8-bit value
 	%assign WORD_COUNT WORD_COUNT+1
 %endmacro
 
-%macro DEFFORTH 1
+%macro DEFFORTH 1.nolist
 	%ifctx defforth
 		%fatal Nested DEFFORTH not allowed. Did you forget an ENDDEF?
 	%endif
@@ -53,13 +52,49 @@
 	%ifctx defcode
 		%if %0 == 0
 			NEXT
-		%elif %1 == clearA
-			jmp short clearA
-		%elif %1 == pushA
-			jmp short pushA
-		%elif %1 == pushDA
-			jmp short pushDA
-		%elif %1 == no_next
+		%elifidn %1,clearA
+			%if haveclearA
+				%warning HAVECLEARA
+				jmp JMPLEN clearA
+			%else
+				%warning NOT HAVECLEARA
+				%assign haveclearA 1
+				A_clearA:
+				clearA: A_tainted
+				NEXT
+			%endif
+		%elifidn %1,pushA
+			%warning "MACRO pushA"
+			%if havepushA || %isdef(C_syscall) || %isdef(C_divmod)
+				jmp	JMPLEN pushA
+			;%elif haveclearA 
+			;	push	A
+			;	A_tainted
+			;	NEXT
+			%else
+				%assign havepushA 1
+				A_pushA:
+				pushA:
+				push	A
+				%if haveclearA
+					%warning HAVECLEARA
+					jmp JMPLEN clearA
+				%else
+					%warning NOT HAVECLEARA
+					%assign haveclearA 1
+					clearA: A_tainted
+					NEXT
+				%endif
+			%endif
+		%elifidn %1,pushDA
+			;%ifdef pushDA
+			%if %isdef(havepushDA) || %isdef(C_divmod)
+				jmp	JMPLEN pushDA
+			%else
+				push	D
+				jmp	JMPLEN pushA
+			%endif
+		%elifidn %1,no_next
 			; nothing
 		%else
 			%error unknown statement after END: %1
@@ -75,7 +110,14 @@
 %define ENDDEF END
 
 %macro WORD 1
-	db offset(DEF%tok(%1))
+	%assign x %eval(offset(DEF%tok(%1)))
+	%xdefine wordname DEF%tok(%1)
+	%if x > 255
+		%ifndef FORCE
+			%error word too big: wordname x
+		%endif
+	%endif
+	db offset(wordname)
 %endmacro
 
 ; "A noble spirit embiggens the smallest man."
@@ -146,10 +188,43 @@
 %endif
 %endmacro
 
-%imacro lit 1
-	%if LIT8 && (%1 >= 0 && %1 < 256)
-		f_lit8
-		db %1
+%imacro xlit32 1.nolist
+	f_xlit32
+	dd %1
+%endmacro
+
+%imacro lit 1.nolist
+%if 0
+        %defstr %%n %1
+        %ifnum %1
+                %warning %?: %%n %eval(%1) is number %%id
+        %elifstr %1
+                %warning %?: %%n %eval(%1) is str/true %%id
+        %elifempty %1
+                %warning %?: %%n is empty %%id
+        %eliftoken %1
+                %ifid %1
+                        %warning %?: %%n is token %%id
+                %else
+                        %warning %?: %%n is token/notid %%id
+                %endif
+        %elifid %1
+                %warning %?: %%n is id %%id
+        %else
+                %warning %?: %%n is UNKNOWN %%id
+        %endif
+%endif
+
+	;%if ( %isnum(%1) || %isstr(%1) ) && %isdef(C_lit8) && (%1 >= 0 && %1 < 256)
+	;%if ( ! %isid(%1) ) && %isdef(C_lit8) && (%1 >= 0 && %1 < 256)
+	%if ( %isnum(%1) || %isstr(%1) ) && %isdef(C_lit8)
+		%if %1 >= 0 && %1 < 256
+			f_lit8
+			db %1
+		%else
+			f_lit32
+			dd %1
+		%endif
 	; TODO: this won't work with large negative numbers
 	%elif (BIT_ARITHMETIC == 64) && (%1 > 0xffffffff)
 		f_lit64

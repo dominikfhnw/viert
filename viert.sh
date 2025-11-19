@@ -1,4 +1,8 @@
+#!/bin/bash
 set -euo pipefail
+
+(return 0 2>&-) && ASM=$0
+: "${ASM:=viert3.asm}"
 
 BIT="32"
 HARDEN=0
@@ -7,11 +11,15 @@ HARDEN=0
 ORG="0x10000"
 DUMP="-z -Mintel"
 #DUMP="--no-addresses -z -Mintel"
-NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
+#NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
+NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan -L+ -l nasm.list"
 #NASMOPT="-g -DORG=$ORG -w+all"
-if [ -z ${FORCE-} ]; then
+if [ -z "${FORCE-}" ]; then
 	NASMOPT="$NASMOPT -Werror=number-overflow"
+else
+	NASMOPT="$NASMOPT -DFORCE=1"
 fi
+NASMOPT="$NASMOPT -DFORTHBRANCH=${FORTHBRANCH-0}"
 
 LD="gold"
 #LD="ld.lld"
@@ -19,7 +27,11 @@ LD="ld"
 #LD="/home/balou/ELFkickers-3.2/infect/f/isvm-tool/viert.proj/mold/build/mold"
 
 if [ -z "${PIC-}" ]; then
-	FLAGS="-Ttext-segment=$ORG"
+	if [ "$LD" != "ld.lld" ]; then
+		FLAGS="-Ttext-segment=$ORG"
+	else
+		FLAGS="--image-base $ORG"
+	fi
 else
 	FLAGS="-pie --no-dynamic-linker -z norelro --hash-style=sysv --no-eh-frame-hdr --disable-new-dtags --no-ld-generated-unwind-info --as-needed"
 	FLAGS="-pie --no-dynamic-linker -z norelro --hash-style=sysv"
@@ -47,13 +59,21 @@ else
 		FLAGS="$FLAGS -z nognustack --no-rosegment"
 	fi
 fi
+#FLAGS="$FLAGS --relax --enable-non-contiguous-regions --no-check-sections --no-fatal-warnings --no-warn-mismatch --noinhibit-exec  --warn-unresolved-symbols"
+#FLAGS="$FLAGS --noinhibit-exec --build-id"
+FLAGS="$FLAGS --noinhibit-exec --omagic"
 
-DEBUG=1 perl parse.pl ${SOURCE:-forthwords.fth} > compiled.asm
+if [ -z "${RAW-}" ]; then
+	DEBUG=${PRDEBUG-0} LIT8=${LIT8-1} perl parse.pl "${SOURCE:-forthwords.fth}" > compiled.asm 2> db.parse1
+else
+	cp "$RAW" compiled.asm
+fi
+
 
 OUT=viert
 if [ -n "${LINCOM-}" ]; then
 	OUT="$OUT.com"
-	NASMOPT="-DLINCOM=1"
+	NASMOPT="$NASMOPT -DLINCOM=1"
 	FULL=
 fi
 
@@ -78,7 +98,7 @@ if [ -n "${FULL-1}" ]; then
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
 	#nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro ' | grep -a --color=always -E '|error:'
-	nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	nasm -I asmlib/ -o $OUT.o "$ASM" $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
 	$LD $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
 	ls -l $OUT.full
@@ -110,10 +130,10 @@ else
 		#exit 66
 	fi
 	rm -f $OUT
-	nasm -I asmlib/ -f bin -o $OUT "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	nasm -I asmlib/ -f bin -o $OUT "$ASM" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
 fi
-ls -l $OUT
 chmod +x $OUT
+ls -l $OUT
 
 symbols(){
 	# binutils nm sometimes has a weird ~0.5s lag, while eu-nm is consistently fast
@@ -136,7 +156,13 @@ sizes(){
 			}
 			if(name == "__BREAK__"){
 				print total, "SUBTOTAL"
-				print total-elf, "ASM"
+				subtotal = total
+				asm = total-elf
+				print asm, "ASM"
+			}
+			if(name == "MAIN"){
+				print total-subtotal, "FORTH"
+				print total-subtotal+asm, "CODE"
 			}
 			name=$3
 			size=$1
@@ -148,21 +174,46 @@ sizes(){
 	'|column -tR1
 }
 
+#r2 -2 -c aa -c 'e emu.str = true' -c 'pD $SIZE @ entry0' -q $
+#RADARE="r2 -2 -c aa -c 'e emu.str = true' -c 'pdf' -q"
+#RADARE="r2 -2 -c aa -c pdf -q"
+#set -x
+R2=
+
 if [ -n "${FULL-1}" ]; then
+	SIZE=$(( $(wc -c < "$OUT") - 84 ))
+	RADARE="r2 -2 -c aa -c 'e emu.str = true' -c 'pD $SIZE @ entry0' -q"
 	DUMP="$DUMP -j .text -j .rodata"
-	[ "${DIS-1}" ] && objdump $DUMP -d $OUT.full
+	if [ "${DIS-1}" ]; then
+		if [ "${R2-}" ]; then
+			time eval $RADARE "$OUT.full"
+		else
+			objdump $DUMP -d $OUT.full
+		fi
+	fi
 	#sizes | sort -nr
 	sizes
 else
-	OFF=$(  readelf -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
-	START=$(readelf -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
-	echo "OFF $OFF START $START"
-	if [ "$BIT" = "x32" ]; then
-		m="x86-64"
-	else
-		m="i386"
+	if [ "${DIS-1}" ]; then
+		if :; then
+			if [ "$BIT" = "x32" ]; then
+				m="x86-64"
+			else
+				m="i386"
+			fi
+			if [ -n "${LINCOM-}" ]; then
+				OFF="0x10000"
+				START="0x10000"
+			else
+				OFF=$(  readelf -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
+				START=$(readelf -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
+			fi
+			echo "OFF $OFF START $START"
+			objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
+		else
+			eval $RADARE "$OUT"
+		fi
 	fi
-	[ "${DIS-1}" ] && objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
 fi
 
 ls -l $OUT

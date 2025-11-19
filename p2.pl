@@ -30,6 +30,22 @@ w/align==2: 4 + n*1
 inline:         n*2
 breakeven 4, saved: 5
 
+NOINLINE triggers:
+* EXIT at non-last position
+* recursive function
+* rp@ used in function (does not always need to be NOINLINE)
+* ;CONTINUE
+
+OPTIONS all over the place:
+* -DBRANCH8=1 on cmdline
+* LIT8 in parse.pl, LITSIZE In p2.pl
+* immediate i in viert3.asm, codeword i in codewords.asm
+* zbranch/nzbranch/zbranchc
+* WORDSET, "\ ASM" pragma, ugly C_ macros everywhere (generate codewords.asm?)
+* asm() statements in p2.pl being the new WORDSET
+* INLINE/INLINEALL in p2.pl
+* viert.sh: global envs vs -D... cmdline
+
 =cut
 
 use v5.34;
@@ -45,15 +61,91 @@ BEGIN {
 	*DEBUG = sub(){ $d };
 }
 
-#my %defined; # = map { $_ => 1 } qw(do loop if unless then endif else);
+sub dp {
+	say STDERR @_;
+}
+
+sub dp2 {
+	say STDERR @_ if 1;
+}
+
+
+sub opt {
+	my $name = shift;
+	my $env = $ENV{$name};
+	if(not defined $env or $env eq ''){
+		$env = shift;
+	}
+	warn "ENV $name $env\n";
+	return $env;
+}
+my $WORDSET = 99;
+my $WORD_ALIGN = opt "WORD_ALIGN", 1;
+my $INLINE = opt "INLINE", 1;		# enable inlining
+my $INLINEALL = opt "INLINEALL", 0;	# inline as much as possible
+my $PRUNE = opt "PRUNE", 1;		# remove unused functions
+my $ZBRANCHC = 0;			# use 'zbranchc' if true
+my $LITSIZE = 1;			# how many bytes a lit has
+my $BRANCH8 = 1;			# 
+my $LIT8 = opt "LIT8", 1;		#
+my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
+#my $OPT = $ENV{'OPT'} || 0;		# optionset
+my $OPT = opt "OPT", 0;
+my $FORTHBRANCH = opt "FORTHBRANCH", 0;
+
+
+dp "OPT $OPT PRUNE $PRUNE INLINEALL $INLINEALL";
+
 my %word;
 my %dep2;
 
 my $CONTINUE = "";
 my $LASTWORD = "";
-my %builtin_all = map { $_ => 1 } qw(0< 1- EXIT branch bye divmod drop dup @ i iloop inext lit32 lit8 < - nand not nzbranch over plus rp@ rpsp@ rsinci rspush sp@ ! stringr swap syscall3 xzbranch zbranch);
-my %builtin = map { $_ => 1 } qw(0< EXIT divmod drop @ inext lit32 lit8 nand not over plus rp@ rspush sp@ ! swap syscall3 zbranch branch);
-my %noinline = map { $_ => 1 } qw(rsinc i rsinci);
+my %builtin_all = map { $_ => 1 } qw(
+	0< 1- EXIT bye divmod drop dup @ i < - nand not over + rp@ rpsp@ rsinci rspush sp@ !
+	swap 2*
+	stringr string dotstr 
+	if else unless do swapdo loop loople begin again until notuntil next
+	syscall3_noret syscall3
+	syscall7
+
+); 
+#	syscall3_noret syscall3
+
+# if/unless: zbranch/nzbranch
+# else: branch
+# do: swap rspush
+# swapdo: rspush
+# loop: j/rp@/rpsp@....
+# begin: -
+# again: branch
+# until/notuntil: zbranch/nzbranch/(not)
+# 
+# string stringr dotstr 
+# unless if then endif branch else do swapdo loop loople begin again until notuntil i next
+my %noinline = map { $_ => 1 } qw(xlit32 ploos drop);
+#rsinc i j rsinci rspush rflip 
+my %asmabstract = map { $_ => 1 } qw(lit8 lit32 branch zbranch nzbranch zbranchc stringr);
+my @comment = qw(
+
+	divmod u. rp@
+
+	not dup negate true false rp@ and drop pos1 pos3
+	over pos1
+);
+my %baseline = map { $_ => 1 } qw(! @ EXIT nand sp@);
+my %codeword = map { $_ => 1 } qw();
+my %inline = (
+	#true		=>	[-1],
+	false		=>	[0],
+	STDOUT		=>	[1],
+	SYS_exit	=>	[1],
+	SYS_write	=>	[4],
+	CELL_SIZE	=>	[4],
+	'CELL_SIZE*1'	=>	[4],
+	'CELL_SIZE*2'	=>	[8],
+	'CELL_SIZE*3'	=>	[12],
+);
 
 my @wordorder = ();
 
@@ -65,25 +157,18 @@ sub getstream {
 	return split ' ', $contents;
 }
 
-sub dp {
-	say STDERR @_;
-}
-
-sub dp2 {
-	say STDERR @_ if 1;
-}
-
-sub isneeded {
-	my $name = shift;
-	if(exists $builtin{$name}){
-		#dp "NOTNEEDED $name";
-		return 0;
-	}
-	else {
-		#dp "NEEDED $name";
-		return 1;
-	}
-}
+# TODO: refactor/delete
+#sub isneeded {
+#	my $name = shift;
+#	if(exists $builtin{$name}){
+#		#dp "NOTNEEDED $name";
+#		return 0;
+#	}
+#	else {
+#		#dp "NEEDED $name";
+#		return 1;
+#	}
+#}
 
 sub hlparse {
 	my @stream = @_;
@@ -92,33 +177,42 @@ sub hlparse {
 
 		given(shift@stream){
 			#dp "TOK $_";
+			when('variable'){
+				$word = shift @stream;
+				push @wordorder, $word;
+				#$LASTWORD = $word;
+				$word{$word} = ["VARIABLE","EXIT"];
+				if($CONTINUE){
+					die "continue is illegal before variable";
+				}
+			}
 			when(':') {
 				$word = shift @stream;
 				push @wordorder, $word;
-				$word{$word} = [];
-				#$defined{$word}++;
 				$LASTWORD = $word;
+				$word{$word} = [];
 				if($CONTINUE){
 					dp "CONTINUE AGAIN $CONTINUE $word";
-					$dep2{$CONTINUE}{$word}++;
+					push @{ $word{$CONTINUE} }, $word;
+					push @{ $word{$CONTINUE} }, "CONTINUE";
+					$noinline{$word}++;
+					#$dep2{$CONTINUE}{$word}++;
 					undef $CONTINUE;
 				}
 			}
 			when(':?') {
 				$word = shift @stream;
 				push @wordorder, $word;
+				$LASTWORD = $word;
 				$word{$word} = ["MAYBE"];
 				die "optional word after ;CONTINUE: $CONTINUE -> $_" if $CONTINUE;
-				#$defined{$word}++;
-				$LASTWORD = $word;
 			}
 			when(";") {
-				$dep2{$word}{EXIT}++;
+				#$dep2{$word}{EXIT}++;
 				push @{ $word{$word} }, "EXIT";
 				$word = "MAIN";
 			}
 			when(";CONTINUE") {
-				dp "CCCCCCC";
 				$CONTINUE = $LASTWORD;
 			}
 			when(";NORETURN") {
@@ -130,10 +224,13 @@ sub hlparse {
 			when('ENDPARSE') {
 				return;
 			}
+			when('recurse') {
+				push @{ $word{$word} }, $word;
+				#$dep2{$word}{$_}++;
+			}
 			default {
-				push @{ $word{$word} }, "$_";
-				$dep2{$word}{$_}++;
-				#dp "RRRRRRRRRRRR $word -> $_: $dep2{$word}{$_}";
+				push @{ $word{$word} }, $_;
+				#$dep2{$word}{$_}++;
 			}
 		}
 	}
@@ -142,446 +239,636 @@ sub hlparse {
 hlparse(getstream());
 #push @wordorder, "MAIN";
 #dp Dumper(\@wordorder);
-dp Dumper(\%dep2);
+#dp Dumper(\%dep2);
 
-my %used;
-sub recurse2 {
-	my $name = shift;
-	my $nest = shift || 0;
-	#dp2 "\t"x$nest, "$name";
-	$nest++;
-	for(keys %{$dep2{$name}}){
-		my $count = $dep2{$name}{$_};
-		$used{$_} += $count;
-		#dp2 "\t"x$nest, "$_ MIAU";
-		if($_ ne $name and isneeded($_)){
-			recurse2($_,$nest);
+my %reach;
+sub reachable {
+	if(!$PRUNE){
+		for my $name (keys %word){
+			$reach{$name}++;
+			foreach(@{ $word{$name} }){
+				$reach{$_}++;
+				# autovivification
+				$word{$_} = [] unless exists $word{$_};
+			}
 		}
-		#recurse2($_,$nest) if $_ ne $name and isneeded($_);
+		return
+	}
+	my $name = shift;
+	$reach{$name}++;
+	dp "R $name";
+	foreach(@{ $word{$name} }){
+		$reach{$_}++;
+		if($reach{$_} == 1){
+			reachable($_);
+		}
+		# TODO: needed?
 	}
 }
-recurse2 "MAIN";
-$used{"MAIN"} = 666;
 
-dp Dumper(\%dep2);
-my %inline;
+my %count;
+sub countusage {
+	foreach my $name (sort keys %word){
+		if($reach{$name}){
+			foreach(@{ $word{$name} }){
+				$count{$_}++;
+			}
+		}
+	}
+}
+
+sub removeunreachable {
+	foreach my $name (sort keys %word){
+		unless($reach{$name}){
+			dp "DELETE unreach $name";
+			delete $word{$name} if $PRUNE;
+		}
+		if($codeword{$name}){
+			dp "DELETE codeword $name";
+			delete $word{$name};
+		}
+	}
+}
+
+#dp Dumper(\%dep2);
+#my %inline;
 
 sub inline {
 	my @word = @_;
+	my $orig = pop @word;
+	#if($word[-1] eq "CONTINUE"){
+	#	warn "inline tried in CONTINUE word ",join(" ",@word);
+	#}
 	my @out;
 	foreach my $word (@word) {
-		if(1 && exists $inline{$word}){
+		# do not inline our own definition if the current word is recursive
+		if(exists $inline{$word} && $word ne $orig){
 			dp "INLINE $word";
 			push @out, @{ $inline{$word} };
 		}
 		else {
 			push @out, $word;
 		}
+		#dp "inl ",join(" ",@out);
 	}
 	return @out;
 }
 
+sub asm {
+	my $name = shift;
+	if($reach{$name}){
+		$codeword{$name}++;
+		dp "ASM reach $name"; 
+		# TODO: better way?
+		#$LIT8 = 1 if $name eq "lit8";
+	}
+	elsif($asmabstract{$name}){
+		$codeword{$name}++;
+		dp "ASM abstract $name"; 
+		# TODO: better way?
+		#$LIT8 = 1 if $name eq "lit8";
+	}
+	else {
+		#$codeword{$name}++;
+		dp "ASM UNREACHABLE $name"; 
+	}
+}
+
+sub noinline {
+	my $name = shift;
+	$noinline{$name}++;
+}
+
+sub is_inlineable {
+	return 0 unless $INLINE;
+	my $name = shift;
+	# TODO: can happen if @wordorder is not updated. Needed?
+	return 0 unless exists $word{$name};
+	# do not inline words where we already decided that we need the asm version
+	return if $codeword{$name};
+	return if $noinline{$name};
+
+	my $count = $count{$name};
+	my @word = inline(@{$word{$name}},$name);
+	my @orig = @{$word{$name}};
+	my $len0 = scalar @word;
+	if($word[0] eq "VARIABLE"){
+		return 0;
+	}
+	if($word[0] eq "MAYBE"){
+		shift @word;
+	}
+	if($word[-1] eq "EXIT"){
+		pop @word;
+	}
+	my $literals;
+	my $escape = $name;
+	$escape =~ s/([?.+-])/\\$1/g;
+	for(@word){
+		#my $escape = ($name =~ s/([.+-])/\\$1/g);
+		#dp "ESC $escape $name $_";
+		# TODO: not useable for mixed lit8/lit32 atm
+		if(/^(-?\d+|0x[a-fA-F0-9]+|'.*')$/){
+			$_ = hex if /^0x/;
+			dp "LITERAL $_ in $name";
+			asm "lit32";
+
+			if($_ >= 0 && $_ < 256){
+				asm "lit8" if $LIT8;
+			}
+			else {
+				asm "lit32";
+			}
+			$literals++;
+		}
+		elsif(/^(EXIT|rp@|CONTINUE|rpsp@|$escape)$/){
+			$_="(SELF)" if $_ eq $name;
+			dp "NOT_INLINEABLE $name: no, has $_";
+			return 0;
+		}
+	}
+	$len0 += $literals * $LITSIZE;
+
+	dp "INL COUNT $name $len0 ",scalar(@word);
+	my $len1 = scalar(@word) + ($literals * $LITSIZE);
+	#if($len1 == 1){
+	#	dp "IS_ALIAS: $name";
+	#	return 1;
+	#}
+	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1),"\tX",join(" ",@word)," origX",join(" ",@orig);
+	my $sorig = $len0 + $count;
+	my $sinline = $count * $len1;
+
+	if($sorig == $sinline){
+		dp "\tinline neutral $sorig == $sinline";
+		return 1;
+	}elsif($sorig > $sinline){
+		dp "\tinline smaller $sorig > $sinline";
+		return 1;
+	}else{
+		dp "\tinline bigger $sorig < $sinline";
+		return $INLINEALL;
+	}
+}
+
+#dp "USED:";
+sub prepare_inline {
+	for(@wordorder){
+		# inlining active, word appears exactly once, is not excluded
+		#if($INLINE && exists $word{$_} && $count{$_} == 1 && !$noinline{$_}){
+		if(is_inlineable($_)){
+			#dp "INLINE? $_";
+			my @word = @{ $word{$_} };
+			if($word[0] eq "MAYBE"){
+				shift @word;
+			}
+			if($word[-1] eq "EXIT"){
+				pop @word;
+			}
+			# apply already known inlines
+			#dp "SINGLE0 $_ ", join(" ", @word);
+			@word = inline(@word,$_);
+			$inline{$_} = \@word;
+			#dp "SINGLE $_ ", join(" ", @word);
+		}
+	}
+}
+sub inline_all {
+	foreach my $word (keys %word){
+		if($word eq "xxxxxxx"){
+			dp "SSSS SKIP $word";
+			next;
+		}
+		my @word = @{ $word{$word} };
+
+		my @out = inline(@word,$word);
+
+		$word{$word} = \@out;
+	}
+}
+
+#dp Dumper(\%word);
+
+if($SMALLASM){
+	$BRANCH8 = 0;
+	$LIT8 = 0;
+}
+
+reachable "MAIN";
+# mark drop as reachable if we have zbranchc
+# TODO: what if zbranchc only defined later?
+reachable "drop" if $ZBRANCHC;
+# XXX TODO XXX
+reachable "xzbranch";
+reachable "xbranch";
+reachable "drop";
+
+if(!$PRUNE){
+	asm "rpsp@"; # resolve circular definitions
+	asm "syscall3"; # resolve circular definitions
+}
+
+sub smallprog {
+	asm "divmod";
+	asm "swap";
+	asm "drop";
+	asm "-";
+	asm "i";
+	asm "not";
+	asm "rp@";
+	asm "rsinc";
+}
+
+if($OPT == 0){
+	# generic, but often bigger program than if options are chosen by hand
+	# some harder decisions:
+	# syscall3 vs syscall3_noret
+	# use syscall3_noret if syscall3 is only used in :? syscall3_noret
+	# use bye if syscall3/syscall3_noret is only used in :? bye
+	# rsinc vs rsinci
+	# zbranchc/nzbranch/zbranch
+	# lit8/lit32: nasm expanding lits is insane. Otherwise just "hard"
+	#		to choose between lit8/lit32
+	# minus: not always worth it
+	#asm "lit32"; # XXX TEMP 
+
+	asm "2*"; # XXX ploos testing
+	asm "rp@"; # XXX ploos testing
+	my %gg;
+	if($reach{'syscall7'}){
+		%gg = (
+			unless		=> "nzbranch",
+			if		=> "zbranch",
+			notuntil	=> "nzbranch",
+			until		=> "zbranch",
+			print		=> "stringr,lit8",
+			stringr		=> "lit8",
+			#dup		=> "dup",
+			#"1+"		=> "1+",
+			#"2*"		=> "2*",
+		);
+	}
+	else{
+		%gg = (
+			unless		=> "nzbranch",
+			if		=> "zbranch",
+			notuntil	=> "nzbranch",
+			until		=> "zbranch",
+			syscall3	=> "syscall3",
+			syscall3_noret	=> "syscall3_noret",
+			print		=> "stringr,lit8",
+			stringr		=> "lit8",
+			#dup		=> "dup",
+			#"1+"		=> "1+",
+			#"2*"		=> "2*",
+		);
+	}
+	for(keys %gg){
+		dp "findauto $_";
+		if($reach{$_}){
+			dp "AUTO asm $_ $gg{$_}";
+			for(split/,/,$gg{$_}){
+				asm $_;
+			}
+		}
+	}
+
+	if(!$SMALLASM){
+		smallprog();
+	}
+	else {
+		asm "rpsp@";
+	}
+
+}
+elsif($OPT == 1){
+	# fib3
+	#smallprog();	
+	
+	asm "divmod";
+	asm "syscall3_noret";
+	asm "-";
+	asm "swap";
+	asm "dup";
+	asm "drop";
+	asm "1-";
+	asm "<";
+}
+elsif($OPT == 2){
+	# fizz8
+	asm "syscall3_noret";
+
+	# smaller overall size, but more asm
+	if(!$SMALLASM){
+		asm "divmod";
+		asm "swap";
+		asm "drop";
+		asm "-";
+		asm "i";
+		asm "1+";
+		asm "not";
+		asm "rsinc";
+		asm "rp@";
+	}
+	else {
+		$ZBRANCHC = 1;
+		asm "rpsp@";
+	}
+}
+elsif($OPT == 3){
+	# fizz9
+	asm "nzbranch";
+	asm "syscall3_noret";
+
+	if(!$SMALLASM){
+		asm "divmod";
+		asm "drop";
+		asm "rsinci";
+		asm "not";
+		asm "i";
+	}
+	else {
+		asm "rpsp@";
+	}
+}
+elsif($OPT == 4){
+	# fizz9b
+	asm "syscall3_noret";
+	#asm "0<>";
+	asm "0<";
+	asm "0=";
+	asm "2*";
+	asm "branch";
+	asm "zbranch";
+
+	if(!$SMALLASM){
+		asm "divmod";
+		asm "drop";
+		asm "rsinci";
+		asm "not";
+		asm "i";
+	}
+	else {
+		$ZBRANCHC = 1;
+		asm "rpsp@";
+		asm "lit32";
+	}
+	$LIT8 = 0;
+	$ZBRANCHC = 0;
+}
+elsif($OPT == 5){
+	delete $codeword{"branch"};
+	delete $codeword{"zbranch"};
+	asm "rpsp@"; # resolve circular definitions
+	asm "syscall3"; # resolve circular definitions
+	#asm "0<>";
+	asm "0<";
+	asm "lit32";
+	#asm "bye";
+}
+elsif($OPT == 6){ # bggp6.fth
+	dp "OPT6";
+	#asm "lit32"; # XXX TEMP 
+	my %gg = (
+		unless		=> "nzbranch",
+		if		=> "zbranch",
+		notuntil	=> "nzbranch",
+		until		=> "zbranch",
+		syscall3	=> "syscall3",
+		syscall3_noret	=> "syscall3_noret",
+		print		=> "stringr,lit8",
+		stringr		=> "lit8",
+	);
+	for(keys %gg){
+		dp "findauto $_";
+		if($reach{$_}){
+			dp "AUTO asm $_ $gg{$_}";
+			for(split/,/,$gg{$_}){
+				#asm $_;
+			}
+		}
+	}
+	#smallprog();
+	asm "divmod";
+	#asm "swap";
+	asm "drop";
+	#asm "-";
+	#asm "i";
+	#asm "not";
+	asm "rp@";
+	#asm "rsinc";
+	asm "syscall3_noret";
+
+}
+else{
+	die "unknown OPT $OPT";
+}
+
+dp "CWxx";
+dp Dumper(\%codeword);
+asm "zbranchc" if $ZBRANCHC;
+asm "lit8" if $LIT8;
+# which words are reachable from main?
+reachable "MAIN";
+# mark drop as reachable if we have zbranchc
+reachable "drop" if $ZBRANCHC;
+#reachable "not" if $NOTUNTILZBRANCHC;
+# remove everything which can not be reached
+removeunreachable();
+# TODO: function to remove words already covered by codewords
+# count how many time each word that is reachable is called
+countusage;
+
+dp "COUNT333";
+dp Dumper(\%count);
+dp Dumper(\%word);
+# mark codewords
+
+###my @b = qw(syscall3_noret syscall3);
+#foreach(@b){
+#	$codeword{$_}=1 if $count{$_};
+#}
+
+for(keys %baseline){
+	if(exists $word{$_}){
+		dp "BUILTIN1? $_";
+		$codeword{$_}++;
+	}
+}
+
+for(keys %builtin_all){
+	if(exists $word{$_} && scalar@{$word{$_}} == 0 ){
+		dp "BUILTIN? $_ ",scalar@{$word{$_}};
+		$codeword{$_}++;
+	}
+}
+
+dp "CODEWORD";
+dp Dumper(\%codeword);
+
+# prepare substitution list for all 1-count words
+prepare_inline();
+# substitute all words in the substitution list with their expansion
+inline_all();
+# TODO: inline_func("dup");
+
+dp "AFTER INLINE";
+dp Dumper(\%codeword);
+# remove unreachable after inline
+undef %reach;
+reachable "MAIN";
+# mark drop as reachable if we have zbranchc
+reachable "drop" if $ZBRANCHC;
+#reachable "not" if $NOTUNTILZBRANCHC;
+#dp Dumper(\%word);
+removeunreachable();
+
+#dp "COUNT:";
+#dp Dumper(\%count);
+
+undef %count;
+countusage;
+
+dp "COUNT2:";
+dp Dumper(\%count);
+dp Dumper(\%word);
+
+prepare_inline();
+# substitute all words in the substitution list with their expansion
+inline_all();
+
+undef %reach;
+reachable "MAIN";
+# mark drop as reachable if we have zbranchc
+reachable "drop" if $ZBRANCHC;
+#dp Dumper(\%word);
+removeunreachable();
+
+# TODO: proper check if all codewords are still needed after all the pruning and inlining
+if($reach{'EXIT'}){
+	dp "EXIT reachable";
+}
+else {
+	dp "EXIT unreachable";
+	delete $codeword{'EXIT'};
+}
+
+for(sort keys %codeword){
+	if($reach{$_}){
+		#dp "CODEWORD final: $_ reachable";
+	}
+	else {
+		if($asmabstract{$_}){
+			dp "CODEWORD unreach: $_ abstract";
+		}
+		else {
+			dp "CODEWORD unreach: $_ normal";
+			delete $codeword{$_};
+		}
+		#delete $codeword{'EXIT'};
+	}
+}
+
+
+dp "COUNT3:";
+dp Dumper(\%count);
+dp Dumper(\%word);
+
+###############################################################
+## now it's just turning all data structures into text again
+###############################################################
+
+my $abranch = "branch";
+my $branch = "zbranch";
+$branch = "zbranchc" if $ZBRANCHC;
+$branch = "nzbranch" if $codeword{"nzbranch"};
+$branch = "xzbranch" if $FORTHBRANCH;
+$abranch = "xbranch" if $FORTHBRANCH;
+
+dp "AFTER INLINE";
+dp Dumper(\%codeword);
+open my $fh, ">", "wordset.asm";
+for(sort keys %codeword){
+	s/@/fetch/;
+	s/!/store/;
+	s/\+/plus/;
+	s/\*/mul/;
+	s/-/minus/;
+	s/=/eq/;
+	s/if/$branch/;
+	s/unless/$branch/;
+	s/else/$abranch/;
+	s/again/$abranch/;
+	s/<>/ne/;
+	s/</lt/;
+	say $fh "%define C_$_" or die "err $!";
+	#dp "wordset: %define C_$_";
+}
+close $fh;
+
+say '\ / 2>&-;	# I\'m also a bash script';
+say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' SOURCE=$0 ./viert.sh -DWORD_ALIGN='.$WORD_ALIGN.' "$@" -DWORDSET='.$WORDSET.' -DBRANCH8='.$BRANCH8.'; exit $?';
+
+say "\\ ASM ",join(",", sort keys %codeword);
+
+dp "REHYD";
 
 sub rehydrate2 {
 	my $name = shift;
-	if(not exists $word{$name}){
-		die "uhoh: word $name not found";
-	}
-
 	if(not defined $word{$name}){
-		dp "word $name optimized away";
-		return 0;
+		die "uhoh: word $name not found";
 	}
 
 	my @word = @{ $word{$name}};
 
 	if($word[0] eq "MAYBE"){
 		shift @word;
-		if($builtin{$name}){
+		if($codeword{$name}){
 			dp "word $name builtin";
 			return 0;
 		}
 	}
-
-	my @out = inline(@word);
-	
-	#my $out = join(" ", @out);
-	return \@out;
+	return \@word;
 }
 
 sub rehydrate {
 	my $name = shift;
 	my @word = @{ rehydrate2($name) || return "" };
 
+	if($word[0] eq "VARIABLE"){
+		return "variable $name";
+	}
 	if($word[-1] eq "EXIT"){
 		$word[-1] = ";";
 	}
-	else {
+	elsif($word[-1] eq "CONTINUE"){
+		pop @word;
+		pop @word;
 		push @word, ";CONTINUE";
+	}
+	else {
+		push @word, ";NORETURN";
 	}
 
 	my $out = ": $name ". join(" ", @word);
-	dp "AAA $name $out";
 	return $out;
 }
 
-dp "USED:";
-for(@wordorder){
-	#dp "USECHECK $_";
-	if($used{$_} == 1 && !$noinline{$_}){
-		my @word = @{ $word{$_} };
-		if($word[0] eq "MAYBE"){
-			shift @word;
-		}
-		if($word[-1] eq "EXIT"){
-			pop @word;
-		}
-		@word = inline(@word);
-		$inline{$_} = \@word;
-		dp "SINGLE $_ ", join(" ", @word);
-		# the key will still exist, but with value undef
-		#undef $word{$_};
-	}
-}
-dp Dumper(\%inline);
 
-
-say '\               # I\'m also a bash script';
-say '\ / 2>&-;       RUN= DIS=1 SOURCE=$0 ./viert.sh -DWORD_ALIGN=1 "$@" -DWORDSET=4; exit $?';
-
-# TODO: merge with for loop above? $noinline{} used twice
 for my $word (@wordorder) {
-	if($used{$word} == 1 && !$noinline{$word}){
-		dp "optimized away: $word";
+	if(not exists $word{$word}){
+		#dp "optimized away: $word";
 	}
-	elsif($used{$word}){
-		#dp "WORD $word used";
+	else {
 		my $out = rehydrate($word);
 		say $out if $out ne "";
 	}
-	else {
-		#dp "\\ WORD $word unused";
-	}
 }
+dp "REHYD2";
 say "MAIN";
-dp "XXXXXX";
-dp Dumper(\%word);
+#dp "XXXXXX";
+#dp Dumper(\%word);
 say join(" ",@{ rehydrate2("MAIN") });
 
 exit;
 
-__END__
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-#############################################################################
-
-our $i = 0;
-my %dep;
-#my %seen;
-# SOURCE=empty.fth bash viert3.asm 2>/dev/null |  sed -n '/^.*NEW DEFINITION: /s///p' | awk '{print$1}' | tr -d '"' | tr '\n' ' '
-#my %builtin = map { $_ => 1 } qw(rsinc rsdup i rspop EXIT int3 over drop store fetch spfetch rpfetch nand not rspush zbranch nzbranch branch while2 rdrop dotstr string stringr plus divmod lit8 lit32 swap rot syscall3);
-# XXX external swap, over, drop
-my %builtin = map { $_ => 1 } qw(for next begin again while rsdup rspop EXIT int3 store fetch spfetch xrpspfetch nand not zbranch nzbranch branch while2 rdrop dotstr string stringr plus lit8 lit32 syscall3);
-
-$dep{doloop1}{rspush}++;
-$dep{endloop1}{while2}++;
-$dep{endloop1}{rdrop}++;
-$dep{loop}{branch}++;
-$dep{if}{zbranch}++;
-$dep{if}{branch}++;
-$dep{unless}{zbranch}++;
-$dep{unless}{branch}++;
-$dep{else}{branch}++;
-$dep{jump}{branch}++;
-
-#my $filter = @filter;
-my $filter = 0;
-
-sub name {
-	my $name = shift;
-	given($name){
-		s/@/fetch/;
-		s/!/store/;
-		s/\+/plus/;
-		s/-/minus/;
-		s/\./dot/;
-		s/=/eq/;
-		s/<>/ne/;
-		s/</lt/;
-		s/>/gt/;
-		s/'/_/g;
-		s/:/dcol/g;
-		s/;/EXIT/g;
-	}
-	return $name;
-}
-
-sub dbg {
-	my $name = name($_);
-	$name =~ y/*/x/;
-	print "._",$name,"_$i:\t" if DEBUG;
-}
-
-
-
-sub parse {
-	my @stream = @_;
-	my $optional = 0;
-	my $word = "MAIN";
-	while(scalar(@stream)){
-		$i++;
-
-		given(shift@stream){
-			#dp2 "TOK $_";
-			when(/^(for|next|begin|again|until|notuntil|swapdo|do|loop|loople|if|unless|then|endif|else)$/) {
-				$dep{$word}{$_}++;
-				dbg;
-				say $_;
-			}
-			when(/^(dotstr|string|stringr|jump)$/) {
-				$dep{$word}{$_}++;
-				my $str = shift @stream;
-				dbg;
-				say "$_ $str";
-			}
-			#when(/^(lit)$/) {
-			#	dbg;
-			#	my $str = shift @stream;
-			#	say "lit $str";
-			#}
-			when(':') {
-				$word = shift @stream;
-				$word{$word} = [];
-				my $name = name($word);
-				#dp2 "WORD $name";
-				#$defined{$word}++;
-				say "";
-				$defined{$word}++;
-				$LASTWORD = $word;
-				say "DEFFORTH \"$name\"";
-				if($CONTINUE){
-					dp "CONTINUE AGAIN $CONTINUE $name $_";
-					$dep{$CONTINUE}{$name}++;
-					undef $CONTINUE
-				}
-				$optional = 0;
-			}
-			when(':?') {
-				$word = shift @stream;
-				$word{$word} = ["MAYBE"];
-				my $name = name($word);
-				#dp2 "WORD $name";
-				say "";
-				die "optional word after ;CONTINUE: $CONTINUE -> $_" if $CONTINUE;
-				#if($builtin{$name}){
-				#	say "%if 0 ; BUILTIN OVERRIDE $word";
-				#}
-				$defined{$word}++;
-				$LASTWORD = $word;
-				say "%ifndef f_$name";
-				say "DEFFORTH \"$name\"";
-				$optional = 1;
-			}
-			when(/^(-?\d+$|0x[a-fA-F0-9]+)/) {
-				#dp2 "NUM? $_";
-				$_ = hex if /^0x/;
-				dbg;
-				if($defined{$_} and $word ne $_){
-					$dep{$word}{$_}++;
-					say STDERR "LITf $word $_";
-					say "f_$_";
-				}
-				else{
-					if($LIT8 && $_ < 256 && $_ >= 0){
-						$dep{$word}{lit8}++;
-						say "f_lit8";
-						say "db $_";
-						say STDERR "LIT8 $word $_";
-						#push @{ $word{$word} }, "f_lit8";
-					}elsif($_ > 0xffffffff && $_ < -2147483648){
-						$dep{$word}{lit64}++;
-						say "f_lit64";
-						say "dq $_";
-						say STDERR "LIT64 $word $_";
-						#push @{ $word{$word} }, "f_lit64";
-						#push @{ $word{$word} }, "dq $_";
-					}else{
-						$dep{$word}{lit32}++;
-						say "f_lit32";
-						say "dd $_";
-						say STDERR "LIT32 $word $_";
-						#push @{ $word{$word} }, "f_lit32";
-						#push @{ $word{$word} }, "dd $_";
-					}
-				}
-
-			}
-			when(";") {
-				#dp2 "COLON";
-				dbg;
-				$dep{$word}{EXIT}++;
-				say "END";
-				say "%endif" if $optional;
-			}
-			when(";CONTINUE") {
-				dbg;
-				$CONTINUE = $LASTWORD;
-				#dp2 "CONTINUE $_";
-				say "END no_next";
-				say "%endif" if $optional;
-			}
-			when(";NORETURN") {
-				#dp2 "COLON NORET";
-				dbg;
-				say "END no_next";
-				say "%endif" if $optional;
-			}
-			when(/^'/) {
-				dbg;
-				say "lit ${_}";
-			}
-			when('MAIN') {
-				$word = $_;
-				say "";
-				say "";
-				say "A_FORTH:";
-				say "FORTH:";
-			}
-			when('ENDPARSE') {
-				dp "ENDPARSE";
-				return;
-			}
-			when(/^[A-Z]/) {
-				dbg;
-				# XXX fix
-				#if($defined{$_}){
-				if($_ eq "EXIT"){
-					say "f_EXIT";
-				}
-				else {
-					say STDERR "LITc $word $_";
-					$dep{$word}{litc}++;
-					say "lit $_";
-				}
-
-			}
-			default {
-				dbg;
-				my $name = name($_);
-				#dp "F $name $_ $alias{$name} in $word";
-				#if($alias{$name}){
-				#	dp "ALIAS $name $alias{$name}";
-				#	$name = $alias{$name};
-				#}
-
-				#if($defined{$name}){
-				if(1){
-					say "f_$name";
-					# prevent infinite recursion
-					#TODO: mutually recursive words will probably break
-					#$dep{$word}{$_}++ if $_ ne $word;
-					$dep{$word}{$_}++;
-					if($_ ne $word){
-						#$dep{$word}{$_}++
-					}else{
-						dp "RRRRRRRRRRRRRRRRRRR $_";
-					}
-					#$seen{$name}++;
-				}else{
-					dp "LITc $word $_";
-					say "lit $_";
-				}
-			}
-		}
-	}
-}
-
-
-
-parse(@stream);
-
-#dp "SEEN:";
-#foreach my $name (reverse sort { $seen{$a} <=> $seen{$b} } sort keys %seen) {
-#	dp "$name\t$seen{$name}";
-#}
-
-#dp Dumper(\%seen);
-#dp "ALIAS:";
-#dp Dumper(\%alias);
-#dp Dumper(\%builtin);
-
-sub dbgword {
-	my $name = shift;
-	if($word{$name}){
-		return join(",",@{ $word{$name} });
-	}
-	else {
-		return "";
-	}
-
-}
-
-my %out;
-sub recurse {
-	my $name = shift;
-	my $nest = shift || 0;
-	dp2 "\t"x$nest, "$name ", dbgword($name);
-	$nest++;
-	for(keys %{$dep{$name}}){
-		my $count = $dep{$name}{$_};
-		#$out{$_} += $count;
-		$out{$_}++;
-		#dp2 "\t"x$nest, "$name: $_ +$count = $out{$_}";
-		recurse($_,$nest) if $_ ne $name;
-	}
-}
-recurse "MAIN";
-
-my @out;
-my @b;
-dp "";
-dp "UNIQ:";
-for(sort keys %out){
-	if(!$defined{$_}){
-		my $name = name($_);
-		if($builtin{$name}){
-			say STDERR "BUILTIN $_";
-			push @b, $_;
-		}
-		else {
-			warn "UNKNOWN ",name($_)," ",$_;
-		}
-	}
-	else {
-		dp $_;
-		push @out, $_;
-	}
-}
-
-dp "UNUSED:";
-for(sort keys %defined){
-	if(!$out{$_}){
-		my $name = name($_);
-		warn "UNUSED\t",name($_)," (",$_,")\n";
-	}
-	else {
-		#dp $_;
-	}
-}
-
-#say STDERR "JOINED OUT:";
-#say STDERR join$",@out;
-#say STDERR "BUILTIN:";
-#say STDERR join$/,sort map{name($_)}@b;
-
-say STDERR Dumper(\%out);
-say STDERR Dumper(\%dep);
-say STDERR Dumper(\%word);

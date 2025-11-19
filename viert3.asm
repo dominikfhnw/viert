@@ -18,6 +18,16 @@ BITS BIT
 
 %include "stdlib.mac"
 
+; branching with 8 bit values. Bigger asm part because of movsx, probably smaller overall
+%ifndef BRANCH8
+%define BRANCH8		0
+%endif
+
+; implement (conditional) branches in pure forth with 0< rp@ @ !
+%ifndef FORTHBRANCH
+%define FORTHBRANCH	0
+%endif
+
 ; enable syscall words. If 0, emit/exit will use hardcoded syscalls
 %ifndef SYSCALL
 %define SYSCALL		1
@@ -39,27 +49,24 @@ BITS BIT
 	%define BIT_ARITHMETIC	32
 %endif
 
-; enable 8 bit literals. Usually a good idea, as it saves a lot of overall space
-%ifndef LIT8
-%define LIT8		1
-%endif
-
-; branching with 8 bit values. Bigger asm part because of movsx, probably smaller overall
-%ifndef BRANCH8
-%define BRANCH8		1
-%endif
-
 %if BRANCH8
 	%macro dbr 1
-		;%warning BRANCH8 %1
+		%warning BRANCH8 %1
 		db %1 - $
 	%endmacro
 	%define incbr	lodsb
 %else
-	%macro dbr 1
-		;%warning BRANCH32 %1
-		dd %1
-	%endmacro
+	%if FORTHBRANCH
+		%macro dbr 1
+			%warning FORTHBRANCH %1
+			dd %1 - $
+		%endmacro
+	%else
+		%macro dbr 1
+			%warning BRANCH32 %1
+			dd %1
+		%endmacro
+	%endif
 	%define incbr	lodsd
 %endif
 
@@ -85,10 +92,6 @@ BITS BIT
 
 %ifndef X32
 %define X32		0
-%endif
-
-%ifndef OFFALIGN
-%define OFFALIGN	0
 %endif
 
 %ifndef SYSCALL64
@@ -196,8 +199,8 @@ BITS BIT
 %endif
 %define ELF_HEADER_SIZE (52 + 1*32 + elf_extra_align)
 
-%if OFFALIGN
-	%define BASE ORG
+%if PIC
+	%define BASE ebp
 %else
 	%define BASE WORD_OFFSET
 %endif
@@ -222,25 +225,24 @@ A_INIT:
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
 ; by simply doing nothing
-%if HARDEN
-hardening:
-%if BIT == 64
-	cmp	rsp, rsp 
-%else
-	cmp	ax, 4096
-%endif
-jz	.end
-sub	ax, 4096
-or	al, 0
-jmp	hardening
-.end:
-%if BIT != 64
-rset	eax, 4096
-set	eax, 0
-%endif
+rdump
+
+%ifndef SMALLINIT
+%define SMALLINIT 0
 %endif
 
-%if 1
+%if SMALLINIT == 1
+	;%ifnidn embiggen(RETURN_STACK),BP
+	dec	cx
+	inc	ecx
+	mov	RETURN_STACK, SP
+	;alloca	128
+	sub	SP, C
+	;add	C, byte (FORTH - 0xffff)
+	mov	cl, FORTH - 0x10000
+
+	ELF_PHDR 1
+%else
 	enter	0xFFFF, 0
 	%ifnidn embiggen(RETURN_STACK),BP
 		%if X32
@@ -249,23 +251,25 @@ set	eax, 0
 			xchg	RETURN_STACK,BP
 		%endif
 	%endif
-	ELF_PHDR 1
-	; we chose our base address to be < 2^32
 	%if PIC
-		lea	TEMP_ADDR, [rel FORTH]
-	%else
-		mov	TEMP_ADDR, FORTH
-	%endif
-%else
-	; we chose our base address to be < 2^32
-	mov	ebp, FORTH
-	enter	0xFFFF, 0
-	ELF_PHDR 1
-	%ifnidn embiggen(RETURN_STACK),BP
-		%if X32
-			xchg	RETURN_STACK,ebp
+		ELF_PHDR 1
+		%if BIT == 64
+			lea	TEMP_ADDR, [rel FORTH]
 		%else
-			xchg	RETURN_STACK,BP
+			call	.below
+		.below:	pop	BASE
+			add	BASE, (WORD_OFFSET-.below)
+		%endif
+		lea	TEMP_ADDR, [BASE + (FORTH-WORD_OFFSET)]
+	%else
+		; we chose our base address to be < 2^32. So no embiggen
+		%if SMALLINIT != 2
+			ELF_PHDR 1
+			mov	TEMP_ADDR, FORTH
+		%else
+			mov	al, offset(FORTH)
+			ELF_PHDR 1
+			jmp	xt
 		%endif
 	%endif
 %endif
@@ -289,6 +293,13 @@ set	eax, 0
 	%%endstring:
 %endmacro
 
+%macro print 1
+	stringr %1
+	lit 1
+	lit 4
+	f_syscall3_noret
+%endmacro
+
 %macro dotstr 1
 	f_dotstr
 	db %%endstring - $ - 1
@@ -309,96 +320,157 @@ set	eax, 0
 ;	f_asmjmp
 ;	%pop asmctx
 ;%endmacro
+;
+;%macro until arg(0)
+;	f_zbranch
+;	dbr %$dountil
+;	%pop dountilctx
+;%endmacro
 
-%macro do arg(0)
-	%push dountilctx
-	%$dountil:
+%macro zbranch arg(1)
+	%if FORTHBRANCH
+		f_xzbranch
+		dbr %1
+	%elifdef f_zbranch
+		f_zbranch
+		dbr %1
+	%else
+		f_zbranchc
+		dbr %1
+		f_drop
+	%endif
 %endmacro
 
-%macro until arg(0)
-	f_zbranch
-	dbr %$dountil
-	%pop dountilctx
+%macro branch arg(1)
+	%if FORTHBRANCH
+		f_xbranch
+		dbr %1
+	%else
+		f_branch
+		dbr %1
+	%endif
 %endmacro
 
-%macro while arg(0)
-	f_not
-	f_zbranch
-	dbr %$dountil
-	%pop dountilctx
-%endmacro
 
-;%macro doloop1 0-1
-;	%push loopctx
-;	%if %0 == 1
-;		lit %1
-;	%endif
-;	f_rspush
-;	%$loop:
-;%endmacro
-;
-;%macro endloop3 arg(0)
-;	f_while2
-;	db $ - %$loop + 1
-;	%pop loopctx
-;%endmacro
-;
-;%macro endloop1 arg(0)
-;	%if FORTHWHILE
-;		f_rp_at
-;		f_while
-;		f_zbranch
-;		dbr %$loop
-;		f_rdrop
-;	%else
-;		f_while2
-;		db $ - %$loop + 1
-;	%endif
-;	%pop loopctx
-;%endmacro
-;
-;%macro endloop2 arg(0)
-;	f_while4
-;	db $ - %$loop + 1
-;	f_rdrop
-;	%pop loopctx
+;%macro while arg(0)
+;	f_not
+;	zbranch %$dountil
+;	%pop dountilctx
 ;%endmacro
 
 %macro unless arg(0)
-	;%push ifctx
-	;f_nzbranch
-	;dbr %$jump1
-	if
-	else
+	%ifdef f_nzbranch
+		%push ifctx
+		f_nzbranch
+		dbr %$jump1
+	%else
+		if
+		else
+	%endif
 %endmacro
 
 %macro if arg(0)
-	%push ifctx
-	f_zbranch
-	dbr %$jump1
+	%if %isdef(f_zbranch) || %isdef(f_zbranchc) || %isdef(f_xzbranch)
+		%push ifctx
+		zbranch %$jump1
+	%else
+		unless
+		else
+	%endif
 %endmacro
 
 %macro then arg(0)
 	%$jump1:
 	%ifctx elsectx
+		;%error ELSECTX
 		%pop elsectx
+		%ifctx elsectx
+			%error "nested else - did you try unless .. else .. then without activating nzbranch?"
+		%endif
 	%endif
 	%pop ifctx
 %endmacro
 %defalias endif then
 
 %macro else arg(0)
-	f_branch
 	%push elsectx
-	dbr %$jump1
+	branch %$jump1
 
 	%$$jump1:
 %endmacro
 
-%macro jump arg(1)
-	f_branch
-	dbr %1
+%macro do arg(0)
+	%push doctx
+	f_swap
+	f_rspush
+	f_rspush
+	%$dolabel:
 %endmacro
+
+%macro swapdo arg(0)
+	%push doctx
+	f_rspush
+	f_rspush
+	%$dolabel:
+%endmacro
+
+%macro loop arg(0)
+	%ifnctx doctx
+		%fatal not doctx
+	%endif
+	%ifdef f_j
+		%$j:	f_j
+	%else
+		%ifdef f_rpfetch
+			f_rpfetch
+		%else
+			f_rpspfetch
+			f_drop
+		%endif
+		%$lit:	lit CELL_SIZE
+		%$plu:	f_plus
+		%$fetc:	f_fetch
+	%endif
+	%$rsin:	f_rsinci
+	%$minu:	f_minus
+	%$if:	if
+	%$bran:	jump %$$dolabel
+		then
+		%pop doctx
+%endmacro
+
+%macro loople arg(0)
+%ifdef f_iloop
+	f_iloop
+	dbr %$dolabel
+%else
+	%ifnctx doctx
+		%fatal not doctx
+	%endif
+	%$rsin:	f_rsinci
+	%ifdef f_j
+		%$j:	f_j
+	%else
+		%ifdef f_rpfetch
+			f_rpfetch
+		%else
+			f_rpspfetch
+			f_drop
+		%endif
+		%$lit:	lit CELL_SIZE
+		%$plu:	f_plus
+		%$fetc:	f_fetch
+	%endif
+	%$minu:	f_not
+		f_plus
+	%$if:	if
+	%$bran:	jump %$$dolabel
+		then
+%endif
+		%pop doctx
+%endmacro
+
+
 
 %macro begin 0
 	%push beginloop
@@ -406,9 +478,48 @@ set	eax, 0
 %endmacro
 
 %macro again 0
-	f_branch
-	dbr %$loop
+	branch %$loop
+	%$end:
 	%pop beginloop
+%endmacro
+
+%macro f_leave 0
+	%ifctx beginloop
+		branch %$end
+	%elifctx ifctx
+		branch %$$end
+		;%ifctx beginloop
+		;	branch %$$end
+		;%else
+		;	%error "unknown context for leave"
+		;%endif
+		;;f_leave
+	%else
+		%error "unknown context for leave"
+	%endif
+%endmacro
+
+%macro until 0
+	%if %isdef(f_zbranch) || %isdef(f_zbranchc)
+		%$zbr: zbranch %$loop
+		%pop beginloop
+	%else
+		%$not: f_not
+		%$notuntil: notuntil
+	%endif
+
+%endmacro
+
+%macro notuntil 0
+	%ifdef f_nzbranch
+		%$nzbr: f_nzbranch
+		dbr %$loop
+		%pop beginloop
+	%else
+		%$not0: f_not
+		%$until: until
+	%endif
+
 %endmacro
 
 %macro for 0
@@ -417,30 +528,65 @@ set	eax, 0
 	%$forloop:
 %endmacro
 
+%macro f_xi 0
+	%ifdef C_rpfetch
+		f_rpfetch
+	%else
+		f_rpspfetch
+		f_drop
+	%endif
+	f_fetch
+%endmacro
+
 %macro next 0
-%$i:	f_i
-%$dec:	f_dec
-%$dup:	f_dup
-%$rpfe:	f_rpfetch
-%$stor:	f_store
+%ifdef	C_inext
+	f_inext
+	dbr %$forloop
+%else
+	%$i:	f_i
+	%$dec:	f_dec
+	%$dup:	f_dup
+	%$rpfe:	f_rpfetch
+	%$stor:	f_store
 
-%$if:
-if
-
-%$branch:
-	f_branch
-	dbr %$$forloop ; we're inside an ifctx
-%$then:
-then
-%$rsdrop:
-f_rsdrop
-%$end:
-	%pop forloop
+	%if 1
+		if
+			branch %$$forloop
+		then
+	%else
+		f_zbranch
+		dbr %$else
+		branch %$forloop
+		%$else:
+	%endif
+	f_rsdrop
+%endif
+%pop forloop
 %endmacro
 
 FORTH_START:
 %include "compiled.asm"
 
+%if ELF_CUSTOM
+	%assign HEADER 0
+%else
+	%assign HEADER 84
+%endif
+%if SMALLINIT == 2
+	%assign x offset(FORTH)
+	%if x > 255
+		%error x too big for smallinit == 2
+	%endif
+%endif
+
+%if SMALLINIT == 1 && (FORTH - $$ + HEADER) > 0xff
+	%warning SMALLINIT: %eval(FORTH - $$ + HEADER) > 255
+	%ifdef FORCE
+		%warning "too much code for SMALLINIT"
+	%else
+		%error   "too much code for SMALLINIT"
+	%endif
+%endif
 A_END:
 %if DEBUG
 	; after A_END, because we don't want to count it towards the total
@@ -448,24 +594,21 @@ A_END:
 	%include "regdump2.mac"
 %endif
 
-
-%if FULL
-;resb 65536
-%endif
-
-%if HARDEN
-SECTION txtrp align=1
-db 0
-%endif
 %assign FORTH_WORDS WORD_COUNT - ASM_WORDS
 %define FORTH_SIZE %eval(lastoff2 - FORTH_START)
 %warning "ASM_SIZE" ASM_SIZE
 %warning "ASM_WORDS" ASM_WORDS
-%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
+%if ASM_WORDS > 0
+	%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
+%endif
 %warning "FORTH_SIZE" FORTH_SIZE
 %warning "FORTH_WORDS" FORTH_WORDS
-;%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
+%if FORTH_WORDS > 0
+	%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
+%endif
 %warning "WORDS TOTAL" WORD_COUNT
 %warning "BREAK" %eval(BREAK)
-%warning "LASTOFF" %eval(lastoff)
-%warning "LASTOFF2" %eval(((lastoff2 - $$)/WORD_ALIGN)+ELF_HEADER_SIZE)
+%ifdef lastoff
+	%warning "LASTOFF" %eval(lastoff)
+%endif
+%warning "LASTOFF2" %eval((lastoff2 - $$)/WORD_ALIGN)

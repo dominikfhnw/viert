@@ -1,7 +1,7 @@
 ;;; **** Codeword definitions ****
 %define BREAK offset(END_OF_CODEWORDS-2)
 
-%if 1
+%if 1	; clear A/eax either in words or the inner interpreter
 	; Nb: xor eax, eax also clears upper 32bits on 64bit
 	%define assert_A_low
 	%define A_tainted	xor eax, eax
@@ -20,57 +20,274 @@
 ;mov	esp, ebp
 ;pop	ebp
 
-; fizz3.fth:
-%define C_branch
-%define C_zbranch
-%define C_spfetch
-;%define C_swap
-;%define C_drop
-;%define C_divmod
-%define C_EXIT
-%define C_fetch
-%define C_plus
-;%define C_rsinci
-%define C_not
-%define C_lit32
+; TODO: deprecated, remove. Only use wordset.asm
+%ifndef WORDSET
+%define WORDSET 99
+%endif
 
-; less asm fizz4:
-%define C_store
-%define C_nand
-%define C_rpfetch
-%define C_rpspfetch
-;%define C_over
-%define C_rspush
+%if WORDSET == 0 ; empty
+	%define C_bye
+%elif WORDSET == 99
+	%include "wordset.asm"
+%elif WORDSET == 1 ; helloworld
+	%define C_syscall3_noret
+	%define C_stringr
+	;%define C_string
+	%define C_lit8
 
+%elif WORDSET == 2	; FIZZ3
+	%define C_spfetch
+	%define C_lit8
+	;%define C_swap
+	%define C_syscall3
+	%define C_drop
+	%define C_EXIT
+	%define C_divmod
+	%define C_fetch
+	%define C_branch
+	%define C_zbranch
+	%define C_plus
+	%define C_lit32
+	%define C_i
+	%define C_rpspfetch
+	%define C_rsinci
+	%define C_not
+	;%define C_rspush
+%elif WORDSET == 3	; FIZZ5
+	%define C_spfetch
+	%define C_lit8
+	;%define C_swap
+	%define C_syscall3
+	%define C_drop
+	%define C_EXIT
+	%define C_divmod
+	%define C_fetch
+	%define C_branch
+	%define C_zbranch
+	%define C_plus
+	%define C_lit32
+	%define C_rspush
+	;%define C_rpspfetch
+	%if 1
+		%define C_iloop
+		%define C_i
+		;%define C_rpspfetch
+		;%define C_inext
+	%else
+		%define C_rpspfetch
+		%define C_not
+		%define C_rsinci
+
+	%endif
+%elif WORDSET == 5	; FIZZ6
+	%define C_spfetch
+	%define C_lit8
+	%define C_syscall3_noret
+	%define C_drop
+	%define C_EXIT
+	%define C_divmod
+	%define C_fetch
+	%define C_branch
+	%define C_nzbranch
+	%define C_plus
+	%define C_lit32
+	%define C_spfetch
+	%define C_rsinci
+	%define C_not
+
+%elif WORDSET == 6	; FIZZ6b
+	%define C_spfetch
+	%define C_lit8
+	%define C_syscall3
+	%define C_drop
+	%define C_EXIT
+	%define C_divmod
+	%define C_fetch
+	%define C_branch
+	%define C_nzbranch
+	;%define C_zbranch
+	%define C_plus
+	%define C_lit32
+	%define C_rpspfetch
+	%define C_rsinci
+	%define C_not
+
+%elif WORDSET == 4	; FIZZ4
+
+	;%define C_swap
+	;%define C_divmod
+	;%define C_dupemit
+	;%define C_bye
+
+	
+
+
+	;%define C_bye
+	;%define C_lit8
+	;%define C_syscall3
+	%define C_syscall3_noret
+	;%define C_EXIT
+	; fizz3.fth:
+	%define C_branch
+	%define C_zbranchc
+	;%define C_zbranch
+	;%define C_xzbranch
+	%define C_spfetch
+	;%define C_swap
+	;%define C_drop
+	;%define C_divmod
+	%define C_EXIT
+	%define C_fetch
+	%define C_plus
+	;%define C_rsinci
+	;%define C_not
+	%define C_lit32
+
+	; less asm fizz4:
+	%define C_store
+	%define C_nand
+	;%define C_rpfetch
+	;%define C_over
+	;%define C_emd
+
+	;%define C_stringr
+	;%define C_string
+
+	;%define C_0lt
+	;%define C_rot
+	;%define C_dup0lt
+	;%define C_divmod
+	;%define C_inext
+	%define MINASM 0
+
+	;%define C_divmod
+
+
+	%if !MINASM
+		;%define C_rspush
+		;%define C_0lt
+		;%define C_swap
+		;%define C_drop
+		;%define C_divmod
+		;%define C_over
+		;%define C_rpfetch
+		%define C_rpspfetch
+		;%define C_inext
+	%else
+		%define C_rpspfetch
+	%endif
+
+%elif WORDSET == 7 ; hello3
+	%define C_stringr
+	%define C_syscall3
+
+%elif WORDSET == 8 ; fib benchmark
+	%define C_lit8
+	%define C_syscall3
+	%define C_branch
+	%define C_zbranch
+	%define C_spfetch
+	%define C_EXIT
+	%define C_fetch
+	%define C_plus
+	;%define C_rsinci
+	%define C_not
+	%define C_nand
+	%define C_store
+	%define C_lit32
+
+	%if 1
+	%define C_1minus
+	%define C_minus
+	%define C_lt
+	%define C_swap
+	%define C_dup
+	%else
+	; swap needs store
+	%define C_store
+	%endif
+
+	;%define C_store
+	;%define C_nand
+	;%define C_over
+
+	;%define C_rot
+	;%define C_dup0lt
+	;%define C_divmod
+	;%define C_inext
+	;%define C_iloop
+
+	;%define C_rspush
+	;%define C_dup0lt
+
+	%define C_drop
+
+
+	%define C_0lt
+	%define C_divmod
+	;%define C_rpfetch
+%else
+	%fatal illegal WORDSET
+%endif
+
+;%define C_dupemit
+;%define C_dotstr
+;debug
 ; sample.fth:
 ; everything undefined
 
 A_DOCOL:
 rspush	FORTH_OFFSET
 mov	FORTH_OFFSET, TEMP_ADDR
+%if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
+	mov	ebp, FORTH_OFFSET	; save for easy dbg
+	xchg	SP, RETURN_STACK
+	INSP:	nop
+	xchg	SP, RETURN_STACK
+%endif
 
 A_NEXT:
 assert_A_low
-lodsb
-xt:
-cmp	al, BREAK
-%if PIC
-	%if 0
+%if 1
+	lodsb
+	xt:
+	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	;cmp	eax, BREAK
+	cmp	al, BREAK
+	;cmp	TEMP_ADDR, END_OF_CODEWORDS-2
+%else
+	mov	al, [esi]
+	add	esi, 1
+	xt:
+	;lea	esi, [esi+1]
+	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	;mov	TEMP_ADDR, BASE
+	;add	TEMP_ADDR, A
+	cmp	eax, BREAK
+%endif
+
+
+
+
+
+%if 0 && PIC
+	%if BIT == 32
 		call	.below
 	.below:	pop	TEMP_ADDR
 		;add	TEMP_ADDR, byte (BASE-.below)
-		lea	TEMP_ADDR, [A+embiggen(TEMP_ADDR) +(BASE-.below)]
+		lea	TEMP_ADDR, [A*WORD_ALIGN+embiggen(TEMP_ADDR) +(BASE-.below)]
 	%else
 		lea	TEMP_ADDR, [rel BASE]
 		lea	TEMP_ADDR, [embiggen(TEMP_ADDR)+A]
 	%endif
 %else
-	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	;lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 %endif
 ja	A_DOCOL
-jmpTEMP:
+;jmpTEMP:
 jmp	embiggen(TEMP_ADDR)
 
+%define lastoff2 A_NEXT
 ; ABI
 ; esi:	Instruction pointer to next forth word
 ; SP:	Data stack
@@ -117,6 +334,10 @@ jmp	embiggen(TEMP_ADDR)
 	%define arith	native
 %endif
 
+
+%assign haveclearA	0
+%assign havepushA	0
+
 WORD_OFFSET:
 %ifdef C_EXIT
 DEF "EXIT"
@@ -135,14 +356,8 @@ DEF "rsdrop"
 	END
 %endif
 
-%ifdef C_over
-DEF "over"
-	push	native [SP+CELL_SIZE]
-	END
-%endif
 
-
-%if 0
+%ifdef C_dup
 	DEF "dup"
 		%if 0
 			push	native [SP]
@@ -160,7 +375,6 @@ DEF "drop"
 	END
 %endif
 
-%if 1
 ; the minimal primitives
 %ifdef C_store
 	DEF "store"
@@ -195,31 +409,7 @@ DEF "drop"
 		END
 %endif
 
-	%if 0
-	DEF "0lt"
-		; from eForth. Would be 4 bytes smaller than my version
-		; Unfortunately, it clashes with the A <= 255 condition of this
-		; Forth, making it just 3 bytes smaller
-		pop	A
-		cdq		; sign extend AX into DX
-		push	D	; push 0 or -1
-		xchg	A, D
-		END	pushA
-	%endif
-
-%ifdef C_nand
-	DEF "nand"
-		pop	aC
-		and	[SP], aC
-		END	no_next
-%endif
-%if %isdef(C_not) || %isdef(C_nand)
-	DEF "not"
-		not	arith [SP]
-		END
-%endif
-
-	%if !SYSCALL
+%if !SYSCALL || %isdef(C_dupemit)
 	DEF "dupemit"
 		; this leaves the stack alone, so technically its a dup and emit combined
 		assert_A_low
@@ -234,9 +424,22 @@ DEF "drop"
 		;A_tainted
 		;xor	eax, eax
 		END
-		%endif
-
 %endif
+%if !SYSCALL || %isdef(C_bye)
+DEF "bye"
+	%if 0
+	;int1
+	;int3
+	;hlt
+	;ud2
+	;aam 0
+	%else
+	mov	al, SYS_exit
+	int	0x80
+	%endif
+	END	no_next
+%endif
+
 
 %if 0
 	DEF "cstore"
@@ -256,22 +459,6 @@ DEF "drop"
 	DEF "rspush"
 		lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
 		pop	native [embiggen(RETURN_STACK)]
-		END
-%endif
-
-%if 0
-	DEF "rspush2"
-		pop	ecx
-		xchg	RETURN_STACK, DATA_STACK
-		push	ecx
-		push	0
-		xchg	RETURN_STACK, DATA_STACK
-		END
-%endif
-%if 0
-	DEF "rspush2b"
-		rspush	ecx
-		rspush	byte 0
 		END
 %endif
 
@@ -306,53 +493,6 @@ DEF "emit32b"
 
 %endif
 
-;DEF "0lt"
-;	; from eForth. Would be 4 bytes smaller than my version
-;	; Unfortunately, it clashes with the A <= 255 condition of this
-;	; Forth, making it just 3 bytes smaller
-;	pop	A
-;	cdq		; sign extend AX into DX
-;	push	D	; push 0 or -1
-;	xchg	A, D
-;	jmp	pushA
-;	END	no_next
-
-; XXX keep?
-%if 0
-DEF "while3"
-	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
-	push	native [embiggen(RETURN_STACK)]
-	reg
-	END	no_next
-%endif
-
-%if 0
-DEF "nzbranch"
-	pop	C
-	test	aC, aC
-	jnz	A_branch
-	incbr
-	END	clearA
-%endif
-
-%ifdef C_zbranch
-DEF "zbranch"
-	pop	C
-	jCz	A_branch
-	incbr
-	END	clearA
-%endif
-
-%if 0
-DEF "while4"
-	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
-	jnz	A_branch		; clean up return stack if we're finished
-	incbr
-	jz	A_rdrop
-	END	no_next
-%endif
-
-;%define C_branch
 %ifdef C_branch
 DEF "branch"
 	%if BRANCH8
@@ -361,32 +501,13 @@ DEF "branch"
 	%else
 		mov	FORTH_OFFSET, [embiggen(FORTH_OFFSET)]
 	%endif
-NEXT2:	END
-%endif
-
-; f_while <imm8>:
-;  1. decrement an unspecified loop counter
-;  2. if counter != 0:
-;	jump imm8 bytes
-%if !FORTHWHILE && %isdef(C_while2)
-DEF "while2"
-	assert_A_low
-	lodsb			; load jump offset
-	dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
-
-	jz	A_rdrop		; clean up return stack if we're finished
-	;movsx	A, al		; convert to -128..127 range
-	sub	FORTH_OFFSET, eax
 	END
-%endif
-
-%ifdef C_rdrop
-DEF "rdrop"
-	lea	RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
-	END
+;NEXT2:	END
 %endif
 
 %if COMBINED_STRINGOP
+	%if %isdef(C_dotstr) || %isdef(C_string)
+	; TODO document carry flag hack
 	DEF "dotstr"
 		clc
 		END	no_next
@@ -400,8 +521,9 @@ DEF "rdrop"
 		mov	al, offset(A_puts)
 		jmp	xt
 		END	no_next
+	%endif
 %else
-	%if 0
+	%ifdef C_dotstr
 	DEF "dotstr"
 		assert_A_low
 		lodsb
@@ -417,23 +539,43 @@ DEF "rdrop"
 		assert_A_low
 		lodsb
 		push	FORTH_OFFSET
-		push	A
 		add	FORTH_OFFSET, eax
-		END
-	%endif
-
-	%ifdef C_stringr
-	DEF "stringr"
-		assert_A_low
-		lodsb
-		push	A
-		push	FORTH_OFFSET
-		add	FORTH_OFFSET, eax
-		END
+		END	pushA
 	%endif
 %endif
 
+%ifdef C_stringr
+DEF "stringr"
+	assert_A_low
+	lodsb
+	push	A
+	push	FORTH_OFFSET
+	add	FORTH_OFFSET, eax
+	END
+%endif
+
+%ifdef C_1minus
+DEF "1minus"
+	dec	native [SP]
+	END
+%endif
+
+%ifdef C_1plus
+DEF "1plus"
+	inc	native [SP]
+	END
+%endif
+
+%ifdef C_minus
+DEF "minus"
+	pop	C
+	sub	[SP], aC
+	END
+%endif
+
+
 %ifdef C_plus
+;%if 1
 DEF "plus"
 	pop	C
 	add	[SP], aC
@@ -452,25 +594,6 @@ DEF "int3"
 	%define f_int3
 %endif
 
-%ifdef W5
-DEF "while5"
-	assert_A_low
-	lodsb			; load jump offset
-	xchg	DATA_STACK, RETURN_STACK
-	pop	aC
-	inc	aC
-	pop	aD
-	cmp	aC, aD
-
-	je	.end
-	sub	FORTH_OFFSET, eax
-	push	aD
-	push	aC
-	.end:
-	xchg	DATA_STACK, RETURN_STACK
-	jmp	NEXT2
-	END	no_next
-%endif
 
 ;%define C_divmod
 %ifdef C_divmod
@@ -479,18 +602,109 @@ DEF "divmod"
 	pop	C
 	pop	A
 	div	aC
+A_pushDA:
 pushDA:
 	push	D
 pushA:
 	push	A
 clearA:
+	%assign haveclearA 1
 	A_tainted
 	;jmp	NEXT2
 	;END	no_next
 	END
 %endif
 
-%if SYSCALL
+%define CLEAR_A 1
+%ifdef C_syscall3_noret
+	DEF "syscall3_noret"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		pop	A
+		pop	B
+		pop	C
+		pop	D
+
+		int	0x80
+
+		%if CLEAR_A
+			%warning CLEARA %eval(haveclearA)
+			%if %isndef(haveclearA) && %isndef(C_divmod) && %isndef(C_syscall3)
+				%assign haveclearA 1
+				A_clearA:
+				clearA:
+				A_tainted
+				END
+			%else
+				END	clearA
+			%endif
+		%else
+			END
+		%endif
+%endif
+
+%ifdef C_syscall7
+	DEF "syscall7"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		pop	A
+		pop	B
+		pop	C
+		pop	D
+		; TODO: push/pop order all wrong
+		%if 1
+			pusha
+			add	esp, 32
+			pop	esi
+			pop	edi
+			pop	ebp
+			int	0x80
+			push	eax
+			sub	esp, 32 + 8
+			popa
+			add	esp, 8
+		%elif 1
+			xchg	RETURN_STACK, DATA_STACK
+			push	esi
+			push	edi
+			push	ebp
+			xchg	RETURN_STACK, DATA_STACK
+			pop	esi
+			pop	edi
+			pop	ebp
+			int	0x80
+
+			xchg	RETURN_STACK, DATA_STACK
+			pop	edi
+			pop	esi
+			pop	ebp
+			xchg	RETURN_STACK, DATA_STACK
+		%else
+			push	esi
+			mov	esi, [esp+4]
+			push	edi
+			mov	edi, [esp+12]
+			push	ebp
+			mov	ebp, [esp+20]
+
+			int	0x80
+			pop	ebp
+			pop	edi
+			pop	esi
+
+			pop	edx
+			pop	edx
+			pop	edx
+		%endif
+
+		END	pushA
+%endif
+
+
+
+%ifdef C_syscall3
 %if !SYSCALL64
 	DEF "syscall3"
 		%ifidn RETURN_STACK,B
@@ -503,43 +717,26 @@ clearA:
 
 		int	0x80
 	%ifndef C_divmod
+		%assign havepushA 1
+		A_pushA:
 		pushA:
 			push	A
-		clearA:
-			A_tainted
-		END
+		%if !haveclearA
+			clearA:
+				%assign haveclearA 1
+				A_tainted
+			%if 0 && %isdef(C_branch)
+				jmp	NEXT2
+				END	no_next
+			%else
+				END
+			%endif
+		%else
+			END	clearA
+		%endif
 	%else
 		END	pushA
 	%endif
-
-	%if 0
-		DEF "syscall7"
-			%ifidn RETURN_STACK,B
-				%fatal invalid return stack register
-			%endif
-			pop	A
-			pop	B
-			pop	C
-			pop	D
-			push	esi
-			mov	esi, [esp+4]
-			push	edi
-			mov	esi, [esp+12]
-			push	ebp
-			mov	esi, [esp+20]
-
-			int	0x80
-			pop	ebp
-			pop	edi
-			pop	esi
-
-			pop	edx
-			pop	edx
-			pop	edx
-
-			END	pushA
-	%endif
-
 
 %else
 ; x64 syscall: syscall number in rax
@@ -565,36 +762,268 @@ DEF "syscall3"
 	END	pushA
 %endif
 
-%else
-DEF "bye"
-	mov	al, SYS_exit
-	int	0x80
-	END	no_next
-	%endif
+%endif
+
+;%ifdef C_nandOLD
+%if %isdef(C_not) && %isdef(C_nand)
+	DEF "nand"
+		pop	aC
+		and	[SP], aC
+		END	no_next
+%endif
+;%if %isdef(C_not) || %isdef(C_nand)
+%ifdef C_not
+	DEF "not"
+		not	arith [SP]
+		END
+%endif
+
+%if %isndef(C_not) && %isdef(C_nand)
+	DEF "nand"
+		pop	A
+		pop	D
+		and	A, D
+		not	A
+		%if !havepushA
+			%assign havepushA 1
+			%warning "NAND havepusha"
+			A_pushA:
+			pushA:
+				push	A
+				%if %isndef(C_syscall3_noret)
+				A_clearA:
+				clearA:
+					%warning "NAND no s3noret"
+					%assign haveclearA 1
+					A_tainted
+					push A
+					END
+				%else
+					%warning "NAND yes s3noret"
+					END 	clearA
+				%endif
+		%else
+		%warning "NAND nothavepush"
+			END	pushA
+		%endif
+%endif
+
+%ifdef C_nand2
+	DEF "nand2"
+		pop	A
+		and	A, [esp]
+		not	A
+		END	pushA
+%endif
 
 %if 0
-DEF "i2"
-	push	arith [embiggen(RETURN_STACK)+CELL_SIZE]	; decrement loop counter
+DEF "not2"
+	;not	dword [esp]
+	pop	eax
+	not	eax
+	END	pushA
+DEF "and2"
+	pop	ecx
+	and	dword [esp],ecx
 	END
+%endif
+
+
+%ifdef C_lt
+DEF "lt"
+	pop	D
+	pop	A
+	;cmp	C, D
+	sub	A, D
+	;setge	al
+	cdq
+	push	D
+	END	clearA
+%endif
+
+
+%ifdef C_nzbranch
+DEF "nzbranch"
+	pop	C
+	test	aC, aC
+	jnz	A_branch
+	incbr
+	END	clearA
+%endif
+
+%ifdef C_zbranch
+DEF "zbranch"
+	pop	C
+	jCz	A_branch
+	
+gobranch:
+	incbr
+	END	clearA
+%endif
+
+%ifdef C_0ne
+DEF "0ne"
+	pop	A
+	neg	A
+	sbb	A, A
+	END	pushA
+
+%endif
+
+%ifdef C_0eq
+DEF "0eq"
+       pop     ecx
+       jecxz   .zero
+
+       push    0
+       .zero:
+       pop     edx
+
+       push    -1
+       END
+%endif
+
+%if 0
+DEF "0eq2"
+       pop     ecx
+       jecxz   .zero
+       or      ecx, -1
+       .zero:
+       not     ecx
+       push    ecx
+       END
+%endif
+
+
+
+;%define C_0lt 1
+%ifdef C_0lt
+DEF "0lt"
+	; from eForth. Would be 4 bytes smaller than my version
+	; Unfortunately, it clashes with the A <= 255 condition of this
+	; Forth, making it just 3 bytes smaller
+	pop	A
+	cdq		; sign extend AX into DX
+	push	D	; push 0 or -1
+	;xchg	A, D
+	END	clearA
+
+;DEF "0ee"
+;	pop	A
+;	neg	A
+;	sbb	A, A
+;	END	pushA
+%endif
+
+;%define C_2mul	1
+%ifdef C_2mul
+DEF "2mul"
+	rol	dword [esp], 1
+	END
+%endif
+
+%ifdef C_dup0lt
+DEF "dup0lt"
+	; from eForth. Would be 4 bytes smaller than my version
+	; Unfortunately, it clashes with the A <= 255 condition of this
+	; Forth, making it just 3 bytes smaller
+	pop	A
+	cdq		; sign extend AX into DX
+	;push	D	; push 0 or -1
+	;xchg	A, D
+	END	pushDA
+%endif
+
+%ifdef C_rsinc
+	DEF "rsinc"
+		inc	native [RETURN_STACK]
+		END
 %endif
 
 %ifdef C_rsinci
 	DEF "rsinci"
 		inc	native [RETURN_STACK]
 		END	no_next
+%endif
+%if %isdef(C_rsinci) || %isdef(C_i)
 	DEF "i"
 		mov	A, [RETURN_STACK]
 		END	pushA
 %endif
 
-%if LIT8
+%ifdef C_inext
+DEF "inext"
+	; XXX this one? ;dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
+	dec	native [RETURN_STACK]
+	jnz	A_branch
+
+	%if CELL_SIZE == 4
+		scasd
+	%else
+		scasq
+	%endif
+
+	jmp	gobranch
+	END	no_next
+%endif
+
+%ifdef C_iloop
+DEF "iloop"
+	; XXX this one? ;dec	arith [embiggen(RETURN_STACK)]	; decrement loop counter
+	inc	native [RETURN_STACK]
+	mov	eax, [RETURN_STACK + CELL_SIZE]
+	cmp	eax, [RETURN_STACK]
+	jae	A_branch
+
+	%if CELL_SIZE == 4
+		scasd
+	%else
+		scasq
+	%endif
+
+	jmp	gobranch
+	END	no_next
+%endif
+
+%ifdef C_emd
+DEF "emd"
+	assert_A_low
+	lodsb
+	push	eax
+	mov	al, SYS_write
+	set	ebx, 1
+	set	ecx, esp
+	set	edx, 1
+	int	0x80
+	END	clearA
+%endif
+
+
+%ifdef C_lit8
 DEF "lit8"
 	assert_A_low
 	lodsb
 	END	pushA
 %endif
 
-%ifdef C_lit32
+%ifdef C_nzbranchc
+DEF "nzbranchc"
+	pop	C
+	test	aC, aC
+	jnz	A_branch
+	incbr
+	END	clearA
+%endif
+
+%ifdef C_zbranchc
+DEF "zbranchc"
+	pop	C
+	jCz	A_branch
+	
+	END	no_next
+%endif
+
+%if %isdef(C_lit32) || %isdef(C_zbranchc)
 DEF "lit32"
 	lodsd
 	END	pushA
@@ -612,6 +1041,20 @@ DEF "swap"
 	pop	A
 	END	pushDA
 %endif
+
+%ifdef C_over
+DEF "over"
+	%if 0
+		push	native [SP+CELL_SIZE]
+		END
+	%else
+		pop	D
+		pop	A
+		push	A
+		END	pushDA
+	%endif
+%endif
+
 
 %ifdef C_rot
 DEF "rot"
