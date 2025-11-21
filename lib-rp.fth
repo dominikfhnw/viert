@@ -17,6 +17,7 @@
 : 4+ 2+ 2+ ;
 : CELL+ 4+ ;
 : 8+ 4+ 4+ ;
+: CELL*2+ CELL+ CELL+ ;
 : 12+ 8+ 4+ ;
 : inc 1+ ;
 \ : dec true + ;
@@ -74,10 +75,11 @@ variable o3
 \ : r> rp@ CELL_SIZE*0 + @  rsdrop ; 
 \ : r> rp@ rsdrop ;
 
-: over1 o1 ! o2 ! dup o3 ! o2 @ o1 @ o3 @ ;
+\ : 2pick o1 ! o2 ! dup o3 ! o2 @ o1 @ o3 @ ;
+: 2pick sp@ CELL*2+ @ ;
 
 \ : 2dupswap dup pos2 @ ;
-: 2dupswap dup over1 ;
+: 2dupswap dup 2pick ;
 \ : 2dupswap 2dup swap ; 
 \ : 2dupswap r> rp@ 4 + @ dup ;
 ( 
