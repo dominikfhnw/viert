@@ -524,7 +524,7 @@ if($OPT == 0){
 			#"2*"		=> "2*",
 		);
 	}
-	for(keys %gg){
+	for(sort keys %gg){
 		dp "findauto $_";
 		if($reach{$_}){
 			dp "AUTO asm $_ $gg{$_}";
@@ -690,14 +690,14 @@ dp Dumper(\%word);
 #	$codeword{$_}=1 if $count{$_};
 #}
 
-for(keys %baseline){
+for(sort keys %baseline){
 	if(exists $word{$_}){
 		dp "BUILTIN1? $_";
 		$codeword{$_}++;
 	}
 }
 
-for(keys %builtin_all){
+for(sort keys %builtin_all){
 	if(exists $word{$_} && scalar@{$word{$_}} == 0 ){
 		dp "BUILTIN? $_ ",scalar@{$word{$_}};
 		$codeword{$_}++;
