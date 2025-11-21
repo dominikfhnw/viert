@@ -311,6 +311,13 @@ rdump
 	%%endstring:
 %endmacro
 
+%macro string0 1
+	f_string0
+	db %%endstring - $ - 1
+	db %1, 0
+	%%endstring:
+%endmacro
+
 %macro print 1
 	stringr %1
 	lit 1

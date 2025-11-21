@@ -544,6 +544,26 @@ DEF "branch"
 	%endif
 %endif
 
+%ifdef C_string0
+DEF "string0"
+	assert_A_low
+	%if 0
+		zero	A
+		reg
+		push	FORTH_OFFSET
+		xchg	esi, edi
+		reg
+		repne	scasb
+		xchg	esi, edi
+		reg
+	%else
+		lodsb
+		push	FORTH_OFFSET
+		add	FORTH_OFFSET, eax
+	%endif
+	END
+%endif
+
 %ifdef C_stringr
 DEF "stringr"
 	assert_A_low

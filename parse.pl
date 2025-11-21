@@ -140,7 +140,7 @@ sub parse {
 				say $_;
 				push @{ $word{$word} }, $_;
 			}
-			when(/^(dotstr|string|stringr|jump|print|xlit32)$/) {
+			when(/^(dotstr|string|stringr|string0|jump|print|xlit32)$/) {
 				$dep{$word}{$_}++;
 				my $str = shift @stream;
 				dbg;
