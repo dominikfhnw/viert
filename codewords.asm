@@ -605,6 +605,7 @@ DEF "divmod"
 A_pushDA:
 pushDA:
 	push	D
+%assign havepushA 1
 pushA:
 	push	A
 clearA:
