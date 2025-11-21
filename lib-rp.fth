@@ -116,7 +116,7 @@ variable o3
 
 \ PLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOS 
 :? 2* dup + ;
-( requires negate, which requires plus )
+( requires negate, which requires plus. Or at least 1+ )
 : 0= dup 0< swap negate 0< or ;
 
 
@@ -165,17 +165,18 @@ variable o3
 \ : LIT RP@ @ 2 ( 4 ) + DUP RP@ ! @ ;
 \ : LIT
 \ 	RP@ @		\ get return address			( -- ret )
-\ 	CELL+ DUP 	\ add CELL_SIZE to it, duplicate	( -- ret+4 ret+4 )
-\ 	RP@		\ return addr				( -- ret+4 ret+4 ret )
-\ 	!		\ return is now ret+4			( -- ret+4 )
-\ 	@		\ fetch from ret+4
+\ 	DUP CELL+ 	\ duplicate, add CELL_SIZE to it	( -- ret ret+4 )
+\ 	RP@		\ return addr				( -- ret ret+4 ret )
+\ 	!		\ return is now ret+4			( -- ret )
+\ 	@		\ fetch from ret			( -- LIT )
 \ 	;
 
 \ : LIT
 \ 	RP@ @ DUP	\ get return address			( -- ret ret )
-\ 	CELL+ DUP 	\ add CELL_SIZE to it, duplicate	( -- ret ret+4 ret+4 )
-\ 	RP@ !		\ return is now ret+4			( -- ret+4 )
-\ 	@		\ fetch from ret+4
+\ 	CELL+	 	\ add CELL_SIZE to it			( -- ret ret+4 )
+\	2 PICK		\ get original retaddr again		( -- ret ret+4 ret )
+\ 	!		\ return is now ret+4			( -- ret )
+\ 	@		\ fetch from ret			( -- LIT )
 \ 	;
 
 \ : xlit32 rp@ @ 1 + dbg dup rp@ ! @ ;
