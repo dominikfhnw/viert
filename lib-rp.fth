@@ -46,6 +46,7 @@ variable o3
 
 	;
 
+: nip ( a b -- b ) swap drop ;
 
 
 
