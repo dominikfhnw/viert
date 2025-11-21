@@ -161,9 +161,34 @@ variable o3
 
 
 \ : LIT RP@ @ 2 ( 4 ) + DUP RP@ ! @ ;
+\ : LIT
+\ 	RP@ @		\ get return address			( -- ret )
+\ 	CELL+ DUP 	\ add CELL_SIZE to it, duplicate	( -- ret+4 ret+4 )
+\ 	RP@		\ return addr				( -- ret+4 ret+4 ret )
+\ 	!		\ return is now ret+4			( -- ret+4 )
+\ 	@		\ fetch from ret+4
+\ 	;
+
+\ : LIT
+\ 	RP@ @ DUP	\ get return address			( -- ret ret )
+\ 	CELL+ DUP 	\ add CELL_SIZE to it, duplicate	( -- ret ret+4 ret+4 )
+\ 	RP@ !		\ return is now ret+4			( -- ret+4 )
+\ 	@		\ fetch from ret+4
+\ 	;
+
 \ : xlit32 rp@ @ 1 + dbg dup rp@ ! @ ;
 \ : xlit32 rp@ @ dup CELL_SIZE + dbg rp@ dbg ! @ dbg ;
-: xlit32 rp@ @ dup 4+ dbg rp@ dbg ! @ dbg ;
+\ : xlit32 rp@ @ dup CELL+ dbg rp@ dbg ! @ dbg ;
+\ : xlit32 rp@ @ dup CELL+ rp@ ! @ ;
+\ xlit32 version for use with rpsp@
+\ the other version does not work... because something something we're messing with the return stack/program flow
+\ or because we can't just add +4 to rp to get the right value?
+\ -> NO, CELL+ got interpreted as constant by parse.pl, thus the whole thing was broken
+\ : xlit32 int3 rp@ int3 @ dup CELL+ rpsp@ drop ! @ ;
+\ : xlit32 rpsp@ drop @ dup CELL+ rpsp@ drop ! @ ;
+\ : xlit32 rpsp@ drop rp@ dbg @ dup CELL+ rpsp@ drop ! @ ;
+: xlit32 rp@ @ dup CELL+ rp@ ! @ ;
+\ :   xlit32 rpsp@ drop @ dup CELL+ rp@ ! @ ;
 \ : xlit32 lit32 ;
 \ :? 0< 0x80000000 and ;
 \ :? 0< 0x7fffffff not and ;
