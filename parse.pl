@@ -280,7 +280,9 @@ sub parse {
 				dp "ENDPARSE";
 				return;
 			}
-			when(/^[A-Z]/) {
+			# TODO: this is a load of bull
+			#when(/^[A-Z]/) {
+			when(/^(SYS_|STD)/) {
 				dbg;
 				# XXX fix
 				#if($defined{$_}){
