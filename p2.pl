@@ -105,6 +105,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	0< 1- EXIT bye divmod drop dup @ i < - nand not over + rp@ rpsp@ rsinci rspush sp@ !
 	swap 2*
 	stringr string dotstr string0
+	rsdrop
 	if else unless do swapdo loop loople begin again until notuntil next
 	syscall3_noret syscall3
 	syscall7
