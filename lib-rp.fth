@@ -360,32 +360,30 @@ variable o3
 
 :? syscall3_noret syscall3 drop ;
 
- : u.
- 	10 divmod
+: u.
+	10 divmod
+
+	dup
+	if
+		u.
+	else
+		drop
+	then
+
+	'0' +
+	;CONTINUE
+: emit
+	1
+	;CONTINUE
  
- 	dup
- 	if
- 		u.
- 	else
- 		drop
- 	then
- 
- 	'0' +
- 	;CONTINUE
- 
- : emit
- 	1
- 	;CONTINUE
- 
- : emitn
- 	sp@
- 	CELL_SIZE*1
- 	+
- 	STDOUT
- 	SYS_write
- 	syscall3_noret
- 	drop
- 	;
+: emitn
+	sp@
+	CELL+
+	STDOUT
+	SYS_write
+	syscall3_noret
+	drop
+	;
 
 \ : emitn
 \ 	sp@
