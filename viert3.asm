@@ -616,6 +616,7 @@ FORTH_START:
 A_END:
 %if DEBUG
 	; after A_END, because we don't want to count it towards the total
+	int3
 	A_regdump:
 	%include "regdump2.mac"
 %endif
