@@ -18,9 +18,14 @@ BITS BIT
 
 %include "stdlib.mac"
 
-; make our memory writable. Needed for variables
+; smaller init code.
+%ifndef SMALLINIT
+%define SMALLINIT	0
+%endif
+
+; make our memory writable. Needed for variables. Not working together with SMALLINIT atm
 %ifndef RWMEM
-%define RWMEM		1
+%define RWMEM		0
 %endif
 
 ; branching with 8 bit values. Bigger asm part because of movsx, probably smaller overall
@@ -228,10 +233,6 @@ SECTION .text align=1
 A_INIT:
 rdump
 
-%ifndef SMALLINIT
-%define SMALLINIT 0
-%endif
-
 %if SMALLINIT == 1
 	;%ifnidn embiggen(RETURN_STACK),BP
 	dec	cx
@@ -267,10 +268,9 @@ rdump
 		%endif
 		lea	TEMP_ADDR, [BASE + (FORTH-WORD_OFFSET)]
 	%else
-		; we chose our base address to be < 2^32. So no embiggen
+		rinit
 		%if SMALLINIT != 2
-			%if RWMEM
-				rinit
+			%if RWMEM && ELF_CUSTOM
 				%ifdef ORG
 					set	ebx, ORG
 				%else
@@ -278,11 +278,12 @@ rdump
 				%endif
 			%endif
 			ELF_PHDR 1
-			%if RWMEM
+			%if RWMEM && ELF_CUSTOM
 				_rwx:
 				taint	RETURN_STACK
 				rwx
 			%endif
+			; we chose our base address to be < 2^32. So no embiggen
 			mov	TEMP_ADDR, FORTH
 		%else
 			mov	al, offset(FORTH)
