@@ -347,11 +347,13 @@ sub asm {
 sub is_inlineable {
 	return 0 unless $INLINE;
 	my $name = shift;
+	dp "IS_INLINEABLE early $name";
 	# TODO: can happen if @wordorder is not updated. Needed?
 	return 0 unless exists $word{$name};
 	# do not inline words where we already decided that we need the asm version
 	return if $codeword{$name};
 	return if $noinline{$name};
+	dp "IS_INLINEABLE firstpass $name";
 
 	my $count = $count{$name};
 	my @word = inline(@{$word{$name}},$name);
@@ -378,8 +380,8 @@ sub is_inlineable {
 			dp "LITERAL $_ in $name";
 			asm "lit32";
 
-			if($_ >= 0 && $_ < 256){
-				asm "lit8" if $LIT8;
+			if($LIT8 && $_ >= 0 && $_ < 256){
+				asm "lit8";
 			}
 			else {
 				asm "lit32";
@@ -388,19 +390,19 @@ sub is_inlineable {
 		}
 		elsif(/^(EXIT|rp@|CONTINUE|rpsp@|$escape)$/){
 			$_="(SELF)" if $_ eq $name;
-			dp "NOT_INLINEABLE $name: no, has $_";
+			dp "NOT_INLINEABLE $name: no, has $_\tX:",join(" ",@word);
 			return 0;
 		}
 	}
 	$len0 += $literals * $LITSIZE;
 
-	dp "INL COUNT $name $len0 ",scalar(@word);
+	dp "INL COUNT $name len:$len0/",scalar(@word);
 	my $len1 = scalar(@word) + ($literals * $LITSIZE);
 	#if($len1 == 1){
 	#	dp "IS_ALIAS: $name";
 	#	return 1;
 	#}
-	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1),"\tX",join(" ",@word)," origX",join(" ",@orig);
+	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1),"\tX:",join(" ",@word)," origX:",join(" ",@orig);
 	my $sorig = $len0 + $count;
 	my $sinline = $count * $len1;
 
