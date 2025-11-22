@@ -109,6 +109,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	if else unless do swapdo loop loople begin again until notuntil next
 	syscall3_noret syscall3
 	syscall7
+	dupemit
 
 ); 
 #	syscall3_noret syscall3
