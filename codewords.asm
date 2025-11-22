@@ -242,6 +242,7 @@ mov	FORTH_OFFSET, TEMP_ADDR
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
 	mov	ebp, FORTH_OFFSET	; save for easy dbg
 	xchg	SP, RETURN_STACK
+	BP2:
 	INSP:	nop
 	xchg	SP, RETURN_STACK
 %endif
@@ -266,9 +267,9 @@ assert_A_low
 	cmp	eax, BREAK
 %endif
 
-
-
-
+%if DEBUG
+	;reg
+%endif
 
 %if 0 && PIC
 	%if BIT == 32
@@ -283,6 +284,9 @@ assert_A_low
 %else
 	;lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 %endif
+
+
+BP1:
 ja	A_DOCOL
 ;jmpTEMP:
 jmp	embiggen(TEMP_ADDR)
@@ -595,7 +599,6 @@ DEF "minus"
 
 
 %ifdef C_plus
-;%if 1
 DEF "plus"
 	pop	C
 	add	[SP], aC
@@ -737,7 +740,7 @@ clearA:
 		pop	D
 
 		int	0x80
-	%ifndef C_divmod
+	%if !havepushA
 		%assign havepushA 1
 		A_pushA:
 		pushA:
