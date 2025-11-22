@@ -94,6 +94,10 @@ my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
 my $OPT = opt "OPT", 0;
 my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
+if($SMALLASM){
+	$BRANCH8 = 0;
+	$LIT8 = 0;
+}
 
 dp "OPT $OPT PRUNE $PRUNE INLINEALL $INLINEALL";
 
@@ -460,11 +464,6 @@ sub inline_all {
 }
 
 #dp Dumper(\%word);
-
-if($SMALLASM){
-	$BRANCH8 = 0;
-	$LIT8 = 0;
-}
 
 reachable "MAIN";
 # mark drop as reachable if we have zbranchc
