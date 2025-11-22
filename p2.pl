@@ -505,9 +505,9 @@ if($OPT == 0){
 	if($reach{'syscall7'}){
 		%gg = (
 			unless		=> "nzbranch",
-			if		=> "zbranch",
+			if		=> "zbranch,branch",
 			notuntil	=> "nzbranch",
-			until		=> "zbranch",
+			until		=> "zbranch,branch",
 			print		=> "stringr,lit8",
 			stringr		=> "lit8",
 			#dup		=> "dup",
@@ -518,9 +518,9 @@ if($OPT == 0){
 	else{
 		%gg = (
 			unless		=> "nzbranch",
-			if		=> "zbranch",
+			if		=> "zbranch,branch",
 			notuntil	=> "nzbranch",
-			until		=> "zbranch",
+			until		=> "zbranch,branch",
 			syscall3	=> "syscall3",
 			syscall3_noret	=> "syscall3_noret",
 			print		=> "stringr,lit8",
