@@ -15,6 +15,7 @@
 * options that are probably broken: PIC, SMALLINIT, whole 64bit stuff
 * rsdrop not accesible if EXIT not used
 * parse.pl also has TODO section, check what is still valid...
+* words like ": foo bar ;" should be interpreted as an alias even if INLINE==0
 
 
 
