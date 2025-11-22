@@ -90,7 +90,6 @@ my $BRANCH8 = 1;			#
 my $VARHELPER = 1;			# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
-#my $OPT = $ENV{'OPT'} || 0;		# optionset
 my $OPT = opt "OPT", 0;
 my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
