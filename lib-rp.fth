@@ -2,9 +2,10 @@
 :? not dup nand ;
 : invert not ;
 : and nand not ;
-: true dup dup not nand ;
+: droptrue dup not nand ;
+: true dup droptrue ;
 
-:? drop dup not nand and ;
+:? drop droptrue and ;
 
 \ : false 0 ;
 : false true not ;
