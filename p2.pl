@@ -154,9 +154,10 @@ my @wordorder = ();
 
 sub getstream {
 	my $contents = do { local $/; <> || die "read failed: $!" };
-	$contents =~ s/\\\s.*$//gm;
-	$contents =~ s/\(\s+[^)]*\)//gm;
-	$contents =~ s/:x\s+[^;]*\;(NORETURN)?//gm;
+	$contents =~ s/\\\s.*$//gm;			# \ comments
+	$contents =~ s/#.*$//gm;			# #comments. Not valid Forth. Sue me.
+	$contents =~ s/\(\s+[^)]*\)//gm;		# ( comments )
+	$contents =~ s/:x\s+[^;]*\;(NORETURN)?//gm;	# ":x": disabled words
 	return split ' ', $contents;
 }
 
