@@ -31,8 +31,9 @@ inline:         n*2
 breakeven 4, saved: 5
 
 =cut
-my $LIT8 = $ENV{'LIT8'} // 1;
-my $LIT  = "xlit32"; # which lit function to use
+my $LIT8	= $ENV{'LIT8'} // 1;
+my $LIT		= "xlit32"; # which lit function to use
+my $VARHELPER	= 1; # use varhelper function to create smaller variables?
 
 use v5.34;
 use warnings;
@@ -163,9 +164,15 @@ sub parse {
 				$defined{$word}++;
 				$LASTWORD = $word;
 				say "DEFFORTH \"$name\"";
-				say "\tf_lit32";
-				say "\tdd ${name}_mem";
-				say "\tEND";
+				if($VARHELPER){
+					say "f_varhelper";
+					say "END no_next";
+				}
+				else {
+					say "f_$LIT";
+					say "dd ${name}_mem";
+					say "END";
+				}
 				say "${name}_mem:";
 				say "dd 0";
 				if($CONTINUE){

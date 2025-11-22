@@ -87,6 +87,7 @@ my $PRUNE = opt "PRUNE", 1;		# remove unused functions
 my $ZBRANCHC = 0;			# use 'zbranchc' if true
 my $LITSIZE = 1;			# how many bytes a lit has
 my $BRANCH8 = 1;			# 
+my $VARHELPER = 1;			# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
 #my $OPT = $ENV{'OPT'} || 0;		# optionset
@@ -188,7 +189,10 @@ sub hlparse {
 				$word = shift @stream;
 				push @wordorder, $word;
 				#$LASTWORD = $word;
+				# XXX layering violation - this is the optimizer.
+				# See also comment below for the words that look like numbers
 				$word{$word} = ["VARIABLE","EXIT"];
+				push @{ $word{$word} }, "varhelper" if $VARHELPER;
 				if($CONTINUE){
 					die "continue is illegal before variable";
 				}
