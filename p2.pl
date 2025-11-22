@@ -124,7 +124,7 @@ my %builtin_all = map { $_ => 1 } qw(
 # 
 # string stringr dotstr 
 # unless if then endif branch else do swapdo loop loople begin again until notuntil i next
-my %noinline = map { $_ => 1 } qw(xlit32 ploos drop);
+my %noinline;
 #rsinc i j rsinci rspush rflip 
 my %asmabstract = map { $_ => 1 } qw(lit8 lit32 branch zbranch nzbranch zbranchc stringr);
 my @comment = qw(
@@ -170,6 +170,11 @@ sub getstream {
 #		return 1;
 #	}
 #}
+sub noinline {
+	my $name = shift;
+	$noinline{$name}++;
+}
+
 
 sub hlparse {
 	my @stream = @_;
@@ -224,6 +229,9 @@ sub hlparse {
 			}
 			when('ENDPARSE') {
 				return;
+			}
+			when('NOINLINE') {
+				noinline $word;
 			}
 			when('recurse') {
 				push @{ $word{$word} }, $word;
@@ -333,11 +341,6 @@ sub asm {
 		#$codeword{$name}++;
 		dp "ASM UNREACHABLE $name"; 
 	}
-}
-
-sub noinline {
-	my $name = shift;
-	$noinline{$name}++;
 }
 
 sub is_inlineable {
