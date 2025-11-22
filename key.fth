@@ -1,4 +1,6 @@
+\ : varg i rsdrop ;
 \ : 3pick pos3 @ ;
+variable agg
 variable foo
 : xsyscall3_noret xsyscall3 drop ;
 
@@ -40,16 +42,28 @@ variable foo
 \ dup u.
 \ 1 2 3 dbg 2dupswap dbg bye
 
-1 2 ploos
+\ : varg dbg ;
 
+agg
+u.
+bye
+
+( 
+1 2 3 dbg swap dbg
+bye
+
+1 2 +
+u.
+)
 ( 
 foo .
 foo @ .
 12 foo !
 foo @ .
 )
+( 
 bye
-
+)
 
 
 
