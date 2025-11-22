@@ -85,10 +85,10 @@ my $INLINE = opt "INLINE", 1;		# enable inlining
 my $INLINEALL = opt "INLINEALL", 0;	# inline as much as possible
 my $PRUNE = opt "PRUNE", 1;		# remove unused functions
 my $ZBRANCHC = 0;			# use 'zbranchc' if true
-my $LITSIZE = 1;			# how many bytes a lit has
 my $BRANCH8 = 1;			# 
 my $VARHELPER = 1;			# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
+my $LIT = "xlit32";			# which lit function to use
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
 my $OPT = opt "OPT", 0;
 my $FORTHBRANCH = opt "FORTHBRANCH", 0;
@@ -246,6 +246,16 @@ sub hlparse {
 				push @{ $word{$word} }, $word;
 				#$dep2{$word}{$_}++;
 			}
+			# XXX TODO this should not be in the parser that should be factored out from this file anyway
+			# looks like a number and is not defined yet:
+			when(/^(-?\d+|0x[a-fA-F0-9]+)$/ && !$word{$_}) {
+				push @{ $word{$word} }, $_;
+				my $lit = $LIT;
+				if($LIT8 && $_ >= 0 && $_ < 256){
+					$lit = "lit8";
+				}
+				$word{$_} = ['LITERAL',$lit];
+			}
 			default {
 				push @{ $word{$word} }, $_;
 				#$dep2{$word}{$_}++;
@@ -376,36 +386,36 @@ sub is_inlineable {
 	if($word[-1] eq "EXIT"){
 		pop @word;
 	}
-	my $literals;
+	my $litsize;
 	my $escape = $name;
 	$escape =~ s/([?.+-])/\\$1/g;
 	for(@word){
-		#my $escape = ($name =~ s/([.+-])/\\$1/g);
-		#dp "ESC $escape $name $_";
-		# TODO: not useable for mixed lit8/lit32 atm
-		if(/^(-?\d+|0x[a-fA-F0-9]+|'.*')$/){
-			$_ = hex if /^0x/;
-			dp "LITERAL $_ in $name";
-			asm "lit32";
-
-			if($LIT8 && $_ >= 0 && $_ < 256){
-				asm "lit8";
+		if(defined($word{$_})){
+			my @inner = @{ $word{$_} };
+			if($inner[0] eq "LITERAL"){
+				my $type = $inner[1];
+				if($type eq "lit8"){
+					$litsize += 1;
+				} elsif($type eq "lit32"){
+					$litsize += 4;
+				} elsif($type eq "xlit32"){
+					$litsize += 4;
+				} else {
+					die "unknown littype $type in $_";
+				}
+				dp "LITERAL inline $type -> $litsize";
 			}
-			else {
-				asm "lit32";
-			}
-			$literals++;
 		}
-		elsif(/^(EXIT|rp@|CONTINUE|rpsp@|$escape)$/){
+		if(/^(EXIT|rp@|CONTINUE|rpsp@|$escape)$/){
 			$_="(SELF)" if $_ eq $name;
 			dp "NOT_INLINEABLE $name: no, has $_\tX:",join(" ",@word);
 			return 0;
 		}
 	}
-	$len0 += $literals * $LITSIZE;
+	$len0 += $litsize;
 
 	dp "INL COUNT $name len:$len0/",scalar(@word);
-	my $len1 = scalar(@word) + ($literals * $LITSIZE);
+	my $len1 = scalar(@word) + $litsize;
 	#if($len1 == 1){
 	#	dp "IS_ALIAS: $name";
 	#	return 1;
