@@ -519,12 +519,8 @@ rdump
 		branch %$end
 	%elifctx ifctx
 		branch %$$end
-		;%ifctx beginloop
-		;	branch %$$end
-		;%else
-		;	%error "unknown context for leave"
-		;%endif
-		;;f_leave
+	%elifctx elsectx
+		branch %$$$end
 	%else
 		%error "unknown context for leave"
 	%endif
