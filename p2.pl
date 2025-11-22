@@ -139,7 +139,7 @@ my %baseline = map { $_ => 1 } qw(! @ EXIT nand sp@);
 my %codeword = map { $_ => 1 } qw();
 my %inline = (
 	#true		=>	[-1],
-	false		=>	[0],
+	#false		=>	[0],
 	STDOUT		=>	[1],
 	SYS_exit	=>	[1],
 	SYS_write	=>	[4],
