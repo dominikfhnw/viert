@@ -106,7 +106,7 @@ my %dep2;
 my $CONTINUE = "";
 my $LASTWORD = "";
 my %builtin_all = map { $_ => 1 } qw(
-	0< 1- EXIT bye divmod drop dup @ i < - nand not over + rp@ rpsp@ rsinci rspush sp@ !
+	0< 1+ 1- EXIT bye divmod drop dup @ i < - nand not over + rp@ rpsp@ rsinci rspush sp@ !
 	swap 2*
 	stringr string dotstr string0
 	rsdrop
