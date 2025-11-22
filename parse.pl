@@ -32,7 +32,7 @@ breakeven 4, saved: 5
 
 =cut
 my $LIT8 = $ENV{'LIT8'} // 1;
-
+my $LIT  = "xlit32"; # which lit function to use
 
 use v5.34;
 use warnings;
@@ -232,10 +232,10 @@ sub parse {
 						#push @{ $word{$word} }, "dq $_";
 						push @{ $word{$word} }, "$_";
 					}else{
-						$dep{$word}{lit32}++;
-						say "f_lit32";
+						$dep{$word}{$LIT}++;
+						say "f_$LIT";
 						say "dd $_";
-						say STDERR "LIT32 $word $_";
+						say STDERR "LIT32 $LIT $word $_";
 						#push @{ $word{$word} }, "f_lit32";
 						#push @{ $word{$word} }, "dd $_";
 						push @{ $word{$word} }, "$_";

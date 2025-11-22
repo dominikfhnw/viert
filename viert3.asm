@@ -18,6 +18,11 @@ BITS BIT
 
 %include "stdlib.mac"
 
+; Which literal function to use for 32bit literals
+%ifndef LIT
+%define LIT		f_xlit32
+%endif
+
 ; smaller init code.
 %ifndef SMALLINIT
 %define SMALLINIT	0

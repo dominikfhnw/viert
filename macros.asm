@@ -214,15 +214,14 @@
                 %warning %?: %%n is UNKNOWN %%id
         %endif
 %endif
-
 	;%if ( %isnum(%1) || %isstr(%1) ) && %isdef(C_lit8) && (%1 >= 0 && %1 < 256)
 	;%if ( ! %isid(%1) ) && %isdef(C_lit8) && (%1 >= 0 && %1 < 256)
-	%if ( %isnum(%1) || %isstr(%1) ) && %isdef(C_lit8)
+	%if %isdef(C_lit8) && ( %isnum(%1) || %isstr(%1) )
 		%if %1 >= 0 && %1 < 256
 			f_lit8
 			db %1
 		%else
-			f_lit32
+			LIT
 			dd %1
 		%endif
 	; TODO: this won't work with large negative numbers
@@ -230,7 +229,7 @@
 		f_lit64
 		dq %1
 	%else
-		f_lit32
+		LIT
 		dd %1
 	%endif
 %endmacro
