@@ -249,6 +249,12 @@ rdump
 	mov	cl, FORTH - 0x10000
 
 	ELF_PHDR 1
+%elif SMALLINIT == 3
+	mov	TEMP_ADDR, FORTH
+	mov	RETURN_STACK, SP
+	sub	SP, TEMP_ADDR
+
+	ELF_PHDR 1
 %else
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
