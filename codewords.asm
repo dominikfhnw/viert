@@ -131,8 +131,8 @@ jmp	embiggen(TEMP_ADDR)
 %endif
 
 
-%assign haveclearA	0
-%assign havepushA	0
+%assign haveclearA	1
+%assign havepushA	1
 
 WORD_OFFSET:
 %ifdef C_EXIT
@@ -429,155 +429,6 @@ clearA:
 	;jmp	NEXT2
 	;END	no_next
 	END
-%endif
-
-%define CLEAR_A 1
-%ifdef C_syscall3_noret
-	DEF "syscall3_noret"
-		%ifidn RETURN_STACK,B
-			%fatal invalid return stack register
-		%endif
-		pop	A
-		pop	B
-		pop	C
-		pop	D
-
-		int	0x80
-
-		%if CLEAR_A
-			%warning CLEARA %eval(haveclearA)
-			%if %isndef(haveclearA) && %isndef(C_divmod) && %isndef(C_syscall3)
-				%assign haveclearA 1
-				A_clearA:
-				clearA:
-				A_tainted
-				END
-			%else
-				END	clearA
-			%endif
-		%else
-			END
-		%endif
-%endif
-
-%ifdef C_syscall7
-	DEF "syscall7"
-		%ifidn RETURN_STACK,B
-			%fatal invalid return stack register
-		%endif
-		pop	A
-		pop	B
-		pop	C
-		pop	D
-		; TODO: push/pop order all wrong
-		%if 1
-			pusha
-			add	esp, 32
-			pop	esi
-			pop	edi
-			pop	ebp
-			int	0x80
-			push	eax
-			sub	esp, 32 + 8
-			popa
-			add	esp, 8
-		%elif 1
-			xchg	RETURN_STACK, DATA_STACK
-			push	esi
-			push	edi
-			push	ebp
-			xchg	RETURN_STACK, DATA_STACK
-			pop	esi
-			pop	edi
-			pop	ebp
-			int	0x80
-
-			xchg	RETURN_STACK, DATA_STACK
-			pop	edi
-			pop	esi
-			pop	ebp
-			xchg	RETURN_STACK, DATA_STACK
-		%else
-			push	esi
-			mov	esi, [esp+4]
-			push	edi
-			mov	edi, [esp+12]
-			push	ebp
-			mov	ebp, [esp+20]
-
-			int	0x80
-			pop	ebp
-			pop	edi
-			pop	esi
-
-			pop	edx
-			pop	edx
-			pop	edx
-		%endif
-
-		END	pushA
-%endif
-
-
-
-%ifdef C_syscall3
-%if !SYSCALL64
-	DEF "syscall3"
-		%ifidn RETURN_STACK,B
-			%fatal invalid return stack register
-		%endif
-		pop	A
-		pop	B
-		pop	C
-		pop	D
-
-		int	0x80
-	%if !havepushA
-		%assign havepushA 1
-		A_pushA:
-		pushA:
-			push	A
-		%if !haveclearA
-			clearA:
-				%assign haveclearA 1
-				A_tainted
-			%if 0 && %isdef(C_branch)
-				jmp	NEXT2
-				END	no_next
-			%else
-				END
-			%endif
-		%else
-			END	clearA
-		%endif
-	%else
-		END	pushA
-	%endif
-
-%else
-; x64 syscall: syscall number in rax
-; params: rdi, rsi, rdx, r10, r8 , r9
-; para32: ebx, ecx, edx, esi, edi, ebp
-; num...: 1    2    3    5    6    7
-; clobbered: rax, rcx, r11
-; we got to save rdi and rsi
-; free: rbx, rbp(?), r12, r13, r14, r15
-DEF "syscall3"
-	%ifidn RETURN_STACK,DI
-		%fatal invalid return stack register
-	%endif
-	mov	SYSCALL_SAVE, FORTH_OFFSET
-
-	pop	A
-	pop	DI
-	pop	SI
-	pop	D
-
-	syscall
-	mov	FORTH_OFFSET, SYSCALL_SAVE
-	END	pushA
-%endif
-
 %endif
 
 ;%ifdef C_nandOLD
@@ -880,6 +731,152 @@ DEF "rot"
 	push	C
 	END	pushDA
 %endif
+
+%assign haveclearA	0
+%assign havepushA	0
+%ifdef C_syscall3_noret
+	DEF "syscall3_noret"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		pop	A
+		pop	B
+		pop	C
+		pop	D
+
+		int	0x80
+
+		%if !haveclearA
+			%assign haveclearA 1
+			A_clearA:
+			clearA:
+			A_tainted
+			END
+		%else
+			END	clearA
+		%endif
+%endif
+
+%ifdef C_syscall7
+	DEF "syscall7"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		pop	A
+		pop	B
+		pop	C
+		pop	D
+		; TODO: push/pop order all wrong
+		%if 1
+			pusha
+			add	esp, 32
+			pop	esi
+			pop	edi
+			pop	ebp
+			int	0x80
+			push	eax
+			sub	esp, 32 + 8
+			popa
+			add	esp, 8
+		%elif 1
+			xchg	RETURN_STACK, DATA_STACK
+			push	esi
+			push	edi
+			push	ebp
+			xchg	RETURN_STACK, DATA_STACK
+			pop	esi
+			pop	edi
+			pop	ebp
+			int	0x80
+
+			xchg	RETURN_STACK, DATA_STACK
+			pop	edi
+			pop	esi
+			pop	ebp
+			xchg	RETURN_STACK, DATA_STACK
+		%else
+			push	esi
+			mov	esi, [esp+4]
+			push	edi
+			mov	edi, [esp+12]
+			push	ebp
+			mov	ebp, [esp+20]
+
+			int	0x80
+			pop	ebp
+			pop	edi
+			pop	esi
+
+			pop	edx
+			pop	edx
+			pop	edx
+		%endif
+
+		END	pushA
+%endif
+
+
+
+%ifdef C_syscall3
+%if !SYSCALL64
+	DEF "syscall3"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		pop	A
+		pop	B
+		pop	C
+		pop	D
+
+		int	0x80
+	%if !havepushA
+		%assign havepushA 1
+		A_pushA:
+		pushA:
+			push	A
+		%if !haveclearA
+			clearA:
+				%assign haveclearA 1
+				A_tainted
+			%if 0 && %isdef(C_branch)
+				jmp	NEXT2
+				END	no_next
+			%else
+				END
+			%endif
+		%else
+			END	clearA
+		%endif
+	%else
+		END	pushA
+	%endif
+
+%else
+; x64 syscall: syscall number in rax
+; params: rdi, rsi, rdx, r10, r8 , r9
+; para32: ebx, ecx, edx, esi, edi, ebp
+; num...: 1    2    3    5    6    7
+; clobbered: rax, rcx, r11
+; we got to save rdi and rsi
+; free: rbx, rbp(?), r12, r13, r14, r15
+DEF "syscall3"
+	%ifidn RETURN_STACK,DI
+		%fatal invalid return stack register
+	%endif
+	mov	SYSCALL_SAVE, FORTH_OFFSET
+
+	pop	A
+	pop	DI
+	pop	SI
+	pop	D
+
+	syscall
+	mov	FORTH_OFFSET, SYSCALL_SAVE
+	END	pushA
+%endif
+
+%endif
+
 
 LASTWORD equ lastoff2
 A___BREAK__:
