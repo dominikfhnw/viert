@@ -18,7 +18,7 @@
 
 %macro DEF 1-2.nolist
 	%ifctx defcode
-		%fatal Nested DEF not allowed. Did you forget an ENDDEF?
+		%fatal Nested DEF not allowed. Did you forget an END?
 	%endif
 	%push defcode
 
@@ -39,7 +39,7 @@
 
 %macro DEFFORTH 1.nolist
 	%ifctx defforth
-		%fatal Nested DEFFORTH not allowed. Did you forget an ENDDEF?
+		%fatal Nested DEFFORTH not allowed. Did you forget an END?
 	%endif
 
 	; another align here, to override "align with nop"
@@ -107,7 +107,6 @@
 		%pop defforth
 	%endif
 %endmacro
-%define ENDDEF END
 
 %macro WORD 1
 	%if SCALED
