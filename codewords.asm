@@ -132,6 +132,7 @@ jmp	embiggen(TEMP_ADDR)
 
 %assign haveclearA	1
 %assign havepushA	1
+%assign havepushDA	0
 
 WORD_OFFSET:
 %ifdef C_EXIT
@@ -417,18 +418,7 @@ DEF "divmod"
 	pop	C
 	pop	A
 	div	aC
-A_pushDA:
-pushDA:
-	push	D
-%assign havepushA 1
-pushA:
-	push	A
-clearA:
-	%assign haveclearA 1
-	A_tainted
-	;jmp	NEXT2
-	;END	no_next
-	END
+	END	pushDA
 %endif
 
 ;%ifdef C_nandOLD
@@ -451,28 +441,7 @@ clearA:
 		pop	D
 		and	A, D
 		not	A
-		%if !havepushA
-			%assign havepushA 1
-			%warning "NAND havepusha"
-			A_pushA:
-			pushA:
-				push	A
-				%if %isndef(C_syscall3_noret)
-				A_clearA:
-				clearA:
-					%warning "NAND no s3noret"
-					%assign haveclearA 1
-					A_tainted
-					push A
-					END
-				%else
-					%warning "NAND yes s3noret"
-					END 	clearA
-				%endif
-		%else
-		%warning "NAND nothavepush"
-			END	pushA
-		%endif
+		END	pushA
 %endif
 
 %ifdef C_nand2
@@ -745,16 +714,7 @@ DEF "rot"
 		pop	D
 
 		int	0x80
-
-		%if !haveclearA
-			%assign haveclearA 1
-			A_clearA:
-			clearA:
-			A_tainted
-			END
-		%else
-			END	clearA
-		%endif
+		END	clearA
 %endif
 
 %ifdef C_syscall7
@@ -829,28 +789,7 @@ DEF "rot"
 		pop	D
 
 		int	0x80
-	%if !havepushA
-		%assign havepushA 1
-		A_pushA:
-		pushA:
-			push	A
-		%if !haveclearA
-			clearA:
-				%assign haveclearA 1
-				A_tainted
-			%if 0 && %isdef(C_branch)
-				jmp	NEXT2
-				END	no_next
-			%else
-				END
-			%endif
-		%else
-			END	clearA
-		%endif
-	%else
 		END	pushA
-	%endif
-
 %else
 ; x64 syscall: syscall number in rax
 ; params: rdi, rsi, rdx, r10, r8 , r9

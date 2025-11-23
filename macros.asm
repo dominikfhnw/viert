@@ -48,56 +48,59 @@
 	%repl defforth
 %endmacro
 
+%macro endclearA 0.nolist
+	%if haveclearA
+		jmp	JMPLEN clearA
+	%else
+		%assign haveclearA 1
+		clearA:
+		A_tainted
+		NEXT
+	%endif
+%endmacro
+
+%macro endpushA 0.nolist
+	%if havepushA
+		jmp	JMPLEN pushA
+	%else
+		%assign havepushA 1
+		pushA:
+		push	A
+		endclearA
+	%endif
+%endmacro
+
+%macro endpushDA 0.nolist
+	%if havepushDA
+		jmp	JMPLEN pushDA
+	%else
+		%assign havepushDA 1
+		pushDA:
+		push	D
+		endpushA
+	%endif
+%endmacro
+
+%macro endcode 1.nolist
+	%ifidn %1,clearA
+		endclearA
+	%elifidn %1,pushA
+		endpushA
+	%elifidn %1,pushDA
+		endpushDA
+	%else
+		%error unknown statement after END: %1
+	%endif
+%endmacro
+
 %macro END 0-1.nolist
 	%ifctx defcode
 		%if %0 == 0
 			NEXT
-		%elifidn %1,clearA
-			%if haveclearA
-				%warning HAVECLEARA
-				jmp JMPLEN clearA
-			%else
-				%warning NOT HAVECLEARA
-				%assign haveclearA 1
-				A_clearA:
-				clearA: A_tainted
-				NEXT
-			%endif
-		%elifidn %1,pushA
-			%warning "MACRO pushA"
-			%if havepushA || %isdef(C_syscall) || %isdef(C_divmod)
-				jmp	JMPLEN pushA
-			;%elif haveclearA 
-			;	push	A
-			;	A_tainted
-			;	NEXT
-			%else
-				%assign havepushA 1
-				A_pushA:
-				pushA:
-				push	A
-				%if haveclearA
-					%warning HAVECLEARA
-					jmp JMPLEN clearA
-				%else
-					%warning NOT HAVECLEARA
-					%assign haveclearA 1
-					clearA: A_tainted
-					NEXT
-				%endif
-			%endif
-		%elifidn %1,pushDA
-			;%ifdef pushDA
-			%if %isdef(havepushDA) || %isdef(C_divmod)
-				jmp	JMPLEN pushDA
-			%else
-				push	D
-				jmp	JMPLEN pushA
-			%endif
 		%elifidn %1,no_next
 			; nothing
 		%else
-			%error unknown statement after END: %1
+			endcode %1
 		%endif
 		%pop defcode
 	%else
