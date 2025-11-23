@@ -25,7 +25,7 @@ BITS BIT
 
 ; Which literal function to use for 32bit literals
 %ifndef LIT
-%define LIT		f_xlit32
+%define LIT		xlit32
 %endif
 
 ; smaller init code.
@@ -209,6 +209,10 @@ BITS BIT
 %if !SCALED
 	%assign WORD_ALIGN	1	; no scaling, so always 1
 	%define	TEMP_ADDR	eax	; no separate register to do offset/scaling
+%endif
+
+%if %isidn(LIT,lit32)
+	%assign C_lit32 1
 %endif
 
 %ifndef WORD_SIZE

@@ -228,7 +228,7 @@
 			f_lit8
 			db %1
 		%else
-			LIT
+			f_%[LIT]
 			dd %1
 		%endif
 	; TODO: this won't work with large negative numbers
@@ -236,7 +236,7 @@
 		f_lit64
 		dq %1
 	%else
-		LIT
+		f_%[LIT]
 		dd %1
 	%endif
 %endmacro

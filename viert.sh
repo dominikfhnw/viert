@@ -19,6 +19,9 @@ if [ -z "${FORCE-}" ]; then
 else
 	NASMOPT="$NASMOPT -DFORCE=1"
 fi
+if [ -n "${LIT-}" ]; then
+	NASMOPT="$NASMOPT -DLIT=$LIT"
+fi
 NASMOPT="$NASMOPT -DFORTHBRANCH=${FORTHBRANCH-0}"
 
 LD="gold"

@@ -88,7 +88,7 @@ my $ZBRANCHC = 0;			# use 'zbranchc' if true
 my $BRANCH8 = 1;			# 
 my $VARHELPER = 1;			# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
-my $LIT = "xlit32";			# which lit function to use
+my $LIT = opt "LIT", "xlit32";		# which lit function to use
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
 my $SCALED = opt "SCALED", 1;		# use 8bit scaled offsets?
 my $OPT = opt "OPT", 0;
@@ -117,6 +117,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	syscall3_noret syscall3
 	syscall7
 	dupemit
+	lit32
 
 ); 
 #	syscall3_noret syscall3
@@ -843,7 +844,7 @@ close $fh;
 
 say '\ / 2>&-;	# I\'m also a bash script';
 my $opt = "-DWORD_ALIGN=$WORD_ALIGN -DBRANCH8=$BRANCH8 -DSCALED=$SCALED";
-say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' SOURCE=$0 ./viert.sh '.$opt.' "$@"; exit $?';
+say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' LIT="'.$LIT.'" SOURCE=$0 ./viert.sh '.$opt.' "$@"; exit $?';
 
 say "\\ ASM ",join(",", sort keys %codeword);
 

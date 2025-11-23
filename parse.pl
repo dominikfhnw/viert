@@ -32,7 +32,7 @@ breakeven 4, saved: 5
 
 =cut
 my $LIT8	= $ENV{'LIT8'} // 1;
-my $LIT		= "xlit32"; # which lit function to use
+my $LIT		= $ENV{'LIT'} // "xlit32"; # which lit function to use
 my $VARHELPER	= 1; # use varhelper function to create smaller variables?
 
 use v5.34;
