@@ -52,6 +52,7 @@ use v5.34;
 use warnings;
 no warnings qw(uninitialized experimental::smartmatch);
 
+use Scalar::Util qw(looks_like_number);
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 
@@ -250,10 +251,10 @@ sub hlparse {
 			}
 			# XXX TODO this should not be in the parser that should be factored out from this file anyway
 			# looks like a number and is not defined yet:
-			when(/^(-?\d+|0x[a-fA-F0-9]+)$/ && !$word{$_}) {
+			when(/^(-?\d+|0x[a-fA-F0-9]+|'.*')$/ && !$word{$_}) {
 				push @{ $word{$word} }, $_;
 				my $lit = $LIT;
-				if($LIT8 && $_ >= 0 && $_ < 256){
+				if($LIT8 && looks_like_number($_) && $_ >= 0 && $_ < 256){
 					$lit = "lit8";
 				}
 				$word{$_} = ['LITERAL',$lit];
