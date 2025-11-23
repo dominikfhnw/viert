@@ -378,7 +378,7 @@ sub is_inlineable {
 	my $count = $count{$name};
 	my @word = inline(@{$word{$name}},$name);
 	my @orig = @{$word{$name}};
-	my $len0 = scalar @word;
+	my $len0 = scalar(@word) * $WORD_SIZE;
 	if($word[0] eq "VARIABLE"){
 		return 0;
 	}
@@ -388,7 +388,10 @@ sub is_inlineable {
 	if($word[-1] eq "EXIT"){
 		pop @word;
 	}
-	my $litsize;
+	if($orig[0] eq "MAYBE"){
+		shift @orig;
+	}
+	my $litsize = 0;
 	my $escape = $name;
 	$escape =~ s/([?.+-])/\\$1/g;
 	for(@word){
@@ -400,6 +403,8 @@ sub is_inlineable {
 					$litsize += 1;
 				} elsif($type eq "lit32"){
 					$litsize += 4;
+				} elsif($type eq "xlit8"){
+					$litsize += 1;
 				} elsif($type eq "xlit32"){
 					$litsize += 4;
 				} else {
@@ -416,15 +421,15 @@ sub is_inlineable {
 	}
 	$len0 += $litsize;
 
-	dp "INL COUNT $name len:$len0/",scalar(@word);
-	my $len1 = scalar(@word) + $litsize;
+	dp "INL COUNT $name len:$len0/",scalar(@word) * $WORD_SIZE;
+	my $len1 = scalar(@word) * $WORD_SIZE + $litsize;
 	#if($len1 == 1){
 	#	dp "IS_ALIAS: $name";
 	#	return 1;
 	#}
-	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1),"\tX:",join(" ",@word)," origX:",join(" ",@orig);
-	my $sorig = $len0 + $count;
+	my $sorig = $len0 + $count * $WORD_SIZE;
 	my $sinline = $count * $len1;
+	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1)," sorig:$sorig sinline:$sinline \tX:",join(" ",@word)," origX:",join(" ",@orig);
 
 	if($sorig == $sinline){
 		dp "\tinline neutral $sorig == $sinline";
