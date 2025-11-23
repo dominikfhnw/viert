@@ -21,6 +21,11 @@
   Use *start* of word as the break. This makes using 8bit cmp a bit easier to use.
 * eax does not get cleared anymore if SCALED==0. But lit8 *still* needs it to be clear.
 * Documentation: stack is NOT aligned, esp. with SMALLINIT==3
+* Some options interpret empty as false, others as 'use default'. E.g. "FULL=" vs "INLINE="
+* always inline some words, e.g. ones doing return stack stuff
+* r@/i Forth words do not work in MAIN
+* findauto includes asm way to aggresively. Needs to be pruned/minimized first and then check
+* xchg instead of mov in DOCOL -> sideeffects?
 
 
 
