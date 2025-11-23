@@ -89,6 +89,7 @@ my $VARHELPER = 1;			# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
 my $LIT = "xlit32";			# which lit function to use
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
+my $SCALED = opt "SCALED", 1;		# use 8bit scaled offsets?
 my $OPT = opt "OPT", 0;
 my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
@@ -96,8 +97,10 @@ if($SMALLASM){
 	$BRANCH8 = 0;
 	$LIT8 = 0;
 }
+my $WORD_SIZE = 4;
+$WORD_SIZE = 1 if $SCALED;
 
-dp "OPT $OPT PRUNE $PRUNE INLINEALL $INLINEALL";
+dp "OPT $OPT PRUNE $PRUNE INLINEALL $INLINEALL SMALLASM $SMALLASM SCALED $SCALED";
 
 my %word;
 my %dep2;
@@ -826,7 +829,8 @@ for(sort keys %codeword){
 close $fh;
 
 say '\ / 2>&-;	# I\'m also a bash script';
-say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' SOURCE=$0 ./viert.sh -DWORD_ALIGN='.$WORD_ALIGN.' "$@" -DBRANCH8='.$BRANCH8.'; exit $?';
+my $opt = "-DWORD_ALIGN=$WORD_ALIGN -DBRANCH8=$BRANCH8 -DSCALED=$SCALED";
+say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' SOURCE=$0 ./viert.sh '.$opt.' "$@"; exit $?';
 
 say "\\ ASM ",join(",", sort keys %codeword);
 
