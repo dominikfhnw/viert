@@ -1,3 +1,4 @@
+%warning ********* WARNING: deprecated "WORDSET" variable used
 ; TODO: deprecated, remove. Only use wordset.asm
 %ifndef WORDSET
 %define WORDSET 99
