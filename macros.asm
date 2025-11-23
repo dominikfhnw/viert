@@ -110,14 +110,19 @@
 %define ENDDEF END
 
 %macro WORD 1
-	%assign x %eval(offset(DEF%tok(%1)))
-	%xdefine wordname DEF%tok(%1)
-	%if x > 255
-		%ifndef FORCE
-			%error word too big: wordname x
+	%if SCALED
+		%assign x %eval(offset(DEF%tok(%1)))
+		%xdefine wordname DEF%tok(%1)
+		%if x > 255
+			%ifndef FORCE
+				%error word too big: wordname x
+			%endif
 		%endif
+		db offset(wordname)
+	%else
+		dd DEF%tok(%1)
 	%endif
-	db offset(wordname)
+
 %endmacro
 
 ; "A noble spirit embiggens the smallest man."

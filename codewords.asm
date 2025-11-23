@@ -1,7 +1,10 @@
 ;;; **** Codeword definitions ****
 %define BREAK offset(END_OF_CODEWORDS-2)
 
-%if 1	; clear A/eax either in words or the inner interpreter
+%if !SCALED ; no need to clear A in non-scaled mode
+	%define assert_A_low
+	%define A_tainted
+%elif 1	; clear A/eax either in words or the inner interpreter
 	; Nb: xor eax, eax also clears upper 32bits on 64bit
 	%define assert_A_low
 	%define A_tainted	xor eax, eax
@@ -249,7 +252,7 @@ mov	FORTH_OFFSET, TEMP_ADDR
 
 A_NEXT:
 assert_A_low
-%if 1
+%if SCALED
 	lodsb
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
@@ -257,14 +260,13 @@ assert_A_low
 	cmp	al, BREAK
 	;cmp	TEMP_ADDR, END_OF_CODEWORDS-2
 %else
-	mov	al, [esi]
-	add	esi, 1
+	lodsd
 	xt:
-	;lea	esi, [esi+1]
-	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
-	;mov	TEMP_ADDR, BASE
-	;add	TEMP_ADDR, A
-	cmp	eax, BREAK
+	%if 0	; if size of forth code < 256b
+		cmp	al, LASTWORD
+	%else
+		cmp	ax, LASTWORD
+	%endif
 %endif
 
 %if DEBUG
@@ -1089,6 +1091,7 @@ DEF "rot"
 	END	pushDA
 %endif
 
+LASTWORD equ lastoff2
 A___BREAK__:
 END_OF_CODEWORDS:
 %assign ASM_WORDS WORD_COUNT
