@@ -30,7 +30,7 @@ BITS BIT
 
 ; smaller init code.
 %ifndef SMALLINIT
-%define SMALLINIT	0
+%define SMALLINIT	3
 %endif
 
 ; make our memory writable. Needed for variables. Not working together with SMALLINIT atm
