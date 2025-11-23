@@ -1,13 +1,12 @@
 ;;; **** Codeword definitions ****
 %define BREAK offset(END_OF_CODEWORDS-2)
 
-%if !SCALED ; no need to clear A in non-scaled mode
-	%define assert_A_low
-	%define A_tainted
-%elif 1	; clear A/eax either in words or the inner interpreter
-	; Nb: xor eax, eax also clears upper 32bits on 64bit
+; clear A/eax either in words or the inner interpreter
+; Nb: xor eax, eax also clears upper 32bits on 64bit
+%if SCALED
 	%define assert_A_low
 	%define A_tainted	xor eax, eax
+; no need to clear A in most cases in non-scaled mode
 %else
 	%define assert_A_low	xor eax, eax
 	%define A_tainted
@@ -41,8 +40,8 @@ mov	FORTH_OFFSET, TEMP_ADDR
 %endif
 
 A_NEXT:
-assert_A_low
 %if SCALED
+	assert_A_low
 	lodsb
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
@@ -342,7 +341,6 @@ DEF "branch"
 
 %ifdef C_string0
 DEF "string0"
-	assert_A_low
 	%if 0
 		zero	A
 		reg
@@ -353,6 +351,7 @@ DEF "string0"
 		xchg	esi, edi
 		reg
 	%else
+		assert_A_low
 		lodsb
 		push	FORTH_OFFSET
 		add	FORTH_OFFSET, eax
@@ -413,6 +412,7 @@ DEF "int3"
 ;%define C_divmod
 %ifdef C_divmod
 DEF "divmod"
+	assert_A_low
 	cdq		; A is <= 255, so cdq will always work
 	pop	C
 	pop	A
