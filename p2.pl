@@ -79,7 +79,6 @@ sub opt {
 	warn "ENV $name $env\n";
 	return $env;
 }
-my $WORDSET = 99;
 my $WORD_ALIGN = opt "WORD_ALIGN", 1;
 my $INLINE = opt "INLINE", 1;		# enable inlining
 my $INLINEALL = opt "INLINEALL", 0;	# inline as much as possible
@@ -827,7 +826,7 @@ for(sort keys %codeword){
 close $fh;
 
 say '\ / 2>&-;	# I\'m also a bash script';
-say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' SOURCE=$0 ./viert.sh -DWORD_ALIGN='.$WORD_ALIGN.' "$@" -DWORDSET='.$WORDSET.' -DBRANCH8='.$BRANCH8.'; exit $?';
+say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' SOURCE=$0 ./viert.sh -DWORD_ALIGN='.$WORD_ALIGN.' "$@" -DBRANCH8='.$BRANCH8.'; exit $?';
 
 say "\\ ASM ",join(",", sort keys %codeword);
 
