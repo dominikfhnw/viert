@@ -258,6 +258,13 @@ sub hlparse {
 				}
 				$word{$_} = ['LITERAL',$lit];
 			}
+			# XXX same caveat as above
+			when('asm') {
+				my $asm = shift @stream;
+				$asm =~ s/(^"|"$)//g;
+				$codeword{$asm}++;
+				dp "ASM pragma: $asm";
+			}
 			default {
 				push @{ $word{$word} }, $_;
 				#$dep2{$word}{$_}++;
