@@ -236,7 +236,13 @@ DEF "bye"
 	;ud2
 	;aam 0
 	%else
-	mov	al, SYS_exit
+	%if A_is_low
+		mov	al, SYS_exit
+	%else
+		push	SYS_exit
+		pop	A
+	%endif
+	pop	B
 	int	0x80
 	%endif
 	END	no_next
