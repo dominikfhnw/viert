@@ -118,6 +118,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	syscall7
 	dupemit
 	lit32
+	varhelper
 
 ); 
 #	syscall3_noret syscall3
