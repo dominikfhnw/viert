@@ -79,7 +79,8 @@ BITS BIT
 	%if FORTHBRANCH
 		%macro dbr 1
 			%warning FORTHBRANCH %1
-			dd %1 - $
+			;dd %1 - $	; relative
+			dd %1		; absolute
 		%endmacro
 	%else
 		%macro dbr 1
