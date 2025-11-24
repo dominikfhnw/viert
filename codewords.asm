@@ -30,7 +30,7 @@
 
 A_DOCOL:
 rspush	FORTH_OFFSET
-mov	FORTH_OFFSET, TEMP_ADDR
+xchg	FORTH_OFFSET, TEMP_ADDR
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
 	mov	ebp, FORTH_OFFSET	; save for easy dbg
 	xchg	SP, RETURN_STACK
