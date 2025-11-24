@@ -582,6 +582,13 @@ DEF "dup0lt"
 	END	pushDA
 %endif
 
+%ifdef C_varhelper
+DEF "varhelper"
+	push	esi
+	jmp	A_EXIT
+	END	no_next
+%endif
+
 %ifdef C_rsinc
 	DEF "rsinc"
 		inc	native [RETURN_STACK]
