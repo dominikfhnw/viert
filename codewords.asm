@@ -578,7 +578,7 @@ DEF "dup0lt"
 	pop	A
 	cdq		; sign extend AX into DX
 	;push	D	; push 0 or -1
-	;xchg	A, D
+	xchg	A, D
 	END	pushDA
 %endif
 
