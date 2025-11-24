@@ -134,6 +134,7 @@ my %builtin_all = map { $_ => 1 } qw(
 # string stringr dotstr 
 # unless if then endif branch else do swapdo loop loople begin again until notuntil i next
 my %noinline;
+my %alwaysinline;
 #rsinc i j rsinci rspush rflip 
 my %asmabstract = map { $_ => 1 } qw(lit8 lit32 branch zbranch nzbranch zbranchc stringr);
 my @comment = qw(
@@ -183,6 +184,11 @@ sub getstream {
 sub noinline {
 	my $name = shift;
 	$noinline{$name}++;
+}
+
+sub alwaysinline {
+	my $name = shift;
+	$alwaysinline{$name}++;
 }
 
 
@@ -245,6 +251,9 @@ sub hlparse {
 			}
 			when('NOINLINE') {
 				noinline $word;
+			}
+			when('ALWAYSINLINE') {
+				alwaysinline $word;
 			}
 			when('recurse') {
 				push @{ $word{$word} }, $word;
