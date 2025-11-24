@@ -852,7 +852,7 @@ for(sort keys %codeword){
 close $fh;
 
 say '\ / 2>&-;	# I\'m also a bash script';
-my $opt = "-DWORD_ALIGN=$WORD_ALIGN -DBRANCH8=$BRANCH8 -DSCALED=$SCALED";
+my $opt = "-DWORD_ALIGN=$WORD_ALIGN -DBRANCH8=$BRANCH8 -DSCALED=$SCALED -DFORTHBRANCH=$FORTHBRANCH";
 say '\ / 2>&-;	RUN= DIS=1 LIT8='.$LIT8.' LIT="'.$LIT.'" SOURCE=$0 ./viert.sh '.$opt.' "$@"; exit $?';
 
 say "\\ ASM ",join(",", sort keys %codeword);
