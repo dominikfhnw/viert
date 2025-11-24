@@ -26,6 +26,9 @@
 * r@/i Forth words do not work in MAIN
 * findauto includes asm way to aggresively. Needs to be pruned/minimized first and then check
 * xchg instead of mov in DOCOL -> sideeffects?
+* INLINEALL keyword to inline everything into a word for speed reasons
+* clear distinction/table which word we want asm and which in Forth
+* p2.pl really is a mess with pruning/inlining/etc running multiple times for no apparent reason
 
 
 
