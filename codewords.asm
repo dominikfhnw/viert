@@ -1,6 +1,7 @@
 ;;; **** Codeword definitions ****
 %define BREAK offset(END_OF_CODEWORDS-2)
 
+%assign A_is_low 0
 ; clear A/eax either in words or the inner interpreter
 ; Nb: xor eax, eax also clears upper 32bits on 64bit
 %if SCALED
@@ -43,6 +44,7 @@ A_NEXT:
 %if SCALED
 	assert_A_low
 	lodsb
+	%assign A_is_low 1 ; flag to indicate A is low when words are called
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 	;cmp	eax, BREAK
@@ -129,9 +131,13 @@ jmp	embiggen(TEMP_ADDR)
 	%define arith	native
 %endif
 
-
-%assign haveclearA	1
-%assign havepushA	1
+%ifdef C_syscall3
+	%assign haveclearA	1
+	%assign havepushA	1
+%else
+	%assign haveclearA	0
+	%assign havepushA	0
+%endif
 %assign havepushDA	0
 
 WORD_OFFSET:
