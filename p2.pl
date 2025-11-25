@@ -98,6 +98,10 @@ if($SMALLASM){
 	$BRANCH8 = 0;
 	$LIT8 = 0;
 }
+if($FORTHBRANCH){
+	$BRANCH8 = 0;
+}
+
 my $WORD_SIZE = 4;
 $WORD_SIZE = 1 if $SCALED;
 
