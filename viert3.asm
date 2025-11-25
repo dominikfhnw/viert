@@ -69,25 +69,24 @@ BITS BIT
 	%define BIT_ARITHMETIC	32
 %endif
 
-%if BRANCH8
+%if FORTHBRANCH
+	%macro dbr 1
+		%warning FORTHBRANCH %1
+		;dd %1 - $	; relative
+		dd %1		; absolute
+	%endmacro
+	%define incbr
+%elif BRANCH8
 	%macro dbr 1
 		%warning BRANCH8 %1
 		db %1 - $
 	%endmacro
 	%define incbr	lodsb
 %else
-	%if FORTHBRANCH
-		%macro dbr 1
-			%warning FORTHBRANCH %1
-			;dd %1 - $	; relative
-			dd %1		; absolute
-		%endmacro
-	%else
-		%macro dbr 1
-			%warning BRANCH32 %1
-			dd %1
-		%endmacro
-	%endif
+	%macro dbr 1
+		%warning BRANCH32 %1
+		dd %1
+	%endmacro
 	%define incbr	lodsd
 %endif
 
