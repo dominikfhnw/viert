@@ -29,6 +29,13 @@
 * INLINEALL keyword to inline everything into a word for speed reasons
 * clear distinction/table which word we want asm and which in Forth
 * p2.pl really is a mess with pruning/inlining/etc running multiple times for no apparent reason
+* WORD macro in macros.asm: what is still needed, what can be refactored/deleted?
+* SCALED==0: use base+offset? can we use 16b offsets?
+* parser: detect if word != MAIN at the end. Detect if we "end" main with a ;
+* a mode for WORD_ALIGN==1 without using ecx, but directly eax
+* would keeping top-of-stack in a register decrease overall code size? Every indirect access,
+  e.g. inc native [SP] is +1 bytes
+* p2.pl: Inline/length calculations: branch offsets in if/unless etc. get ignored (also, BRANCH8/32)
 
 
 
