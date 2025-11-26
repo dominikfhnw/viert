@@ -521,26 +521,11 @@ DEF "0ne"
 
 %ifdef C_0eq
 DEF "0eq"
-       pop     ecx
-       jecxz   .zero
-
-       push    0
-       .zero:
-       pop     edx
-
-       push    -1
-       END
-%endif
-
-%if 0
-DEF "0eq2"
-       pop     ecx
-       jecxz   .zero
-       or      ecx, -1
-       .zero:
-       not     ecx
-       push    ecx
-       END
+	pop	A
+	test	A, A
+	setnz	al
+	dec	A
+	END	pushA
 %endif
 
 
