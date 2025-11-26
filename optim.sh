@@ -7,21 +7,15 @@ shift
 # LIBRARY DEFINES:
 # PLUS: word "+" available
 # XLIT: support for xlit32
-# MOO: equality ("=") with XOR
 # CHAIN: u. as a continue-chain
-
-
 CPP="-DPLUS -DXLIT"
 CPP="-DPLUS"
+CPP="-DXLIT"
 CPP=""
 
-CPP="-DPLUS -DXLIT"
 CPP="-DXLIT"
-CPP="-DPLUS"
-CPP="-DPLUS -DXLIT"
-CPP="-DXLIT -DMOO -DCHAIN"
-CPP="-DMOO -DXLIT"
-cpp $CPP -C -P -nostdinc lib-rp2.fth > tmp.fth
+
+cpp $CPP -C -P -nostdinc lib-rp.fth > tmp.fth
 cat $FILE >> tmp.fth
 export OPT
 export PRUNE
