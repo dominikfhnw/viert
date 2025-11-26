@@ -547,14 +547,8 @@ rdump
 %endmacro
 
 %macro until 0
-	%if %isdef(f_zbranch) || %isdef(f_zbranchc)
-		%$zbr: zbranch %$loop
-		%pop beginloop
-	%else
-		%$not: f_not
-		%$notuntil: notuntil
-	%endif
-
+	%$zbr: zbranch %$loop
+	%pop beginloop
 %endmacro
 
 %macro notuntil 0
