@@ -587,6 +587,17 @@ DEF "varhelper"
 	END	no_next
 %endif
 
+%ifdef C_testasm
+DEF "testasm"
+	%if SCALED
+		mov	al, v_testf
+	%else
+		mov	ax, A_testf
+	%endif
+	jmp	xt
+	END	no_next
+%endif
+
 %ifdef C_rsinc
 	DEF "rsinc"
 		inc	native [RETURN_STACK]

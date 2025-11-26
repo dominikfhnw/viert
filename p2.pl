@@ -123,6 +123,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	dupemit
 	lit32
 	varhelper
+	testasm
 
 ); 
 #	syscall3_noret syscall3

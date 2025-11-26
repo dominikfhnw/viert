@@ -28,6 +28,7 @@
 	%assign xx ($ - WORD_OFFSET)/WORD_ALIGN
 	Z_%tok(%1)_%[xx]:
 	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
+	%[v_%tok(%1)] equ xx
 	%define lastoff offset(A_%tok(%1))
 	%define lastoff2 A_%tok(%1)
 	%define f_recurse %[f_%tok(%1)] 
