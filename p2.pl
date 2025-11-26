@@ -205,18 +205,19 @@ sub hlparse {
 		given(shift@stream){
 			#dp "TOK $_";
 			when('variable'){
-				$word = shift @stream;
-				push @wordorder, $word;
+				my $var = shift @stream;
+				push @wordorder, $var;
 				#$LASTWORD = $word;
 				# XXX layering violation - this is the optimizer.
 				# See also comment below for the words that look like numbers
-				$word{$word} = ["VARIABLE","EXIT"];
-				push @{ $word{$word} }, "varhelper" if $VARHELPER;
+				$word{$var} = ["VARIABLE","EXIT"];
+				push @{ $word{$var} }, "varhelper" if $VARHELPER;
 				if($CONTINUE){
 					die "continue is illegal before variable";
 				}
 			}
 			when(':') {
+				die "not in MAIN when defininig new word ".shift(@stream)." ($word)" if $word ne "MAIN";
 				$word = shift @stream;
 				push @wordorder, $word;
 				$LASTWORD = $word;
@@ -231,6 +232,7 @@ sub hlparse {
 				}
 			}
 			when(':?') {
+				die "not in MAIN when defininig new word ".shift(@stream)." ($word)" if $word ne "MAIN";
 				$word = shift @stream;
 				push @wordorder, $word;
 				$LASTWORD = $word;
@@ -238,29 +240,38 @@ sub hlparse {
 				die "optional word after ;CONTINUE: $CONTINUE -> $_" if $CONTINUE;
 			}
 			when(";") {
+				die "in MAIN when ending word" if $word eq "MAIN";
 				#$dep2{$word}{EXIT}++;
 				push @{ $word{$word} }, "EXIT";
 				$word = "MAIN";
 			}
 			when(";CONTINUE") {
+				die "in MAIN when ending word" if $word eq "MAIN";
 				$CONTINUE = $LASTWORD;
+				$word = "MAIN";
 			}
 			when(";NORETURN") {
+				die "in MAIN when ending word" if $word eq "MAIN";
 				$word = "MAIN";
 			}
 			when('MAIN') {
+				die "not already in MAIN when 'MAIN' token encountered ($word)" if $word ne "MAIN";
 				$word = $_;
 			}
 			when('ENDPARSE') {
+				die "not in MAIN at end of parsing ($word)" if $word ne "MAIN";
 				return;
 			}
 			when('NOINLINE') {
+				die "in MAIN when using NOINLINE" if $word eq "MAIN";
 				noinline $word;
 			}
 			when('ALWAYSINLINE') {
+				die "in MAIN when using ALWAYSLINE" if $word eq "MAIN";
 				alwaysinline $word;
 			}
 			when('recurse') {
+				die "in MAIN when using recurse" if $word eq "MAIN";
 				push @{ $word{$word} }, $word;
 				#$dep2{$word}{$_}++;
 			}
@@ -287,6 +298,7 @@ sub hlparse {
 			}
 		}
 	}
+	die "not in MAIN at end of parsing ($word)" if $word ne "MAIN";
 }
 
 hlparse(getstream());
