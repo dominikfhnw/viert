@@ -552,8 +552,20 @@ DEF "0lt"
 ;%define C_2mul	1
 %ifdef C_2mul
 DEF "2mul"
-	rol	dword [esp], 1
+	shl	dword [SP], 1
 	END
+%endif
+
+%ifdef C_ror
+DEF "ror"
+	%if 1
+		ror	dword [SP], 1
+		END
+	%else
+		pop	A
+		ror	A, 1
+		END	pushA
+	%endif
 %endif
 
 %ifdef C_dup0lt
