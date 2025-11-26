@@ -377,7 +377,6 @@ sub asm {
 }
 
 sub is_inlineable {
-	return 0 unless $INLINE;
 	my $name = shift;
 	dp "IS_INLINEABLE early $name";
 	# TODO: can happen if @wordorder is not updated. Needed?
@@ -425,7 +424,7 @@ sub is_inlineable {
 				dp "LITERAL inline $type -> $litsize";
 			}
 		}
-		if(/^(EXIT|rp@|CONTINUE|rpsp@|$escape)$/){
+		if(!$alwaysinline{$name} && /^(EXIT|rp@|CONTINUE|rpsp@|$escape)$/){
 			$_="(SELF)" if $_ eq $name;
 			dp "NOT_INLINEABLE $name: no, has $_\tX:",join(" ",@word);
 			return 0;
@@ -435,14 +434,15 @@ sub is_inlineable {
 
 	dp "INL COUNT $name len:$len0/",scalar(@word) * $WORD_SIZE;
 	my $len1 = scalar(@word) * $WORD_SIZE + $litsize;
-	#if($len1 == 1){
-	#	dp "IS_ALIAS: $name";
-	#	return 1;
-	#}
+	if($len1 == 1){
+		dp "IS_ALIAS: $name";
+		return 1;
+	}
 	my $sorig = $len0 + $count * $WORD_SIZE;
 	my $sinline = $count * $len1;
 	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1)," sorig:$sorig sinline:$sinline \tX:",join(" ",@word)," origX:",join(" ",@orig);
 
+	return 1 if $alwaysinline{$name};
 	if($sorig == $sinline){
 		dp "\tinline neutral $sorig == $sinline";
 		return 1;
