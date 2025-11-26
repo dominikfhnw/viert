@@ -84,8 +84,8 @@ my $WORD_ALIGN = opt "WORD_ALIGN", 1;
 my $INLINE = opt "INLINE", 1;		# enable inlining
 my $INLINEALL = opt "INLINEALL", 0;	# inline as much as possible
 my $PRUNE = opt "PRUNE", 1;		# remove unused functions
-my $ZBRANCHC = 0;			# use 'zbranchc' if true
-my $BRANCH8 = 1;			# 
+my $ZBRANCHC = opt "ZBRANCHC ", 0;	# use smaller zbranchc branching
+my $BRANCH8 = opt "BRANCH8", 1;		# use 8bit branch offsets
 my $VARHELPER = 1;			# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
 my $LIT = opt "LIT", "xlit32";		# which lit function to use
@@ -99,6 +99,13 @@ if($SMALLASM){
 	$LIT8 = 0;
 }
 if($FORTHBRANCH){
+	$BRANCH8 = 0;
+	$ZBRANCHC = 0;
+}
+if($LIT eq "xlit32"){
+	$ZBRANCHC = 0;
+}
+if($ZBRANCHC){
 	$BRANCH8 = 0;
 }
 
@@ -117,7 +124,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	swap 2*
 	stringr string dotstr string0
 	rsdrop
-	if else unless do swapdo loop loople begin again until notuntil next
+	zbranch zbranchc branch
 	syscall3_noret syscall3
 	syscall7
 	dupemit
@@ -127,34 +134,25 @@ my %builtin_all = map { $_ => 1 } qw(
 
 ); 
 #	syscall3_noret syscall3
+my @branch = ("branch");
+my @zbranch = ("zbranch");
+if($FORTHBRANCH){
+	@branch = ("xbranch");
+	@zbranch = ("xzbranch");
+}
+elsif($ZBRANCHC){
+	@zbranch = ("zbranchc","drop");
+}
 
-# if/unless: zbranch/nzbranch
-# else: branch
-# do: swap rspush
-# swapdo: rspush
-# loop: j/rp@/rpsp@....
-# begin: -
-# again: branch
-# until/notuntil: zbranch/nzbranch/(not)
-# 
-# string stringr dotstr 
-# unless if then endif branch else do swapdo loop loople begin again until notuntil i next
+$word{'if'}	= \@zbranch;
+$word{'else'}	= \@branch;
+$word{'again'}	= \@branch;
+$word{'until'}	= \@zbranch;
+
 my %noinline;
 my %alwaysinline;
-#rsinc i j rsinci rspush rflip 
-my %asmabstract = map { $_ => 1 } qw(lit8 lit32 branch zbranch nzbranch zbranchc stringr);
-my @comment = qw(
-
-	divmod u. rp@
-
-	not dup negate true false rp@ and drop pos1 pos3
-	over pos1
-);
-my %baseline = map { $_ => 1 } qw(! @ EXIT nand sp@);
-my %codeword = map { $_ => 1 } qw();
+my %codeword;
 my %inline = (
-	#true		=>	[-1],
-	#false		=>	[0],
 	STDOUT		=>	[1],
 	SYS_exit	=>	[1],
 	SYS_write	=>	[4],
@@ -174,18 +172,6 @@ sub getstream {
 	return split ' ', $contents;
 }
 
-# TODO: refactor/delete
-#sub isneeded {
-#	my $name = shift;
-#	if(exists $builtin{$name}){
-#		#dp "NOTNEEDED $name";
-#		return 0;
-#	}
-#	else {
-#		#dp "NEEDED $name";
-#		return 1;
-#	}
-#}
 sub noinline {
 	my $name = shift;
 	$noinline{$name}++;
@@ -384,17 +370,8 @@ sub asm {
 	if($reach{$name}){
 		$codeword{$name}++;
 		dp "ASM reach $name"; 
-		# TODO: better way?
-		#$LIT8 = 1 if $name eq "lit8";
-	}
-	elsif($asmabstract{$name}){
-		$codeword{$name}++;
-		dp "ASM abstract $name"; 
-		# TODO: better way?
-		#$LIT8 = 1 if $name eq "lit8";
 	}
 	else {
-		#$codeword{$name}++;
 		dp "ASM UNREACHABLE $name"; 
 	}
 }
@@ -517,13 +494,6 @@ sub inline_all {
 #dp Dumper(\%word);
 
 reachable "MAIN";
-# mark drop as reachable if we have zbranchc
-# TODO: what if zbranchc only defined later?
-reachable "drop" if $ZBRANCHC;
-# XXX TODO XXX
-reachable "xzbranch";
-reachable "xbranch";
-reachable "drop";
 
 if(!$PRUNE){
 	asm "rpsp@"; # resolve circular definitions
@@ -552,39 +522,14 @@ if($OPT == 0){
 	# lit8/lit32: nasm expanding lits is insane. Otherwise just "hard"
 	#		to choose between lit8/lit32
 	# minus: not always worth it
-	#asm "lit32"; # XXX TEMP 
-
-	asm "2*"; # XXX ploos testing
-	asm "rp@"; # XXX ploos testing
 	my %gg;
-	if($reach{'syscall7'}){
-		%gg = (
-			unless		=> "nzbranch",
-			if		=> "zbranch,branch",
-			notuntil	=> "nzbranch",
-			until		=> "zbranch,branch",
-			print		=> "stringr,lit8",
-			stringr		=> "lit8",
-			#dup		=> "dup",
-			#"1+"		=> "1+",
-			#"2*"		=> "2*",
-		);
-	}
-	else{
-		%gg = (
-			unless		=> "nzbranch",
-			if		=> "zbranch,branch",
-			notuntil	=> "nzbranch",
-			until		=> "zbranch,branch",
+	# TODO: cleanup...
+	%gg = (
 			syscall3	=> "syscall3",
-			syscall3_noret	=> "syscall3_noret",
+			syscall3_noret	=> "syscall3",
 			print		=> "stringr,lit8",
 			stringr		=> "lit8",
-			#dup		=> "dup",
-			#"1+"		=> "1+",
-			#"2*"		=> "2*",
-		);
-	}
+	);
 	for(sort keys %gg){
 		dp "findauto $_";
 		if($reach{$_}){
@@ -727,19 +672,13 @@ else{
 }
 
 dp "CWxx";
+dp Dumper(\%word);
 dp Dumper(\%codeword);
-asm "zbranchc" if $ZBRANCHC;
 asm "lit8" if $LIT8;
 # which words are reachable from main?
 reachable "MAIN";
-# mark drop as reachable if we have zbranchc
-reachable "drop" if $ZBRANCHC;
-#reachable "not" if $NOTUNTILZBRANCHC;
+
 # remove everything which can not be reached
-if($FORTHBRANCH){
-	reachable "xzbranch";
-	reachable "xbranch";
-}
 removeunreachable();
 # TODO: function to remove words already covered by codewords
 # count how many time each word that is reachable is called
@@ -748,19 +687,6 @@ countusage;
 dp "COUNT333";
 dp Dumper(\%count);
 dp Dumper(\%word);
-# mark codewords
-
-###my @b = qw(syscall3_noret syscall3);
-#foreach(@b){
-#	$codeword{$_}=1 if $count{$_};
-#}
-
-for(sort keys %baseline){
-	if(exists $word{$_}){
-		dp "BUILTIN1? $_";
-		$codeword{$_}++;
-	}
-}
 
 for(sort keys %builtin_all){
 	if(exists $word{$_} && scalar@{$word{$_}} == 0 ){
@@ -783,14 +709,7 @@ dp Dumper(\%codeword);
 # remove unreachable after inline
 undef %reach;
 reachable "MAIN";
-# mark drop as reachable if we have zbranchc
-reachable "drop" if $ZBRANCHC;
-#reachable "not" if $NOTUNTILZBRANCHC;
 #dp Dumper(\%word);
-if($FORTHBRANCH){
-	reachable "xzbranch";
-	reachable "xbranch";
-}
 removeunreachable();
 
 #dp "COUNT:";
@@ -809,13 +728,6 @@ inline_all();
 
 undef %reach;
 reachable "MAIN";
-# mark drop as reachable if we have zbranchc
-reachable "drop" if $ZBRANCHC;
-#dp Dumper(\%word);
-if($FORTHBRANCH){
-	reachable "xzbranch";
-	reachable "xbranch";
-}
 removeunreachable();
 
 # TODO: proper check if all codewords are still needed after all the pruning and inlining
@@ -829,17 +741,11 @@ else {
 
 for(sort keys %codeword){
 	if($reach{$_}){
-		#dp "CODEWORD final: $_ reachable";
+		dp "CODEWORD final: $_ reachable";
 	}
 	else {
-		if($asmabstract{$_}){
-			dp "CODEWORD unreach: $_ abstract";
-		}
-		else {
-			dp "CODEWORD unreach: $_ normal";
-			delete $codeword{$_};
-		}
-		#delete $codeword{'EXIT'};
+		dp "CODEWORD unreach: $_ normal";
+		delete $codeword{$_};
 	}
 }
 
@@ -852,13 +758,6 @@ dp Dumper(\%word);
 ## now it's just turning all data structures into text again
 ###############################################################
 
-my $abranch = "branch";
-my $branch = "zbranch";
-$branch = "zbranchc" if $ZBRANCHC;
-$branch = "nzbranch" if $codeword{"nzbranch"};
-$branch = "xzbranch" if $FORTHBRANCH;
-$abranch = "xbranch" if $FORTHBRANCH;
-
 dp "AFTER INLINE";
 dp Dumper(\%codeword);
 open my $fh, ">", "wordset.asm";
@@ -869,10 +768,6 @@ for(sort keys %codeword){
 	s/\*/mul/;
 	s/-/minus/;
 	s/=/eq/;
-	s/if/$branch/;
-	s/unless/$branch/;
-	s/else/$abranch/;
-	s/again/$abranch/;
 	s/<>/ne/;
 	s/</lt/;
 	say $fh "%define C_$_" or die "err $!";
