@@ -736,6 +736,10 @@ reachable "MAIN";
 reachable "drop" if $ZBRANCHC;
 #reachable "not" if $NOTUNTILZBRANCHC;
 # remove everything which can not be reached
+if($FORTHBRANCH){
+	reachable "xzbranch";
+	reachable "xbranch";
+}
 removeunreachable();
 # TODO: function to remove words already covered by codewords
 # count how many time each word that is reachable is called
@@ -783,6 +787,10 @@ reachable "MAIN";
 reachable "drop" if $ZBRANCHC;
 #reachable "not" if $NOTUNTILZBRANCHC;
 #dp Dumper(\%word);
+if($FORTHBRANCH){
+	reachable "xzbranch";
+	reachable "xbranch";
+}
 removeunreachable();
 
 #dp "COUNT:";
@@ -804,6 +812,10 @@ reachable "MAIN";
 # mark drop as reachable if we have zbranchc
 reachable "drop" if $ZBRANCHC;
 #dp Dumper(\%word);
+if($FORTHBRANCH){
+	reachable "xzbranch";
+	reachable "xbranch";
+}
 removeunreachable();
 
 # TODO: proper check if all codewords are still needed after all the pruning and inlining
