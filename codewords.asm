@@ -302,18 +302,6 @@ DEF "emit32b"
 
 %endif
 
-%ifdef C_branch
-DEF "branch"
-	%if BRANCH8
-		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
-		add	FORTH_OFFSET, ecx
-	%else
-		mov	FORTH_OFFSET, [embiggen(FORTH_OFFSET)]
-	%endif
-	END
-;NEXT2:	END
-%endif
-
 %if COMBINED_STRINGOP
 	%if %isdef(C_dotstr) || %isdef(C_string)
 	; TODO document carry flag hack
@@ -509,6 +497,18 @@ gobranch:
 	incbr
 	END	clearA
 %endif
+
+%if %isdef(C_branch) || %isdef(C_zbranch) || %isdef(C_zbranchc)
+DEF "branch"
+	%if BRANCH8
+		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
+		add	FORTH_OFFSET, ecx
+	%else
+		mov	FORTH_OFFSET, [embiggen(FORTH_OFFSET)]
+	%endif
+	END
+%endif
+
 
 %ifdef C_0ne
 DEF "0ne"
