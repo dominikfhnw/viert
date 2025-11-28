@@ -443,6 +443,7 @@ sub is_inlineable {
 	my $sinline = $count * $len1;
 	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1)," sorig:$sorig sinline:$sinline \tX:",join(" ",@word)," origX:",join(" ",@orig);
 
+	return 0 unless $INLINE;
 	return 1 if $alwaysinline{$name};
 	if($sorig == $sinline){
 		dp "\tinline neutral $sorig == $sinline";
