@@ -1,3 +1,9 @@
+; move TOS to B and push? Maybe in docol/next?
+; popTOS
+; pushTOS
+; clearA
+
+
 %ifdef C_EXIT
 DEF "EXIT"
 	mov     FORTH_OFFSET, [embiggen(RETURN_STACK)]
@@ -18,52 +24,57 @@ DEF "rsdrop"
 
 %ifdef C_dup
 	DEF "dup"
-		%if 0
-			push	native [SP]
-			END
-		%else
-			pop	A
-			push	A
-			END	pushA
-		%endif
+		push	TOS
+		END
 %endif
 
 %ifdef C_drop
 DEF "drop"
-	pop	C
-	END
+	END	popTOS
 %endif
 
 ; the minimal primitives
 %ifdef C_store
 	DEF "store"
-		pop	C
-		pop	native [C] ; I have to agree with Kragen here, I'm also amazed this is legal
-		END
+		pop	native [TOS] ; I have to agree with Kragen here, I'm also amazed this is legal
+		END	popTOS
 %endif
 
 %ifdef C_fetch
 	DEF "fetch"
-		pop	C
-		push	native [C] ; This feels less illegal for some reason
-		END
+		push	native [TOS] ; This feels less illegal for some reason
+		END	popTOS
 %endif
 
 %ifdef C_rpfetch
 	DEF "rpfetch"
+		push	TOS
+		; smaller because we use push, just to then end with popTOS,
+		; instead of mov TO, RETURN_STACK
 		push	RETURN_STACK
-		END
+		END	popTOS
 %endif
+
+%define C_droprpspfetch
+%ifdef C_droprpspfetch
+	DEF "droprpspfetch"
+		push	RETURN_STACK
+		push	SP
+		END	popTOS
+%endif
+
 
 %ifdef C_rpspfetch
 	DEF "rpspfetch"
-		push	RETURN_STACK
+		push	TOS
+		mov	TOS, RETURN_STACK
 		END	no_next
 %endif
 %if %isdef(C_rpspfetch) || %isdef(C_spfetch)
 	DEF "spfetch"
+		push	TOS
 		push	SP
-		END
+		END	popTOS
 %endif
 
 %if !SYSCALL || %isdef(C_dupemit)
@@ -75,31 +86,24 @@ DEF "drop"
 		set	edx, 1
 		set	eax, SYS_write
 		set	ebx, 1
+		push	TOS
 		set	ecx, esp
 		int	0x80
+		pop	C
 		; this will crash spectacularly if write was not successful (A != 1)
-		;A_tainted
-		;xor	eax, eax
+		A_tainted
 		END
 %endif
 %if !SYSCALL || %isdef(C_bye)
 DEF "bye"
-	%if 0
-	;int1
-	;int3
-	;hlt
-	;ud2
-	;aam 0
-	%else
 	%if A_is_low
 		mov	al, SYS_exit
 	%else
 		push	SYS_exit
 		pop	A
 	%endif
-	pop	B
+	mov	B, TOS
 	int	0x80
-	%endif
 	END	no_next
 %endif
 
@@ -209,7 +213,8 @@ DEF "string0"
 	%else
 		assert_A_low
 		lodsb
-		push	FORTH_OFFSET
+		push	TOS
+		mov	TOS, FORTH_OFFSET
 		add	FORTH_OFFSET, eax
 	%endif
 	END
@@ -227,20 +232,21 @@ DEF "stringr"
 
 %ifdef C_1minus
 DEF "1minus"
-	dec	native [SP]
+	dec	TOS
 	END
 %endif
 
 %ifdef C_1plus
 DEF "1plus"
-	inc	native [SP]
+	inc	TOS
 	END
 %endif
 
 %ifdef C_minus
 DEF "minus"
 	pop	C
-	sub	[SP], aC
+	sub	aC, TOS
+	xchg	aC, TOS
 	END
 %endif
 
@@ -248,7 +254,7 @@ DEF "minus"
 %ifdef C_plus
 DEF "plus"
 	pop	C
-	add	[SP], aC
+	add	TOS, aC
 	END
 %endif
 
@@ -270,33 +276,24 @@ DEF "int3"
 DEF "divmod"
 	assert_A_low
 	cdq		; A is <= 255, so cdq will always work
-	pop	C
 	pop	A
-	div	aC
-	END	pushDA
+	div	TOS
+	mov	TOS, A
+	xchg	A, D
+	END	pushA
 %endif
 
-;%ifdef C_nandOLD
-%if %isdef(C_not) && %isdef(C_nand)
+%ifdef C_nand
 	DEF "nand"
-		pop	aC
-		and	[SP], aC
-		END	no_next
-%endif
-;%if %isdef(C_not) || %isdef(C_nand)
-%ifdef C_not
-	DEF "not"
-		not	arith [SP]
-		END
-%endif
-
-%if %isndef(C_not) && %isdef(C_nand)
-	DEF "nand"
-		pop	A
 		pop	D
-		and	A, D
-		not	A
-		END	pushA
+		and	TOS, D
+;%if %isdef(C_not) || %isdef(C_nand)
+%if %isdef(C_not)
+		END	no_next
+	DEF "not"
+%endif
+		not	TOS
+		END
 %endif
 
 %ifdef C_nand2
@@ -344,12 +341,14 @@ DEF "nzbranch"
 
 %ifdef C_zbranch
 DEF "zbranch"
-	pop	C
+	mov	C, TOS
+	; can't use END popTOS, because then tos wouldn't be popped if we branch
+	pop	TOS
 	jCz	A_branch
 	
 gobranch:
 	incbr
-	END	clearA
+	END
 %endif
 
 %if %isdef(C_branch) || %isdef(C_zbranch) || %isdef(C_zbranchc)
@@ -366,20 +365,19 @@ DEF "branch"
 
 %ifdef C_0ne
 DEF "0ne"
-	pop	A
-	neg	A
-	sbb	A, A
-	END	pushA
+	neg	TOS
+	sbb	TOS, TOS
+	END
 
 %endif
 
 %ifdef C_0eq
 DEF "0eq"
-	pop	A
-	test	A, A
+	test	TOS, TOS
 	setnz	al
 	dec	A
-	END	pushA
+	xchg	A, TOS
+	END	clearA
 %endif
 
 
@@ -390,11 +388,10 @@ DEF "0lt"
 	; from eForth. Would be 4 bytes smaller than my version
 	; Unfortunately, it clashes with the A <= 255 condition of this
 	; Forth, making it just 3 bytes smaller
-	pop	A
+	xchg	TOS, A
 	cdq		; sign extend AX into DX
 	push	D	; push 0 or -1
-	;xchg	A, D
-	END	clearA
+	END	popTOS
 
 ;DEF "0ee"
 ;	pop	A
@@ -406,20 +403,14 @@ DEF "0lt"
 ;%define C_2mul	1
 %ifdef C_2mul
 DEF "2mul"
-	shl	dword [SP], 1
+	shl	TOS, 1
 	END
 %endif
 
 %ifdef C_ror
 DEF "ror"
-	%if 1
-		ror	dword [SP], 1
-		END
-	%else
-		pop	A
-		ror	A, 1
-		END	pushA
-	%endif
+	ror	TOS, 1
+	END
 %endif
 
 %ifdef C_dup0lt
@@ -427,11 +418,12 @@ DEF "dup0lt"
 	; from eForth. Would be 4 bytes smaller than my version
 	; Unfortunately, it clashes with the A <= 255 condition of this
 	; Forth, making it just 3 bytes smaller
-	pop	A
+	push	TOS
+	xchg	A, TOS
 	cdq		; sign extend AX into DX
 	;push	D	; push 0 or -1
-	xchg	A, D
-	END	pushDA
+	xchg	A, TOS
+	END
 %endif
 
 %ifdef C_varhelper
@@ -465,8 +457,9 @@ DEF "testasm"
 %endif
 %if %isdef(C_rsinci) || %isdef(C_i)
 	DEF "i"
-		mov	A, [RETURN_STACK]
-		END	pushA
+		push	TOS
+		push	[RETURN_STACK]
+		END	popTOS
 %endif
 
 %ifdef C_inext
@@ -521,7 +514,9 @@ DEF "emd"
 DEF "lit8"
 	assert_A_low
 	lodsb
-	END	pushA
+	push	TOS
+	push	A
+	END	popTOS
 %endif
 
 %ifdef C_nzbranchc
@@ -544,7 +539,9 @@ DEF "zbranchc"
 %if %isdef(C_lit32) || %isdef(C_zbranchc)
 DEF "lit32"
 	lodsd
-	END	pushA
+	push	TOS
+	xchg	TOS, A
+	END	clearA
 %endif
 
 %if BIT_ARITHMETIC == 64
@@ -555,22 +552,18 @@ DEF "lit64"
 
 %ifdef C_swap
 DEF "swap"
-	pop	D
-	pop	A
-	END	pushDA
+	pop	C
+	push	TOS
+	push	C
+	END	popTOS
 %endif
 
 %ifdef C_over
 DEF "over"
-	%if 0
-		push	native [SP+CELL_SIZE]
-		END
-	%else
-		pop	D
-		pop	A
-		push	A
-		END	pushDA
-	%endif
+	mov	A, [SP]
+	push	TOS
+	xchg	A, TOS
+	END	clearA
 %endif
 
 
@@ -588,13 +581,13 @@ DEF "rot"
 		%ifidn RETURN_STACK,B
 			%fatal invalid return stack register
 		%endif
-		pop	A
+		xchg	A, TOS
 		pop	B
 		pop	C
 		pop	D
 
 		int	0x80
-		END	clearA
+		END	popTOS
 %endif
 
 %ifdef C_syscall7
@@ -663,13 +656,14 @@ DEF "rot"
 		%ifidn RETURN_STACK,B
 			%fatal invalid return stack register
 		%endif
-		pop	A
+		xchg	A, TOS
 		pop	B
 		pop	C
 		pop	D
 
 		int	0x80
-		END	pushA
+		xchg	A, TOS
+		END	clearA
 %else
 ; x64 syscall: syscall number in rax
 ; params: rdi, rsi, rdx, r10, r8 , r9
