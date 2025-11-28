@@ -82,6 +82,24 @@
 	%endif
 %endmacro
 
+%macro endpopTOS 0.nolist
+	%if havepopTOS
+		jmp	JMPLEN popTOS
+	%else
+		%assign havepopTOS 1
+
+		;A_popTOS:
+		;; XXX TODO: HACK
+		;%define DEF%[WORD_COUNT] A_popTOS
+		;%define f_popTOS WORD %[WORD_COUNT]
+		;%assign WORD_COUNT WORD_COUNT+1
+
+		popTOS:
+		pop	TOS
+		endclearA
+	%endif
+%endmacro
+
 %macro endcode 1.nolist
 	%ifidn %1,clearA
 		endclearA
@@ -89,6 +107,8 @@
 		endpushA
 	%elifidn %1,pushDA
 		endpushDA
+	%elifidn %1,popTOS
+		endpopTOS
 	%else
 		%error unknown statement after END: %1
 	%endif
