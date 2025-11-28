@@ -46,8 +46,6 @@ DEF "drop"
 	DEF "fetch"
 		pop	C
 		push	native [C] ; This feels less illegal for some reason
-		END	no_next
-	DEF "nop"
 		END
 %endif
 
@@ -585,8 +583,6 @@ DEF "rot"
 	END	pushDA
 %endif
 
-%assign haveclearA	0
-%assign havepushA	0
 %ifdef C_syscall3_noret
 	DEF "syscall3_noret"
 		%ifidn RETURN_STACK,B
