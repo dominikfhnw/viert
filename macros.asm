@@ -50,7 +50,9 @@
 %endmacro
 
 %macro endclearA 0.nolist
-	%if haveclearA
+	%if !A_needs_clearing
+		NEXT
+	%elif haveclearA
 		jmp	JMPLEN clearA
 	%else
 		%assign haveclearA 1

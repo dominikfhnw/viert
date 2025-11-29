@@ -340,7 +340,8 @@ rdump
 ;;; OLD CODEWORDS.ASM
 %define BREAK offset(END_OF_CODEWORDS-2)
 
-%assign A_is_low 0
+%assign A_is_low 0		; is A low when words are called?
+%assign A_needs_clearing 1	; does A need clearing before returning from words?
 ; clear A/eax either in words or the inner interpreter
 ; Nb: xor eax, eax also clears upper 32bits on 64bit
 %if SCALED
@@ -388,6 +389,7 @@ A_NEXT:
 	%endif
 	;cmp	TEMP_ADDR, END_OF_CODEWORDS-2
 %else
+	%assign A_needs_clearing 0
 	lodsd
 	xt:
 	%ifdef C_DOCOL
