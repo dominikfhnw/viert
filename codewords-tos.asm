@@ -56,7 +56,7 @@ DEF "rsdrop"
 		END	popTOS
 %endif
 
-%define C_droprpspfetch
+;%define C_droprpspfetch
 %ifdef C_droprpspfetch
 	DEF "droprpspfetch"
 		push	RETURN_STACK
@@ -459,7 +459,7 @@ DEF "testasm"
 %if %isdef(C_rsinci) || %isdef(C_i)
 	DEF "i"
 		push	TOS
-		push	[RETURN_STACK]
+		push	native [RETURN_STACK]
 		END	popTOS
 %endif
 
