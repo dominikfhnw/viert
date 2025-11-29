@@ -18,6 +18,10 @@ BITS BIT
 
 %include "stdlib.mac"
 
+%ifndef TOS_ENABLE
+%define TOS_ENABLE	1
+%endif
+
 ; use scaled, relative offsets
 %ifndef SCALED
 %define SCALED		1
@@ -187,6 +191,7 @@ BITS BIT
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP. BP has additional encoding overhead
 	%define	TEMP_ADDR	ecx
+	%define TOS		B
 %endif
 
 %if X32
@@ -467,17 +472,17 @@ jmp	embiggen(TEMP_ADDR)
 	%define arith	native
 %endif
 
-%ifdef C_syscall3
-	%assign haveclearA	1
-	%assign havepushA	1
-%else
-	%assign haveclearA	0
-	%assign havepushA	0
-%endif
+%assign haveclearA	0
+%assign havepushA	0
 %assign havepushDA	0
+%assign havepopTOS	0
 
 WORD_OFFSET:
-%include "codewords.asm"
+%if TOS_ENABLE
+	%include "codewords-tos.asm"
+%else
+	%include "codewords.asm"
+%endif
 
 LASTWORD equ lastoff2
 A___BREAK__:

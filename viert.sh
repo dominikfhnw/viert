@@ -22,6 +22,9 @@ fi
 if [ -n "${LIT-}" ]; then
 	NASMOPT="$NASMOPT -DLIT=$LIT"
 fi
+if [ -n "${TOS_ENABLE-}" ]; then
+	NASMOPT="$NASMOPT -DTOS_ENABLE=$TOS_ENABLE"
+fi
 NASMOPT="$NASMOPT -DFORTHBRANCH=${FORTHBRANCH-0}"
 
 LD="gold"

@@ -91,6 +91,7 @@ my $LIT8 = opt "LIT8", 1;		#
 my $LIT = opt "LIT", "xlit32";		# which lit function to use
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
 my $SCALED = opt "SCALED", 1;		# use 8bit scaled offsets?
+my $TOS_ENABLE = opt "TOS_ENABLE", 1;	# is ToS in register enabled?
 my $OPT = opt "OPT", 0;
 my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
@@ -545,6 +546,11 @@ if($OPT == 0){
 	}
 	else {
 		asm "rpsp@";
+	}
+
+	if($TOS_ENABLE){
+		asm "drop" if $reach{'!'};
+		asm "not"  if $reach{'nand'};
 	}
 
 }
