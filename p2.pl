@@ -97,7 +97,7 @@ my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
 if($SMALLASM){
 	$BRANCH8 = 0;
-	$LIT8 = 0;
+	$LIT8 = opt "LIT8", 0; # default 0, but allow overide
 }
 if($FORTHBRANCH){
 	$BRANCH8 = 0;
