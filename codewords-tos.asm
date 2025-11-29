@@ -28,15 +28,14 @@ DEF "rsdrop"
 		END
 %endif
 
-%ifdef C_drop
-DEF "drop"
-	END	popTOS
-%endif
-
 ; the minimal primitives
 %ifdef C_store
 	DEF "store"
 		pop	native [TOS] ; I have to agree with Kragen here, I'm also amazed this is legal
+		END	no_next
+%endif
+%if %isdef(C_store) || %isdef(C_drop)
+	DEF "drop"
 		END	popTOS
 %endif
 
