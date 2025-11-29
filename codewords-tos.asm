@@ -41,8 +41,10 @@ DEF "rsdrop"
 
 %ifdef C_fetch
 	DEF "fetch"
-		push	native [TOS] ; This feels less illegal for some reason
-		END	popTOS
+		;push	native [TOS] ; This feels less illegal for some reason
+		;END	popTOS
+		mov	TOS, [TOS]
+		END
 %endif
 
 %ifdef C_rpfetch
