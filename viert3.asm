@@ -252,21 +252,35 @@ SECTION .text align=1
 A_INIT:
 rdump
 
-%if SMALLINIT == 1
-	;%ifnidn embiggen(RETURN_STACK),BP
-	dec	cx
-	inc	ecx
-	mov	RETURN_STACK, SP
-	;alloca	128
-	sub	SP, C
-	;add	C, byte (FORTH - 0xffff)
-	mov	cl, FORTH - 0x10000
+%ifdef WORDSET
+	%include "oldwordset.asm"
+%else
+	%include "wordset.asm"
+%endif
 
-	ELF_PHDR 1
+%ifdef C_EXIT
+	%define C_DOCOL
+	%define INIT_REG TEMP_ADDR
+%else
+	%define INIT_REG FORTH_OFFSET
+%endif
+
+
+%if SMALLINIT == 1
+	;;%ifnidn embiggen(RETURN_STACK),BP
+	;dec	cx
+	;inc	ecx
+	;mov	RETURN_STACK, SP
+	;;alloca	128
+	;sub	SP, C
+	;;add	C, byte (FORTH - 0xffff)
+	;mov	cl, FORTH - 0x10000
+
+	;ELF_PHDR 1
 %elif SMALLINIT == 3
-	mov	TEMP_ADDR, FORTH
+	mov	INIT_REG, FORTH
 	mov	RETURN_STACK, SP
-	sub	SP, TEMP_ADDR
+	sub	SP, INIT_REG
 
 	ELF_PHDR 1
 %else
@@ -343,22 +357,17 @@ rdump
 ;mov	esp, ebp
 ;pop	ebp
 
-%ifdef WORDSET
-	%include "oldwordset.asm"
-%else
-	%include "wordset.asm"
-%endif
-
+%ifdef C_DOCOL
 A_DOCOL:
 rspush	FORTH_OFFSET
 xchg	FORTH_OFFSET, TEMP_ADDR
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
 DEBUGCOL:
-	mov	ebp, FORTH_OFFSET	; save for easy dbg
 	xchg	SP, RETURN_STACK
 	BP2:
-	INSP:	nop
+	INSP:
 	xchg	SP, RETURN_STACK
+%endif
 %endif
 
 A_NEXT:
@@ -369,15 +378,19 @@ A_NEXT:
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 	;cmp	eax, BREAK
-	cmp	al, BREAK
+	%ifdef C_DOCOL
+		cmp	al, BREAK
+	%endif
 	;cmp	TEMP_ADDR, END_OF_CODEWORDS-2
 %else
 	lodsd
 	xt:
-	%if 0	; if size of forth code < 256b
-		cmp	al, LASTWORD
-	%else
-		cmp	ax, LASTWORD
+	%ifdef C_DOCOL
+		%if 0	; if size of forth code < 256b
+			cmp	al, LASTWORD
+		%else
+			cmp	ax, LASTWORD
+		%endif
 	%endif
 %endif
 
@@ -401,7 +414,9 @@ A_NEXT:
 
 
 BP1:
-ja	A_DOCOL
+%ifdef C_DOCOL
+	ja	A_DOCOL
+%endif
 ;jmpTEMP:
 jmp	embiggen(TEMP_ADDR)
 
