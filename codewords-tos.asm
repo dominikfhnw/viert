@@ -47,7 +47,12 @@ DEF "rsdrop"
 		END
 %endif
 
-%ifdef C_rpfetch
+%ifdef C_sp3
+	DEF "sp3"
+		push	SP
+		END	no_next
+%endif
+%if %isdef(C_rpfetch) || %isdef(C_sp3)
 	DEF "rpfetch"
 		push	TOS
 		; smaller because we use push, just to then end with popTOS,
@@ -64,14 +69,17 @@ DEF "rsdrop"
 		END	popTOS
 %endif
 
-
-%ifdef C_rpspfetch
+%if %isdef(C_rpspfetch) && !%isdef(C_rp3)
 	DEF "rpspfetch"
 		push	TOS
 		mov	TOS, RETURN_STACK
 		END	no_next
+%elifdef C_rp3
+	DEF "rp3"
+		push	RETURN_STACK
+		END	no_next
 %endif
-%if %isdef(C_rpspfetch) || %isdef(C_spfetch)
+%if %isdef(C_spfetch) || %isdef(C_rp3)
 	DEF "spfetch"
 		push	TOS
 		push	SP
@@ -288,11 +296,10 @@ DEF "divmod"
 	DEF "nand"
 		pop	D
 		and	TOS, D
-;%if %isdef(C_not) || %isdef(C_nand)
-%if %isdef(C_not)
 		END	no_next
-	DEF "not"
 %endif
+%if %isdef(C_not) || %isdef(C_nand)
+	DEF "not"
 		not	TOS
 		END
 %endif
@@ -390,6 +397,10 @@ DEF "0lt"
 	; Unfortunately, it clashes with the A <= 255 condition of this
 	; Forth, making it just 3 bytes smaller
 	xchg	TOS, A
+		END	no_next
+%endif
+%if %isdef(C_0lt) || %isdef(C_dropfalse)
+DEF "dropfalse"
 	cdq		; sign extend AX into DX
 	push	D	; push 0 or -1
 	END	popTOS
