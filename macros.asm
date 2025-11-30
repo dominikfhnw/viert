@@ -50,14 +50,20 @@
 %endmacro
 
 %macro endclearA 0.nolist
-	%if !A_needs_clearing
-		NEXT
-	%elif haveclearA
+	%if haveclearA
 		jmp	JMPLEN clearA
 	%else
-		%assign haveclearA 1
-		clearA:
-		A_tainted
+		%if A_needs_clearing
+			%assign haveclearA 1
+			clearA:
+			A_tainted
+		%endif
+		A_nop:
+		; XXX TODO: HACK
+		%define DEF%[WORD_COUNT] A_nop
+		%define f_nop WORD %[WORD_COUNT]
+		%assign WORD_COUNT WORD_COUNT+1
+
 		NEXT
 	%endif
 %endmacro
