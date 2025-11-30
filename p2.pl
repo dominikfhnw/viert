@@ -132,6 +132,7 @@ my %builtin_all = map { $_ => 1 } qw(
 	lit32
 	varhelper
 	testasm
+	sp3 rp3 dropfalse
 
 ); 
 #	syscall3_noret syscall3
