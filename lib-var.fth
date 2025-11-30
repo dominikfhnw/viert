@@ -1,15 +1,6 @@
 \ This file gets preprocessed by cpp 
 : ANYLIT sp@ ;
 
-:? dup sp@ @ ;
-:? not dup nand ;
-: invert not ;
-: and nand not ;
-: imply not nand ;
-: droptrue dup imply ;
-:? dropfalse droptrue not ;
-:? drop droptrue and ;
-
 : false ANYLIT dropfalse ;
 : true false not ;
 
@@ -32,15 +23,22 @@
 
 : CELL+ 4+ ;
 : getpid ANYLIT ANYLIT ANYLIT false 4+ 4+ 4+ 4+ 4+ syscall3 ;
-: rp0 ( -- rp ) ALWAYSINLINE dup rp3 drop drop ;
 : negate not 1+ ;
 
 : xr@ ALWAYSINLINE rp@ @ ;
 : xr> ALWAYSINLINE xr@ rsdrop ;
-: xlit32 NOINLINE rp0 @ dup CELL+ rp0 ! @ ;
+: xlit32 NOINLINE xr@ xr@ CELL+ rp@ ! @ ;
 
-: varhelper NOINLINE rp0 @ rsdrop ;
+: varhelper NOINLINE xr> ;
 variable o1
+: dup o1 ! o1 @ o1 @ ;
+:? not dup nand ;
+: invert not ;
+: and nand not ;
+: imply not nand ;
+: droptrue dup imply ;
+:? drop droptrue and ;
+
 variable o2
 :? swap
 	\ w/o variables
@@ -52,7 +50,7 @@ variable o2
 	o1 ! o2 !
 	o1 @ o2 @
 	;
-:? rp@ ( -- rp ) NOINLINE rp3 drop swap CELL+ ;
+:? sp@ sp3 drop swap ;
 
 
 :? dup0< dup 0< ;
