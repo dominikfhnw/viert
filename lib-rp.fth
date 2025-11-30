@@ -23,12 +23,15 @@
 	: 4+ 2+ 2+ ;
 #endif
 
-
+: 1- not 1+ not ;
+: 2- not 2+ not ;
+: 4- not 4+ not ;
 : CELL+ 4+ ;
+: CELL- 4- ;
 : getpid ANYLIT ANYLIT ANYLIT false 4+ 4+ 4+ 4+ 4+ syscall3 ;
-: rp0 ( -- rp ) ALWAYSINLINE dup rp3 drop drop ;
 : negate not 1+ ;
 
+: rp0 ( -- rp ) ALWAYSINLINE dup rp3 drop drop ;
 : xr@ ALWAYSINLINE rp@ @ ;
 : xr> ALWAYSINLINE xr@ rsdrop ;
 : xlit32 NOINLINE rp0 @ dup CELL+ rp0 ! @ ;

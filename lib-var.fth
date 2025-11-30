@@ -20,8 +20,11 @@
 	: 4+ 2+ 2+ ;
 #endif
 
-
+: 1- not 1+ not ;
+: 2- not 2+ not ;
+: 4- not 4+ not ;
 : CELL+ 4+ ;
+: CELL- 4- ;
 : getpid ANYLIT ANYLIT ANYLIT false 4+ 4+ 4+ 4+ 4+ syscall3 ;
 : negate not 1+ ;
 
@@ -45,6 +48,6 @@ variable o2
 	o1 ! o2 !
 	o1 @ o2 @
 	;
-:? sp@ sp3 drop swap not CELL+ not ;
+:? sp@ sp3 drop swap CELL- ;
 
 #include "lib/rest.fth"
