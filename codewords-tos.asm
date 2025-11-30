@@ -69,6 +69,9 @@ DEF "rsdrop"
 		END	popTOS
 %endif
 
+%ifdef C_rp3
+	%define C_spfetch
+%endif
 %if %isdef(C_rpspfetch) && !%isdef(C_rp3)
 	DEF "rpspfetch"
 		push	TOS
@@ -79,9 +82,13 @@ DEF "rsdrop"
 		push	RETURN_STACK
 		END	no_next
 %endif
-%if %isdef(C_spfetch) || %isdef(C_rp3)
+%ifdef C_spfetch
 	DEF "spfetch"
 		push	TOS
+		END	no_next
+%endif
+%if %isdef(C_spfetch) || %isdef(C_dropspfetch)
+	DEF "dropspfetch"
 		push	SP
 		END	popTOS
 %endif
