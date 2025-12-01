@@ -478,6 +478,7 @@ jmp	embiggen(TEMP_ADDR)
 %assign havepushA	0
 %assign havepushDA	0
 %assign havepopTOS	0
+%assign havenop		0
 
 WORD_OFFSET:
 %if TOS_ENABLE
