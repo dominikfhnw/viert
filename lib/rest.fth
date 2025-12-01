@@ -75,9 +75,7 @@
 : 16+ 8+ 8+ ;
 : 32+ 16+ 16+ ;
 : inc 1+ ;
-\ : dec true + ;
-: dec not inc not ;
-: 1-  dec ;
+: dec 1- ;
 
 : pos1 sp@ CELL+ ;
 : pos2 sp@ CELL*2+ ;
