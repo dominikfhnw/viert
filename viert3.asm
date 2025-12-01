@@ -1,7 +1,3 @@
-%if 0
-. ./viert.sh
-%endif
-
 ; Bitness flags:
 ; BIT: 32 or 64. What kind of code is being executed
 ; X32: true if we are compiling an "x32" binary - 64-bit code with 32-bit pointers.
@@ -96,7 +92,7 @@ BITS BIT
 		%warning BRANCH32 %1
 		dd %1
 	%endmacro
-	%define incbr	lodsd
+	%define incbr	add	FORTH_OFFSET, 4
 %endif
 
 ; WHILE in pure forth

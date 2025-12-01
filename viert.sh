@@ -1,9 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-(return 0 2>&-) && ASM=$0
-: "${ASM:=viert3.asm}"
-
 BIT="32"
 HARDEN=0
 #ORG="0x01000000"
@@ -112,7 +109,7 @@ if [ -n "${FULL-1}" ]; then
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
 	#nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro ' | grep -a --color=always -E '|error:'
-	nasm -I asmlib/ -o $OUT.o "$ASM" $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	nasm -I asmlib/ -o $OUT.o viert3.asm $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
 	$LD $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
 	ls -l $OUT.full
@@ -144,7 +141,7 @@ else
 		#exit 66
 	fi
 	rm -f $OUT
-	nasm -I asmlib/ -f bin -o $OUT "$ASM" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	nasm -I asmlib/ -f bin -o $OUT viert3.asm $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
 fi
 chmod +x $OUT
 ls -l $OUT
