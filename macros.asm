@@ -10,9 +10,11 @@
 %endmacro
 
 %macro align2 2
-	%assign a1 ($ - WORD_OFFSET) % %1
-	%if a1 != 0
-		times (%1-a1) %2
+	%if !SPLIT
+		%assign a1 ($ - WORD_OFFSET) % %1
+		%if a1 != 0
+			times (%1-a1) %2
+		%endif
 	%endif
 %endmacro
 
@@ -25,14 +27,18 @@
 	align2 WORD_ALIGN, nop
 	%define DEF%[WORD_COUNT] A_%tok(%1)
 	A_%tok(%1):
-	%assign xx ($ - WORD_OFFSET)/WORD_ALIGN
-	Z_%tok(%1)_%[xx]:
 	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
-	%[v_%tok(%1)] equ xx
 	%define lastoff offset(A_%tok(%1))
 	%define lastoff2 A_%tok(%1)
 	%define f_recurse %[f_%tok(%1)] 
-	%warning NEW DEFINITION: %1 WORD_COUNT %eval(lastoff)
+	%if SPLIT
+		%warning NEW DEFINITION: %1 WORD_COUNT
+	%else
+		%assign xx ($ - WORD_OFFSET)/WORD_ALIGN
+		Z_%tok(%1)_%[xx]:
+		%[v_%tok(%1)] equ xx
+		%warning NEW DEFINITION: %1 WORD_COUNT %eval(lastoff)
+	%endif
 	rtaint
 	rset	eax, -2 ; 8-bit value
 	%assign WORD_COUNT WORD_COUNT+1

@@ -25,6 +25,11 @@ fi
 if [ -n "${TOS_ENABLE-}" ]; then
 	NASMOPT="$NASMOPT -DTOS_ENABLE=$TOS_ENABLE"
 fi
+if [ -n "${SPLIT-}" ]; then
+	NASMOPT="$NASMOPT -DSPLIT=$SPLIT"
+else
+	SPLIT=0
+fi
 NASMOPT="$NASMOPT -DFORTHBRANCH=${FORTHBRANCH-0}"
 
 LD="gold"
@@ -67,7 +72,10 @@ else
 fi
 #FLAGS="$FLAGS --relax --enable-non-contiguous-regions --no-check-sections --no-fatal-warnings --no-warn-mismatch --noinhibit-exec  --warn-unresolved-symbols"
 #FLAGS="$FLAGS --noinhibit-exec --build-id"
-FLAGS="$FLAGS --noinhibit-exec --omagic"
+FLAGS="$FLAGS --noinhibit-exec"
+if [ "$SPLIT" -eq 0 ]; then
+	FLAGS="$FLAGS --omagic"
+fi
 
 if [ -z "${RAW-}" ]; then
 	DEBUG=${PRDEBUG-0} LIT8=${LIT8-1} perl parse.pl "${SOURCE:-forthwords.fth}" > compiled.asm 2> db.parse1

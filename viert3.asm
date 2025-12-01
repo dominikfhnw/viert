@@ -22,6 +22,11 @@ BITS BIT
 %define TOS_ENABLE	1
 %endif
 
+; split asm/forth segments. Only works with SCALED==0 atm
+%ifndef SPLIT
+%define SPLIT		0
+%endif
+
 ; use scaled, relative offsets
 %ifndef SCALED
 %define SCALED		1
@@ -499,6 +504,10 @@ END_OF_CODEWORDS:
 
 %include "immediate.asm"
 
+%if SPLIT
+[section .data align=1]
+%endif
+
 FORTH_START:
 %include "compiled.asm"
 
@@ -544,7 +553,7 @@ A_END:
 %endif
 %warning "WORDS TOTAL" WORD_COUNT
 %warning "BREAK" %eval(BREAK)
-%ifdef lastoff
+%if %isdef(lastoff) && !SPLIT
 	%warning "LASTOFF" %eval(lastoff)
 %endif
 %warning "LASTOFF2" %eval((lastoff2 - $$)/WORD_ALIGN)
