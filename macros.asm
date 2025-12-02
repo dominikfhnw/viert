@@ -25,18 +25,22 @@
 	%push defcode
 
 	align2 WORD_ALIGN, nop
-	%define DEF%[WORD_COUNT] A_%tok(%1)
-	A_%tok(%1):
-	%define %[f_%tok(%1)] WORD %[WORD_COUNT]
-	%define lastoff offset(A_%tok(%1))
-	%define lastoff2 A_%tok(%1)
-	%define f_recurse %[f_%tok(%1)] 
+	%deftok %%A %strcat("A_",%1)
+	%deftok %%f %strcat("f_",%1)
+	%deftok %%v %strcat("v_",%1)
+	%deftok %%Z %strcat("Z_",%1,"_",%str(xx))
+	%define DEF%[WORD_COUNT] %%A
+	%%A:
+	%define %[%%f] WORD %[WORD_COUNT]
+	%define lastoff offset(%%A)
+	%define lastoff2 %%A
+	%define f_recurse %%f
 	%if SPLIT
 		%warning NEW DEFINITION: %1 WORD_COUNT
 	%else
 		%assign xx ($ - WORD_OFFSET)/WORD_ALIGN
-		Z_%tok(%1)_%[xx]:
-		%[v_%tok(%1)] equ xx
+		%%Z:
+		%%v equ xx
 		%warning NEW DEFINITION: %1 WORD_COUNT %eval(lastoff)
 	%endif
 	rtaint
