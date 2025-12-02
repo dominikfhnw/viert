@@ -225,56 +225,10 @@
 %imacro rspush arg(1)
 %if 1
 	lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
-	mov	[embiggen(RETURN_STACK)], %1
+	mov	[embiggen(RETURN_STACK)], embiggen(%1)
 %else
 	xchg	RETURN_STACK, DATA_STACK
 	push	%1
 	xchg	RETURN_STACK, DATA_STACK
 %endif
-%endmacro
-
-%imacro xlit32 1.nolist
-	f_xlit32
-	dd %1
-%endmacro
-
-%imacro lit 1.nolist
-%if 0
-        %defstr %%n %1
-        %ifnum %1
-                %warning %?: %%n %eval(%1) is number %%id
-        %elifstr %1
-                %warning %?: %%n %eval(%1) is str/true %%id
-        %elifempty %1
-                %warning %?: %%n is empty %%id
-        %eliftoken %1
-                %ifid %1
-                        %warning %?: %%n is token %%id
-                %else
-                        %warning %?: %%n is token/notid %%id
-                %endif
-        %elifid %1
-                %warning %?: %%n is id %%id
-        %else
-                %warning %?: %%n is UNKNOWN %%id
-        %endif
-%endif
-	;%if ( %isnum(%1) || %isstr(%1) ) && %isdef(C_lit8) && (%1 >= 0 && %1 < 256)
-	;%if ( ! %isid(%1) ) && %isdef(C_lit8) && (%1 >= 0 && %1 < 256)
-	%if %isdef(C_lit8) && ( %isnum(%1) || %isstr(%1) )
-		%if %1 >= 0 && %1 < 256
-			f_lit8
-			db %1
-		%else
-			f_%[LIT]
-			dd %1
-		%endif
-	; TODO: this won't work with large negative numbers
-	%elif (BIT_ARITHMETIC == 64) && (%1 > 0xffffffff)
-		f_lit64
-		dq %1
-	%else
-		f_%[LIT]
-		dd %1
-	%endif
 %endmacro

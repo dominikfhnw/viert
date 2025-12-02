@@ -287,24 +287,6 @@ sub parse {
 				dp "ENDPARSE";
 				return;
 			}
-			# TODO: this is a load of bull
-			#when(/^[A-Z]/) {
-			when(/^(SYS_|STD)/) {
-				dbg;
-				# XXX fix
-				#if($defined{$_}){
-				if($_ eq "EXIT"){
-					say "f_EXIT";
-					push @{ $word{$word} }, "EXIT";
-				}
-				else {
-					say STDERR "LITc $word $_";
-					$dep{$word}{litc}++;
-					say "lit $_";
-					push @{ $word{$word} }, "${_}";
-				}
-
-			}
 			default {
 				dbg;
 				my $name = name($_);
