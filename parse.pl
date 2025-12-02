@@ -27,6 +27,11 @@ my $LASTWORD = "";
 
 our $i = 0;
 
+sub f {
+	#return 'f "'.shift().'"';
+	return 'f_'.shift();
+}
+
 sub dp {
 	say STDERR @_;
 }
@@ -88,11 +93,11 @@ sub parse {
 				$LASTWORD = $word;
 				say "DEFFORTH \"$name\"";
 				if($VARHELPER){
-					say "f_varhelper";
+					say f("varhelper");
 					say "END no_next";
 				}
 				else {
-					say "f_$LIT";
+					say f($LIT);
 					say "dd ${name}_mem";
 					say "END";
 				}
@@ -124,7 +129,7 @@ sub parse {
 				die "optional word after ;CONTINUE: $CONTINUE -> $_" if $CONTINUE;
 				$defined{$word}++;
 				$LASTWORD = $word;
-				say "%ifndef f_$name";
+				say "%ifndef ".f($name);
 				say "DEFFORTH \"$name\"";
 				$optional = 1;
 			}
@@ -134,19 +139,19 @@ sub parse {
 				dbg;
 				if($defined{$_} and $word ne $_){
 					say STDERR "LITf $word $_";
-					say "f_".name($_);
+					say f(name($_));
 				}
 				else{
 					if($LIT8 && $_ < 256 && $_ >= 0){
-						say "f_lit8";
+						say f("lit8");
 						say "db $_";
 						say STDERR "LIT8 $word $_";
 					}elsif($_ > 0xffffffff && $_ < -2147483648){
-						say "f_lit64";
+						say f("lit64");
 						say "dq $_";
 						say STDERR "LIT64 $word $_";
 					}else{
-						say "f_$LIT";
+						say f($LIT);
 						say "dd $_";
 						say STDERR "LIT32 $LIT $word $_";
 					}
@@ -190,7 +195,7 @@ sub parse {
 			default {
 				dbg;
 				my $name = name($_);
-				say "f_$name";
+				say f($name);
 			}
 		}
 	}
