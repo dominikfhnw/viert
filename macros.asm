@@ -68,7 +68,7 @@
 			clearA:
 			A_tainted
 		%endif
-		%if !havenop
+		%if !havenop && WORD_ALIGN > 1
 			%assign havenop 1
 			A_nop:
 			; XXX TODO: HACK
