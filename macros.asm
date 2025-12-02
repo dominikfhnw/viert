@@ -18,6 +18,18 @@
 	%endif
 %endmacro
 
+%macro f 1
+	%if !DEBUG && ( %isidn(%1,"dbg") || %isidn(%1,"int3") )
+		%warning "SKIP DEBUGWORD"
+	%else
+		%if SCALED
+			db	(%tok(%strcat("A_",%1)) - WORD_OFFSET)/WORD_ALIGN
+		%else
+			dd	%tok(%strcat("A_",%1))
+		%endif
+	%endif
+%endmacro
+
 %macro DEF 1-2.nolist
 	%ifctx defcode
 		%fatal Nested DEF not allowed. Did you forget an END?
