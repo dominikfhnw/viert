@@ -214,7 +214,7 @@
 %imacro rspop arg(1)
 %if 1
 	mov	%1, [embiggen(RETURN_STACK)]
-	%if CELL_SIZE == 4
+	%if CELL_SIZE == 4 && %isidn(RETURN_STACK,edi)
 		scasd
 	%else
 		lea     RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
