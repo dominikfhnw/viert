@@ -24,7 +24,20 @@
 * would keeping top-of-stack in a register decrease overall code size? Every indirect access,
   e.g. inc native [SP] is +1 bytes
 * p2.pl: Inline/length calculations: branch offsets in if/unless etc. get ignored (also, BRANCH8/32)
-
+* Smaller core:
+  * convert store/drop to store1+/drop1+, -2 bytes
+  * syscall3_noret -> syscall2_noret, edx can be set as sideeffect of NAND. -1 bytes
+  * FULL='': smaller with custom smallinit? use dec bx to get 0xffff, use that as stack size
+    Now able to use custom offset/code in offset
+  * FULL='': automatically set mem to rwx if needed (variables e.g.)
+    Or variables somewhere else?
+* Stuff departing from Forth:
+  * upper/lowercase is handled inconsistently
+  * creating new definitions for words not possible atm
+  * "recurse" just an alias for current word name
+  * inlining allows to use words before they appear in the source file
+  * "." does not support anything besides base 10
+  * nothing interactive yet
 
 
 Major parts:
