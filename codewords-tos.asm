@@ -597,20 +597,6 @@ DEF "rot"
 	END	pushDA
 %endif
 
-%ifdef C_syscall3_noret
-	DEF "syscall3_noret"
-		%ifidn RETURN_STACK,B
-			%fatal invalid return stack register
-		%endif
-		xchg	A, TOS
-		pop	B
-		pop	C
-		pop	D
-
-		int	0x80
-		END	popTOS
-%endif
-
 %ifdef C_syscall7
 	DEF "syscall7"
 		%ifidn RETURN_STACK,B
@@ -670,6 +656,36 @@ DEF "rot"
 %endif
 
 
+%ifdef C_syscall3_noret
+%if !SYSCALL64
+	DEF "syscall3_noret"
+		%ifidn RETURN_STACK,B
+			%fatal invalid return stack register
+		%endif
+		xchg	A, TOS
+		pop	B
+		pop	C
+		pop	D
+
+		int	0x80
+		END	popTOS
+%else
+	DEF "syscall3_noret"
+		%ifidn RETURN_STACK,DI
+			%fatal invalid return stack register
+		%endif
+		mov	SYSCALL_SAVE, FORTH_OFFSET
+
+		xchg	A, TOS
+		pop	DI
+		pop	SI
+		pop	D
+
+		syscall
+		mov	FORTH_OFFSET, SYSCALL_SAVE
+		END	popTOS
+%endif
+%endif
 
 %ifdef C_syscall3
 %if !SYSCALL64
@@ -699,14 +715,15 @@ DEF "syscall3"
 	%endif
 	mov	SYSCALL_SAVE, FORTH_OFFSET
 
-	pop	A
+	xchg	A, TOS
 	pop	DI
 	pop	SI
 	pop	D
 
 	syscall
 	mov	FORTH_OFFSET, SYSCALL_SAVE
-	END	pushA
+	push	A
+	END	popTOS
 %endif
 
 %endif
