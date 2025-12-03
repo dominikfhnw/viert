@@ -58,24 +58,24 @@
 
 %macro zbranch arg(1)
 	%if FORTHBRANCH
-		f_xzbranch
+		f "xzbranch"
 		dbr %1
-	%elifdef f_zbranch
-		f_zbranch
+	%elifdef C_zbranchc
+		f "zbranchc"
 		dbr %1
+		f "drop"
 	%else
-		f_zbranchc
+		f "zbranch"
 		dbr %1
-		f_drop
 	%endif
 %endmacro
 
 %macro branch arg(1)
 	%if FORTHBRANCH
-		f_xbranch
+		f "xbranch"
 		dbr %1
 	%else
-		f_branch
+		f "branch"
 		dbr %1
 	%endif
 %endmacro
@@ -88,24 +88,13 @@
 ;%endmacro
 
 %macro unless arg(0)
-	%ifdef f_nzbranch
-		%push ifctx
-		f_nzbranch
-		dbr %$jump1
-	%else
-		if
-		else
-	%endif
+	if
+	else
 %endmacro
 
 %macro if arg(0)
-	%if %isdef(f_zbranch) || %isdef(f_zbranchc) || %isdef(f_xzbranch)
-		%push ifctx
-		zbranch %$jump1
-	%else
-		unless
-		else
-	%endif
+	%push ifctx
+	zbranch %$jump1
 %endmacro
 
 %macro then arg(0)
