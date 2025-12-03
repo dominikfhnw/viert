@@ -28,8 +28,7 @@ my $LASTWORD = "";
 our $i = 0;
 
 sub f {
-	#return 'f "'.shift().'"';
-	return 'f_'.shift();
+	return 'f "'.shift().'"';
 }
 
 sub dp {

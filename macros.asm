@@ -4,6 +4,7 @@
 %endif
 
 %define offset(a)	(a - WORD_OFFSET)/WORD_ALIGN
+%define offset_forth(a)	(a - FORTH_START)/WORD_ALIGN
 
 %macro NEXT arg(0)
 	jmp JMPLEN A_NEXT
@@ -22,35 +23,36 @@
 	%if !DEBUG && ( %isidn(%1,"dbg") || %isidn(%1,"int3") )
 		%warning "SKIP DEBUGWORD"
 	%else
+		%deftok %%A	%strcat("A_",%1))
 		%if SCALED
-			db	(%tok(%strcat("A_",%1)) - WORD_OFFSET)/WORD_ALIGN
+			%assign %%val %tok(%strcat("q_",%1))
+			%if %%val
+				%assign %%off offset_forth(%%A) + LASTASM
+			%else
+				%assign %%off offset(%%A)
+			%endif
+			%if %%off > 255 && !%isdef(FORCE)
+				%error word too big: wordname x
+			%endif
+			db	%%off
 		%else
-			dd	%tok(%strcat("A_",%1))
+			dd	%%A
 		%endif
 	%endif
 %endmacro
 
-%macro DEF 1-2.nolist
-	%ifctx defcode
-		%fatal Nested DEF not allowed. Did you forget an END?
-	%endif
-	%push defcode
-
-	align2 WORD_ALIGN, nop
+%macro assign_def 1
 	%deftok %%A %strcat("A_",%1)
-	%deftok %%f %strcat("f_",%1)
 	%deftok %%v %strcat("v_",%1)
 	%deftok %%Z %strcat("Z_",%1,"_",%str(xx))
-	%define DEF%[WORD_COUNT] %%A
+	%deftok %$q %strcat("q_",%1)
 	%%A:
-	%define %[%%f] WORD %[WORD_COUNT]
 	%define lastoff offset(%%A)
 	%define lastoff2 %%A
-	%define f_recurse %%f
 	%if SPLIT
 		%warning NEW DEFINITION: %1 WORD_COUNT
 	%else
-		%assign xx ($ - WORD_OFFSET)/WORD_ALIGN
+		%assign xx offset($)
 		%%Z:
 		%%v equ xx
 		%warning NEW DEFINITION: %1 WORD_COUNT %eval(lastoff)
@@ -60,15 +62,26 @@
 	%assign WORD_COUNT WORD_COUNT+1
 %endmacro
 
-%macro DEFFORTH 1.nolist
+%macro DEF 1
+	%ifctx defcode
+		%fatal Nested DEF not allowed. Did you forget an END?
+	%endif
+	%push defcode
+
+	align2 WORD_ALIGN, nop
+	assign_def %1
+	%$q equ 0
+%endmacro
+
+%macro DEFFORTH 1
 	%ifctx defforth
 		%fatal Nested DEFFORTH not allowed. Did you forget an END?
 	%endif
+	%push defforth
 
-	; another align here, to override "align with nop"
 	align2 WORD_ALIGN, db offset(A_nop)
-	DEF %1, no_next
-	%repl defforth
+	assign_def %1
+	%$q equ 1
 %endmacro
 
 %macro endclearA 0.nolist
@@ -159,26 +172,10 @@
 		%pop defcode
 	%else
 		%if %0 == 0
-			f_EXIT
+			f "EXIT"
 		%endif
 		%pop defforth
 	%endif
-%endmacro
-
-%macro WORD 1
-	%if SCALED
-		%assign x %eval(offset(DEF%tok(%1)))
-		%xdefine wordname DEF%tok(%1)
-		%if x > 255
-			%ifndef FORCE
-				%error word too big: wordname x
-			%endif
-		%endif
-		db offset(wordname)
-	%else
-		dd DEF%tok(%1)
-	%endif
-
 %endmacro
 
 ; "A noble spirit embiggens the smallest man."

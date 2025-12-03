@@ -283,7 +283,7 @@ rdump
 
 	;ELF_PHDR 1
 %elif SMALLINIT == 3
-	mov	INIT_REG, FORTH
+	mov	INIT_REG, FORTH - (FORTH_START - END_OF_CODEWORDS)
 	mov	RETURN_STACK, SP
 	sub	SP, INIT_REG
 
@@ -365,6 +365,9 @@ rdump
 
 %ifdef C_DOCOL
 A_DOCOL:
+%if SPLIT && SCALED
+	add	TEMP_ADDR, (FORTH_START - END_OF_CODEWORDS)
+%endif
 rspush	FORTH_OFFSET
 xchg	FORTH_OFFSET, TEMP_ADDR
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
@@ -499,6 +502,7 @@ END_OF_CODEWORDS:
 
 %include "immediate.asm"
 
+%assign LASTASM offset($)
 %if SPLIT
 [section .data align=1]
 %endif
