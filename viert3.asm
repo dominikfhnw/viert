@@ -169,14 +169,13 @@ BITS BIT
 	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11
 	; leaves us with B, BP, R12-R15. BP and R12-R15 have additional encoding overhead
 	%define	RETURN_STACK	B
+	%define TOS		DI
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP, R12-R15. BP and R12-R15 have additional encoding overhead
-	%define	TEMP_ADDR	edi
+	%define	TEMP_ADDR	ecx
 	; SYSCALL_SAVE:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11 
 	; leaves us with B, BP, R12-R15. R12-R15 have additional encoding overhead
 	%define	SYSCALL_SAVE	ebp	; FORTH_OFFSET will get saved here during syscalls
-	%define SYS_write	1
-	%define SYS_exit	60
 %else
 	; A: used by syscall, lodsb
 	; B: used by syscall
@@ -189,10 +188,10 @@ BITS BIT
 	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, B, C, D
 	; leaves us with DI, BP. BP has additional encoding overhead
 	%define	RETURN_STACK	DI
+	%define TOS		B
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP. BP has additional encoding overhead
 	%define	TEMP_ADDR	ecx
-	%define TOS		B
 %endif
 
 %if X32
