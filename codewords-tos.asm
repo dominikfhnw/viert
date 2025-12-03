@@ -12,10 +12,12 @@ DEF "EXIT"
 
 %if %isdef(C_EXIT) || %isdef(C_rsdrop)
 DEF "rsdrop"
-	%if CELL_SIZE == 4
+	%if CELL_SIZE == 4 && %isidn(RETURN_STACK,edi)
 		scasd
+	%elif CELL_SIZE == 8 && %isidn(RETURN_STACK,edi)
+		scasq
 	%else
-		lea     RETURN_STACK, [embiggen(RETURN_STACK)+CELL_SIZE]
+		lea     embiggen(RETURN_STACK), [embiggen(RETURN_STACK)+CELL_SIZE]
 	%endif
 
 	END
