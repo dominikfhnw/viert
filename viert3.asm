@@ -386,21 +386,15 @@ A_NEXT:
 	%assign A_is_low 1 ; flag to indicate A is low when words are called
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
-	;cmp	eax, BREAK
 	%ifdef C_DOCOL
 		cmp	al, BREAK
 	%endif
-	;cmp	TEMP_ADDR, END_OF_CODEWORDS-2
 %else
 	%assign A_needs_clearing 0
 	lodsd
 	xt:
 	%ifdef C_DOCOL
-		%if 0	; if size of forth code < 256b
-			cmp	al, LASTWORD
-		%else
-			cmp	ax, LASTWORD
-		%endif
+		cmp	ax, LASTWORD
 	%endif
 %endif
 
