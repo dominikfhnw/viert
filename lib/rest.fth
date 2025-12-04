@@ -1,3 +1,15 @@
+#if BITS == 64
+: SYS_exit	 60 ;
+: SYS_write	  1 ;
+#else
+: SYS_exit	  1 ;
+: SYS_read	  3 ;
+: SYS_write	  4 ;
+: SYS_poll	168 ;
+#endif
+: STDIN		  0 ;
+: STDOUT	  1 ;
+
 :? dup0< dup 0< ;
 : 0= dup0< not swap negate 0< not and ;
 \ absolute branch
@@ -161,10 +173,8 @@
 : bl 32 ;
 : space bl emit ;
 
-\ : bye SYS_exit syscall3_noret ; 
-: SYS_exit 1 ;
 : bye SYS_exit syscall3_noret ; 
-: xbye 1 syscall7 ;
+: xbye SYS_exit syscall7 ;
 : xsleep 0 swap sp@ 0 swap 162 syscall3_noret drop ;
 : sleep 0 over 0 pos1 162 syscall3_noret 2drop ;
 : up ALWAYSINLINE r@ = ;
