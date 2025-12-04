@@ -47,7 +47,11 @@
 : xr> ALWAYSINLINE xr@ rsdrop ;
 : xlit32 NOINLINE rp0 @ dup CELL+ rp0 ! @ ;
 
+#if TOS_ENABLE
 : varhelper NOINLINE rp0 @ rsdrop ;
+#else
+: varhelper NOINLINE rp@ @ rsdrop ;
+#endif
 variable o1
 variable o2
 :? swap
