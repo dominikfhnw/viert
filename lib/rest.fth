@@ -428,8 +428,7 @@ variable p1
 : .
 	dup0<
 	if
-		'-'
-		emit
+		45 emit \ "-"
 		negate
 	then
 	u. space
