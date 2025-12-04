@@ -18,16 +18,27 @@
 	:? 1+ 1 + ;
 	: 2+ 2 + ;
 	: 4+ 4 + ;
+	#if BITS == 64
+	: 8+ 8 + ;
+	#endif
 #else
 	: 2+ 1+ 1+ ;
 	: 4+ 2+ 2+ ;
+	#if BITS == 64
+	: 8+ 4+ 4+ ;
+	#endif
 #endif
 
 : 1- not 1+ not ;
-: 2- not 2+ not ;
 : 4- not 4+ not ;
+#if BITS == 64
+: 8- not 8+ not ;
+: CELL+ 8+ ;
+: CELL- 8- ;
+#else
 : CELL+ 4+ ;
 : CELL- 4- ;
+#endif
 : getpid ANYLIT ANYLIT ANYLIT false 4+ 4+ 4+ 4+ 4+ syscall3 ;
 : negate not 1+ ;
 
