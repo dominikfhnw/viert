@@ -3,19 +3,22 @@
 %define JMPLEN short
 %endif
 
-%define offset(a)	(a - WORD_OFFSET)/WORD_ALIGN
-%define offset_forth(a)	(a - FORTH_START)/WORD_ALIGN
+%define roundup		WORD_ALIGN-1
+%define offset(a)	(a - WORD_OFFSET + roundup)/WORD_ALIGN
+%define offset_forth(a)	(a - FORTH_START + roundup)/WORD_ALIGN
 
 %macro NEXT arg(0)
 	jmp JMPLEN A_NEXT
 %endmacro
 
 %macro align2 2
-	%if !SPLIT
+	%ifidn %2,nop
 		%assign a1 ($ - WORD_OFFSET) % %1
-		%if a1 != 0
-			times (%1-a1) %2
-		%endif
+	%else
+		%assign a1 ($ - FORTH_START) % %1
+	%endif
+	%if a1 != 0
+		times (%1-a1) %2
 	%endif
 %endmacro
 
@@ -95,6 +98,7 @@
 		%endif
 		%if !havenop && WORD_ALIGN > 1
 			%assign havenop 1
+			align2 WORD_ALIGN, nop
 			A_nop:
 			; XXX TODO: HACK
 			%define DEF%[WORD_COUNT] A_nop

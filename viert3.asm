@@ -387,7 +387,7 @@ A_NEXT:
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
 	%ifdef C_DOCOL
-		cmp	al, BREAK
+		cmp	al, BREAK2
 	%endif
 %else
 	%assign A_needs_clearing 0
@@ -485,6 +485,9 @@ WORD_OFFSET:
 %endif
 
 LASTWORD equ lastoff2
+BREAK2 equ lastoff
+align2 WORD_ALIGN, nop
+
 A___BREAK__:
 END_OF_CODEWORDS:
 %assign ASM_WORDS WORD_COUNT
@@ -539,7 +542,6 @@ A_END:
 %if ASM_WORDS > 0
 	%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
 %endif
-%warning "FORTH_SIZE" FORTH_SIZE
 %warning "FORTH_WORDS" FORTH_WORDS
 %if FORTH_WORDS > 0
 	%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
@@ -549,4 +551,3 @@ A_END:
 %if %isdef(lastoff) && !SPLIT
 	%warning "LASTOFF" %eval(lastoff)
 %endif
-%warning "LASTOFF2" %eval((lastoff2 - $$)/WORD_ALIGN)
