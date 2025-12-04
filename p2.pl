@@ -154,15 +154,7 @@ $word{'until'}	= \@zbranch;
 my %noinline;
 my %alwaysinline;
 my %codeword;
-my %inline = (
-	STDOUT		=>	[1],
-	SYS_exit	=>	[1],
-	SYS_write	=>	[4],
-	CELL_SIZE	=>	[4],
-	'CELL_SIZE*1'	=>	[4],
-	'CELL_SIZE*2'	=>	[8],
-	'CELL_SIZE*3'	=>	[12],
-);
+my %inline;
 
 my @wordorder = ();
 
