@@ -11,7 +11,8 @@
 : STDOUT	  1 ;
 
 :? dup0< dup 0< ;
-: 0= dup0< not swap negate 0< not and ;
+: 0<> dup0< not swap negate 0< not nand ;
+: 0= 0<> not ;
 \ absolute branch
 : xbranch
 	NOINLINE
@@ -255,7 +256,6 @@
 
 
 
-: 0<> 0= not ;
 : = - 0= ;
 : <> = not ;
 
