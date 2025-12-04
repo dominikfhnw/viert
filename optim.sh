@@ -2,38 +2,62 @@
 set -ue
 FILE=$1
 shift
-#cat lib-rp.fth $FILE > tmp.fth
+PREPROC=
+if [ "$FILE" = "-p" ]; then
+	PREPROC=1
+	FILE=$1
+	shift
+fi
+
+nl='
+'
+
+EXTRA=
+for i in ${ASM-}
+do
+	EXTRA="${EXTRA}asm \"$i\"$nl"
+done
+
+if [ "${BIT-}" = "x32" ]; then
+	BITS=64
+else
+	BITS=${BIT:-32}
+fi
 
 # LIBRARY DEFINES:
 # PLUS: word "+" available
 # XLIT: support for xlit32
 # CHAIN: u. as a continue-chain
-CPP="-DPLUS -DXLIT"
-CPP="-DPLUS"
-CPP="-DXLIT"
-CPP=""
+: "${TOS_ENABLE=1}"
+CPP=
+for i in BIT BITS DEBUG FULL WORD_ALIGN SCALED TOS_ENABLE FORTHBRANCH PRUNE INLINE INLINEALL PRDEBUG LIT8 BRANCH8 SMALLASM PLUS VARHELPER XLIT FORCE JMPLEN
+do
+	if [ -n "${!i-}" ]; then
+		CPP="$CPP -D$i=${!i}"
+	fi
+done
+echo "$CPP"
+export TOS_ENABLE
 
-CPP="-DXLIT"
+if [ "${V-}" ]; then
+	LIB="lib-var.fth"
+else
+	LIB="lib-rp.fth"
+fi
 
-cpp $CPP -C -P -nostdinc lib-rp.fth > tmp.fth
-cat $FILE >> tmp.fth
-export OPT
-export PRUNE
-export INLINE
-export INLINEALL
-export DEBUG
-export PRDEBUG
-export LIT8
-export LIT
-export SMALLINIT
-export FORTHBRANCH
-export WORD_ALIGN
-export SCALED
-export FULL
-#OPT=${OPT-} perl p2.pl tmp.fth 2> x > f2
-#echo "PRUNE $PRUNE"
-#echo "INLINEALL $INLINEALL"
-perl p2.pl tmp.fth 2> x > f2
+
+OUT="tmp.fth"
+echo "$EXTRA" > "$OUT"
+cpp $CPP -C -P -nostdinc "$LIB" >> "$OUT"
+if [ $PREPROC ]; then
+	cpp $CPP -C -P -nostdinc "$FILE" >> "$OUT"
+else
+	cat $FILE >> "$OUT"
+fi
+
+
+
+perl p2.pl "$OUT" 2> x > f2
 
 bash -x ./f2 "$@"
 
