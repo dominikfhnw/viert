@@ -1,7 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-BIT="32"
+if [ -z "${BIT:-}" ]; then
+	BIT="32"
+fi
 HARDEN=0
 #ORG="0x01000000"
 #ORG="0x80000000"
@@ -22,6 +24,12 @@ if [ -n "${LIT-}" ]; then
 fi
 if [ -n "${TOS_ENABLE-}" ]; then
 	NASMOPT="$NASMOPT -DTOS_ENABLE=$TOS_ENABLE"
+fi
+if [ -n "${FORCE_ARITHMETIC_32-}" ]; then
+	NASMOPT="$NASMOPT -DFORCE_ARITHMETIC_32=$FORCE_ARITHMETIC_32"
+fi
+if [ -n "${SYSCALL64-}" ]; then
+	NASMOPT="$NASMOPT -DSYSCALL64=$SYSCALL64"
 fi
 if [ -n "${SPLIT-}" ]; then
 	NASMOPT="$NASMOPT -DSPLIT=$SPLIT"
@@ -115,8 +123,7 @@ if [ -n "${FULL-1}" ]; then
 	echo "FULL $BIT"
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
-	#nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro ' | grep -a --color=always -E '|error:'
-	nasm -I asmlib/ -o $OUT.o viert3.asm $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	nasm -I asmlib/ -o $OUT.o viert3.asm $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|(error|fatal):'
 	preproc
 	$LD $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
