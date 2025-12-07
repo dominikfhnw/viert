@@ -56,11 +56,22 @@
 ;	%pop dountilctx
 ;%endmacro
 
-%macro zbranch arg(1)
-	%assign %%off %1 - $
-	%if BRANCH8 && ( (%%off < -128) || (%%off > 127) )
-		%error "BRANCH8: offset too big: " %%off %1
+%macro checkbranch 1
+	%if BRANCH8
+		%assign %%off 0
+		%ifid %1
+			%assign %%off %1 - $
+		%else
+			%warning "branch not resolvable: " %1
+		%endif
+		%if (%%off < -128) || (%%off > 127)
+			%error "BRANCH8: offset too big: " %%off %1
+		%endif
 	%endif
+%endmacro
+
+%macro zbranch arg(1)
+	checkbranch %1
 
 	%if FORTHBRANCH
 		f "xzbranch"
@@ -76,6 +87,8 @@
 %endmacro
 
 %macro branch arg(1)
+	checkbranch %1
+
 	%if FORTHBRANCH
 		f "xbranch"
 		dbr %1
@@ -105,7 +118,6 @@
 %macro then arg(0)
 	%$jump1:
 	%ifctx elsectx
-		;%error ELSECTX
 		%pop elsectx
 		%ifctx elsectx
 			%error "nested else - did you try unless .. else .. then without activating nzbranch?"
@@ -197,10 +209,12 @@
 
 %macro begin 0
 	%push beginloop
-	%assign BRANCH_COUNT BRANCH_COUNT + 1
-	%assign %$count BRANCH_COUNT
-	%deftok %%B %strcat("BRANCH_",%$count)
-	%%B:
+	%if BRANCH8
+		%assign BRANCH_COUNT BRANCH_COUNT + 1
+		%assign %$count BRANCH_COUNT
+		%deftok %%B %strcat("BRANCH_",%$count)
+		%%B:
+	%endif
 	%$loop:
 %endmacro
 
@@ -223,8 +237,12 @@
 %endmacro
 
 %macro until 0.nolist
-	%deftok %%B %strcat("BRANCH_",%$count)
-	%$zbr: zbranch %%B
+	%if BRANCH8
+		%deftok %%B %strcat("BRANCH_",%$count)
+		%$zbr: zbranch %%B
+	%else
+		%$zbr: zbranch %$loop
+	%endif
 	%pop beginloop
 %endmacro
 
