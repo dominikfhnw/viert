@@ -23,6 +23,11 @@ BITS BIT
 %define DICT		0
 %endif
 
+; dangerous hacky things
+%ifndef HACKY
+%define HACKY		1
+%endif
+
 ; split asm/forth segments. Only works with SCALED==0 atm
 %ifndef SPLIT
 %define SPLIT		0
@@ -357,7 +362,11 @@ rdump
 %ifdef C_DOCOL
 A_DOCOL:
 %if SPLIT && SCALED
-	add	TEMP_ADDR, (FORTH_START - END_OF_CODEWORDS)
+	%if HACKY && %isidn(TEMP_ADDR,ecx)
+		add	ch, 0x10
+	%else
+		add	TEMP_ADDR, (FORTH_START - END_OF_CODEWORDS)
+	%endif
 %endif
 rspush	FORTH_OFFSET
 xchg	FORTH_OFFSET, TEMP_ADDR
