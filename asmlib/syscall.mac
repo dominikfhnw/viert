@@ -582,14 +582,15 @@ SECTION .text
 
 ; add an extra param to get the hackish version (-2 bytes)
 %imacro rwx 0-1
-	%if %0 == 0
-		set	ebx, $$
-		;lea	ecx, [ebx+START-$$]
-		set	ecx, 0x10000-1
+	%if ELF_CUSTOM
+		%ifdef ORG
+			set	ebx, ORG
+		%else
+			set	ebx, $$
+		%endif
+		set	ecx, 0xffff
 
 		mprotect ebx, ecx, 7
-	%else
-		mprotect $$, -1, 7
 	%endif
 %endmacro
 

@@ -1,22 +1,5 @@
-( 
-	# I'm also a bash script
-	DEBUG=1 FULL=1 RUN= DIS=1 SOURCE=$0 bash viert3.asm -DWORD_ALIGN=1
-	kill $$ # the forth comment counts as a subshell, so this is the easiest way to exit
-)
-
-: emit
-	sp@
-	1
-;NORETURN
-
-: emitx
-	swap
-	1
-	4
-	syscall3
-	drop
-	drop
-	;
+\		# I'm also a bash script
+\ / 2>&-;	DEBUG= RUN= DIS=1 SOURCE=$0 ./viert.sh -DWORD_ALIGN=1 -DWORDSET=2; exit $?
 
 : u.
 	10 divmod
@@ -26,9 +9,24 @@
 		u.
 	else
 		drop
-	then
+	endif
 
-	'0' + emit
+	'0' +
+	;CONTINUE
+
+
+: emit
+	1
+	;CONTINUE
+
+: emitx
+	sp@
+	CELL_SIZE*1 +
+	1
+	4
+	syscall3
+	drop
+	drop
 	;
 
 : case
@@ -36,14 +34,14 @@
 	if
 		drop		\ get rid of string
 	else
-		sp@ 4 emitx	\ print string
+		4 emitx	\ print string
 		1 +		\ increase match counter
-	then
+	endif
 ;
 
 MAIN
-do
-	rsinc 20 not +
+begin
+	rsinci 20 not +
 	if
 		'Fizz' i 3 case
 		'Buzz' i 5 case
@@ -52,13 +50,13 @@ do
 				\ do nothing if match counter != 0
 		else
 			i u.	\ print i
-		then
+		endif
 		10 emit		\ print newline
 	else
 		SYS_exit
 		syscall3
-	then
+	endif
 
 		
-loop
+again
 

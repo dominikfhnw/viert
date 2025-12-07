@@ -272,7 +272,7 @@
 	fib
 	;
 
-: i
+: ix
 	rp@
 	CELL_SIZE
 	+

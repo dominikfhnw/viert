@@ -1,169 +1,3 @@
-%if 0
-set -euo pipefail
-
-BIT="x32"
-HARDEN=0
-#ORG="0x01000000"
-#ORG="0x80000000"
-ORG="0x10000"
-DUMP="-z -Mintel"
-#DUMP="--no-addresses -z -Mintel"
-NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
-if [ -z ${FORCE-} ]; then
-	NASMOPT="$NASMOPT -Werror=number-overflow"
-fi
-
-LD="gold"
-#LD="ld.lld"
-LD="ld"
-#LD="/home/balou/ELFkickers-3.2/infect/f/isvm-tool/viert.proj/mold/build/mold"
-
-if [ -z "${PIC-}" ]; then
-	FLAGS="-Ttext-segment=$ORG"
-else
-	FLAGS="-pie --no-dynamic-linker -z norelro --hash-style=sysv --no-eh-frame-hdr --disable-new-dtags --no-ld-generated-unwind-info --as-needed"
-	FLAGS="-pie --no-dynamic-linker -z norelro --hash-style=sysv"
-	#FLAGS="-pie --no-dynamic-linker -z relro -z noexecstack -z now --hash-style=sysv --export-dynamic-symbol=__stack_chk_fail"
-	#FLAGS="-pie --no-dynamic-linker -z relro -z noexecstack -z now --hash-style=sysv --export-dynamic-symbol=__stack_chk_fail --build-id=sha1"
-	NASMOPT="$NASMOPT -DPIC=1"
-fi
-
-if [ "$LD" != "gold" ]; then
-	FLAGS="$FLAGS -z noseparate-code"
-fi
-
-if [ "$HARDEN" = 1 ]; then
-	NASMOPT="$NASMOPT -DHARDEN=1"
-	FLAGS="$FLAGS -static -pie --no-dynamic-linker"
-	#FLAGS="$FLAGS -T o --verbose -u __stack_chk_fail -u __read_chk -z noexecstack -z ibt -z shstk -z relro -z now --build-id=none --orphan-handling=warn"
-	#FLAGS="$FLAGS -u __stack_chk_fail -u __read_chk -u .cfi -u __safestack_init -z noexecstack -z ibt -z shstk -z relro -z now --build-id=none --orphan-handling=warn"
-	FLAGS="$FLAGS -u __stack_chk_fail -u __read_chk -u .cfi -u __safestack_init -z noexecstack -z ibt -z shstk -z relro -z now --build-id=none"
-	FLAGS="$FLAGS -u .cfi -u __safestack_init" # checksec extended
-	FLAGS="$FLAGS --unresolved-symbols=report-all"
-else
-	if [ "${LD##*/}" = "mold" ]; then
-		FLAGS="$FLAGS --no-eh-frame-hdr -z norelro"
-	elif [ "$LD" = "ld.lld" ]; then
-		FLAGS="$FLAGS -z nognustack --no-rosegment"
-	fi
-fi
-
-DEBUG=0 perl parse.pl ${SOURCE:-forthwords.fth} > compiled.asm
-
-OUT=viert
-if [ -n "${LINCOM-}" ]; then
-	OUT="$OUT.com"
-	NASMOPT="-DLINCOM=1"
-	FULL=
-fi
-
-if [ -n "${FULL-1}" ]; then
-	if [ "$BIT" = 64 ]
-	then
-		NASMOPT="$NASMOPT -f elf64 -DBIT=$BIT"
-		FLAGS="$FLAGS -m elf_x86_64"
-	elif [ "$BIT" = "x32" ]
-	then
-		NASMOPT="$NASMOPT -f elfx32 -DBIT=64 -DX32=1"
-		FLAGS="$FLAGS -m elf32_x86_64"
-	else
-		NASMOPT="$NASMOPT -f elf32 -DBIT=$BIT"
-		FLAGS="$FLAGS -m elf_i386"
-	fi
-
-	echo "FULL $BIT"
-	rm -f $OUT $OUT.o
-	NASMOPT="$NASMOPT -DFULL=1"
-	nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
-	$LD $FLAGS $OUT.o -o $OUT
-	cp $OUT $OUT.full
-	ls -l $OUT.full
-	sstrip $OUT
-	#truncate -s -65536 $OUT
-
-	if [ "$HARDEN" = 1 ]; then
-		echo
-		echo " * hardening-check:"
-		hardening-check -c viert.full ||:
-
-		echo
-		echo " * checksec:"
-		checksec --file=viert.full ||:
-		exit
-	fi
-else
-	echo "SMALL $BIT"
-	if [ "$BIT" = "x32" ]
-	then
-		NASMOPT="$NASMOPT -DBIT=64 -DX32=1"
-	else
-		NASMOPT="$NASMOPT -DBIT=$BIT"
-	fi
-
-	if [ "$BIT" != 32 ]
-	then
-		echo "Oh hell no" >&2
-		#exit 66
-	fi
-	rm -f $OUT
-	nasm -I asmlib/ -f bin -o $OUT "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
-fi
-ls -l $OUT
-chmod +x $OUT
-
-symbols(){
-	# binutils nm sometimes has a weird ~0.5s lag, while eu-nm is consistently fast
-	OPT="-f bsd -td -n $OUT.full"
-	time LC_ALL=C eu-nm $OPT || nm $OPT
-}
-sizes(){
-	symbols | awk '
-		BEGIN { print "84 ELF" }
-
-		/. A_[^.]*$/ {
-			sub(/A_/,"")
-			if(name){
-				print $1-size " " name
-				total+=($1-size)
-			}
-			if(name == "__BREAK__"){
-				print total " SUBTOTAL"
-			}
-			name=$3
-			size=$1
-		}
-
-		END {
-			total+=84
-			print total " TOTAL"
-		}
-	'|column -tR1
-}
-
-if [ -n "${FULL-1}" ]; then
-	DUMP="$DUMP -j .text -j .rodata"
-	[ "${DIS-1}" ] && objdump $DUMP -d $OUT.full
-	#sizes | sort -nr
-	sizes
-else
-	OFF=$(  readelf -lW $OUT 2>/dev/null | awk '$2=="0x000000"{print $3}')
-	START=$(readelf -hW $OUT 2>/dev/null | awk '$1=="Entry"{print $4}')
-	if [ "$BIT" = "x32" ]; then
-		m="x86-64"
-	else
-		m="i386"
-	fi
-	[ "${DIS-1}" ] && objdump $DUMP -b binary -m i386 -M $m -D $OUT --adjust-vma="$OFF" --start-address="$START"
-fi
-
-set +e
-ls -l $OUT
-strace -frni ./$OUT
-echo ret $?
-ls -l $OUT
-exit
-%endif
-
 ; Bitness flags:
 ; BIT: 32 or 64. What kind of code is being executed
 ; X32: true if we are compiling an "x32" binary - 64-bit code with 32-bit pointers.
@@ -179,6 +13,55 @@ BITS BIT
 %define REG_ASSERT	0
 
 %include "stdlib.mac"
+
+%ifndef TOS_ENABLE
+%define TOS_ENABLE	1
+%endif
+
+; create dictionary
+%ifndef DICT
+%define DICT		0
+%endif
+
+; dangerous hacky things
+%ifndef HACKY
+%define HACKY		1
+%endif
+
+; split asm/forth segments. Only works with SCALED==0 atm
+%ifndef SPLIT
+%define SPLIT		0
+%endif
+
+; use scaled, relative offsets
+%ifndef SCALED
+%define SCALED		1
+%endif
+
+; Which literal function to use for 32bit literals
+%ifndef LIT
+%define LIT		xlit32
+%endif
+
+; smaller init code.
+%ifndef SMALLINIT
+%define SMALLINIT	3
+%endif
+
+; make our memory writable. Needed for variables. Not working together with SMALLINIT atm
+%ifndef RWMEM
+%define RWMEM		0
+%endif
+
+; branching with 8 bit values. Bigger asm part because of movsx, probably smaller overall
+%ifndef BRANCH8
+%define BRANCH8		0
+%endif
+
+; implement (conditional) branches in pure forth with 0< rp@ @ !
+%ifndef FORTHBRANCH
+%define FORTHBRANCH	0
+%endif
 
 ; enable syscall words. If 0, emit/exit will use hardcoded syscalls
 %ifndef SYSCALL
@@ -199,11 +82,6 @@ BITS BIT
 	%define BIT_ARITHMETIC	64
 %else
 	%define BIT_ARITHMETIC	32
-%endif
-
-; enable 8 bit literals. Usually a good idea, as it saves a lot of overall space
-%ifndef LIT8
-%define LIT8		1
 %endif
 
 ; WHILE in pure forth
@@ -230,10 +108,6 @@ BITS BIT
 %define X32		0
 %endif
 
-%ifndef OFFALIGN
-%define OFFALIGN	0
-%endif
-
 %ifndef SYSCALL64
 	%if BIT == 64 && !X32
 		%define SYSCALL64	1
@@ -253,6 +127,7 @@ BITS BIT
 	%define	SI		rsi
 	%define	jCz		jrcxz
 	%define	native		qword
+	%define	dn		dq
 	%define	CELL_SIZE	8
 %else
 	%define	A		eax
@@ -265,12 +140,41 @@ BITS BIT
 	%define	SI		esi
 	%define	jCz		jecxz
 	%define	native		dword
+	%define	dn		dd
 	%define	CELL_SIZE	4
 %endif
 
 ; those two are pretty much fixed, due to push/pop and lods*
 %define	DATA_STACK	SP
 %define	FORTH_OFFSET	esi
+
+%if FORTHBRANCH
+	%macro dbr 1
+		%warning FORTHBRANCH %1
+		;dd %1 - $	; relative
+		dd %1		; absolute
+	%endmacro
+	%define incbr
+%elif BRANCH8
+	%macro dbr 1
+		%warning "BRANCH8" %1
+		db %1 - $
+	%endmacro
+	%ifidn FORTH_OFFSET,esi
+		%warning "standard FORT_OFFSET esi"
+		%define incbr	lodsb
+	%else
+		%warning "************************* NONSTANDARD FORTH_OFFSET " FORTH_OFFSET
+		%define incbr	inc	FORTH_OFFSET
+	%endif
+%else
+	%macro dbr 1
+		%warning "BRANCH32" %1
+		dd %1
+	%endmacro
+	%define incbr	add	FORTH_OFFSET, 4
+%endif
+
 
 %if SYSCALL64
 	; A: used by syscall, lodsb
@@ -284,14 +188,13 @@ BITS BIT
 	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11
 	; leaves us with B, BP, R12-R15. BP and R12-R15 have additional encoding overhead
 	%define	RETURN_STACK	B
+	%define TOS		DI
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP, R12-R15. BP and R12-R15 have additional encoding overhead
-	%define	TEMP_ADDR	edi
+	%define	TEMP_ADDR	ecx
 	; SYSCALL_SAVE:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11 
 	; leaves us with B, BP, R12-R15. R12-R15 have additional encoding overhead
 	%define	SYSCALL_SAVE	ebp	; FORTH_OFFSET will get saved here during syscalls
-	%define SYS_write	1
-	%define SYS_exit	60
 %else
 	; A: used by syscall, lodsb
 	; B: used by syscall
@@ -304,9 +207,10 @@ BITS BIT
 	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, B, C, D
 	; leaves us with DI, BP. BP has additional encoding overhead
 	%define	RETURN_STACK	DI
+	%define TOS		B
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP. BP has additional encoding overhead
-	%define	TEMP_ADDR	ebx
+	%define	TEMP_ADDR	ecx
 %endif
 
 %if X32
@@ -320,10 +224,20 @@ BITS BIT
 %endif
 
 %assign	WORD_COUNT	0
+%assign	BRANCH_COUNT	0
 %define zero_seg	0
 
 %ifndef WORD_ALIGN
 %define WORD_ALIGN	2
+%endif
+
+%if !SCALED
+	%assign WORD_ALIGN	1	; no scaling, so always 1
+	%define	TEMP_ADDR	eax	; no separate register to do offset/scaling
+%endif
+
+%if %isidn(LIT,lit32)
+	%assign C_lit32 1
 %endif
 
 %ifndef WORD_SIZE
@@ -332,15 +246,8 @@ BITS BIT
 
 %assign BITM1		BIT - 1
 
-; 52 byte for ELF header, 32 byte for each program header
-%define elf_extra_align 0
-%if WORD_ALIGN == 8
-	%define elf_extra_align 4
-%endif
-%define ELF_HEADER_SIZE (52 + 1*32 + elf_extra_align)
-
-%if OFFALIGN
-	%define BASE ORG
+%if PIC
+	%define BASE ebp
 %else
 	%define BASE WORD_OFFSET
 %endif
@@ -361,24 +268,33 @@ SECTION .text align=1
 
 
 A_INIT:
+rdump
+
+%ifdef WORDSET
+	%include "oldwordset.asm"
+%else
+	%include "wordset.asm"
+%endif
+
+%ifdef C_EXIT
+	%define C_DOCOL
+	%define INIT_REG TEMP_ADDR
+%else
+	%define INIT_REG FORTH_OFFSET
+%endif
+
+
+%if SMALLINIT
+	mov	INIT_REG, FORTH - (FORTH_START - END_OF_CODEWORDS)
+	mov	RETURN_STACK, SP
+	sub	SP, INIT_REG
+
+	ELF_PHDR 1
+%else
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
 ; And conveniently, EXIT is the first defined word, so we can "call" it
 ; by simply doing nothing
-%if HARDEN
-hardening:
-cmp	ax, 0x1000
-;cmp    rsp, rax ; for 64bit codebase, 1 byte shorter
-jz	.end
-sub	ax, 0x1000
-or	al, 0x0
-jmp	hardening
-.end:
-rset	eax, 0x1000
-set	eax, 0
-%endif
-
-%if 1
 	enter	0xFFFF, 0
 	%ifnidn embiggen(RETURN_STACK),BP
 		%if X32
@@ -387,171 +303,235 @@ set	eax, 0
 			xchg	RETURN_STACK,BP
 		%endif
 	%endif
-	ELF_PHDR 1
-	; we chose our base address to be < 2^32
 	%if PIC
-		lea	TEMP_ADDR, [rel FORTH]
+		ELF_PHDR 1
+		%if BIT == 64
+			lea	TEMP_ADDR, [rel FORTH]
+		%else
+			call	.below
+		.below:	pop	BASE
+			add	BASE, (WORD_OFFSET-.below)
+		%endif
+		lea	TEMP_ADDR, [BASE + (FORTH-WORD_OFFSET)]
 	%else
+		rinit
+		%if RWMEM && ELF_CUSTOM
+			%ifdef ORG
+				set	ebx, ORG
+			%else
+				set	ecx, 0xffff
+			%endif
+		%endif
+		ELF_PHDR 1
+		%if RWMEM && ELF_CUSTOM
+			_rwx:
+			taint	RETURN_STACK
+			rwx
+		%endif
+		; we chose our base address to be < 2^32. So no embiggen
 		mov	TEMP_ADDR, FORTH
 	%endif
+%endif
+
+;;; OLD CODEWORDS.ASM
+%define BREAK offset(END_OF_CODEWORDS-2)
+
+%assign A_is_low 0		; is A low when words are called?
+%assign A_needs_clearing 1	; does A need clearing before returning from words?
+; clear A/eax either in words or the inner interpreter
+; Nb: xor eax, eax also clears upper 32bits on 64bit
+%if SCALED
+	%define assert_A_low
+	%define A_tainted	xor eax, eax
+; no need to clear A in most cases in non-scaled mode
 %else
-	; we chose our base address to be < 2^32
-	mov	ebp, FORTH
-	enter	0xFFFF, 0
-	ELF_PHDR 1
-	%ifnidn embiggen(RETURN_STACK),BP
-		%if X32
-			xchg	RETURN_STACK,ebp
-		%else
-			xchg	RETURN_STACK,BP
-		%endif
+	%define assert_A_low	xor eax, eax
+	%define A_tainted
+%endif
+
+; ENTER - set up stack frame for function
+;       - push EBP on stack, move esp to ebp, subtracct imm from esp
+;push	ebp
+;mov	ebp, esp
+;sub	esp, imm
+
+; LEAVE - Set ESP to EBP, then pop EBP.
+;mov	esp, ebp
+;pop	ebp
+
+%ifdef C_DOCOL
+A_DOCOL:
+%if SPLIT && SCALED
+	%if HACKY && %isidn(TEMP_ADDR,ecx)
+		add	ch, 0x10
+	%else
+		add	TEMP_ADDR, (FORTH_START - END_OF_CODEWORDS)
+	%endif
+%endif
+rspush	FORTH_OFFSET
+xchg	FORTH_OFFSET, TEMP_ADDR
+%if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
+DEBUGCOL:
+	xchg	SP, RETURN_STACK
+	BP2:
+	INSP:
+	xchg	SP, RETURN_STACK
+%endif
+%endif
+
+A_NEXT:
+%if SCALED
+	assert_A_low
+	lodsb
+	%assign A_is_low 1 ; flag to indicate A is low when words are called
+	xt:
+	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	%ifdef C_DOCOL
+		cmp	al, BREAK2
+	%endif
+%else
+	%assign A_needs_clearing 0
+	lodsd
+	xt:
+	%ifdef C_DOCOL
+		cmp	ax, LASTWORD
 	%endif
 %endif
 
-%include "codewords.asm"
+%if DEBUG
+	;reg
+%endif
 
-%macro string 1
-	f_string
-	db %%endstring - $ - 1
-	db %1
-	%%endstring:
-%endmacro
-
-%macro dotstr 1
-	f_dotstr
-	db %%endstring - $ - 1
-	db %1
-	%%endstring:
-%endmacro
-
-%macro inline_asm 0
-	%push asmctx
-	f_string
-	db %$endasm - $ - 1
-	%$asm:
-%endmacro
-
-%macro endasm 0
-	NEXT
-	%$endasm:
-	f_asmjmp
-	%pop asmctx
-%endmacro
-
-%macro do arg(0)
-	%push dountilctx
-	%$dountil:
-%endmacro
-
-%macro until arg(0)
-	f_zbranch
-	db %$dountil - $
-	%pop dountilctx
-%endmacro
-
-%macro while arg(0)
-	f_not
-	f_zbranch
-	db %$dountil - $
-	%pop dountilctx
-%endmacro
-
-%macro doloop1 0-1
-	%push loopctx
-	%if %0 == 1
-		lit %1
-	%endif
-	f_rspush
-	%$loop:
-%endmacro
-
-%macro endloop1 arg(0)
-	%if FORTHWHILE
-		f_rp_at
-		f_while
-		f_zbranch
-		db %$loop - $
-		f_rdrop
+%if 0 && PIC
+	%if BIT == 32
+		call	.below
+	.below:	pop	TEMP_ADDR
+		;add	TEMP_ADDR, byte (BASE-.below)
+		lea	TEMP_ADDR, [A*WORD_ALIGN+embiggen(TEMP_ADDR) +(BASE-.below)]
 	%else
-		f_while2
-		db $ - %$loop + 1
+		lea	TEMP_ADDR, [rel BASE]
+		lea	TEMP_ADDR, [embiggen(TEMP_ADDR)+A]
 	%endif
-	%pop loopctx
-%endmacro
+%else
+	;lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+%endif
 
-%macro endloop2 arg(0)
-	f_while4
-	db $ - %$loop + 1
-	f_rdrop
-	%pop loopctx
-%endmacro
 
-%macro if arg(0)
-	%push ifctx
-	f_zbranch
-	db %$jump1 - $
-%endmacro
+BP1:
+%ifdef C_DOCOL
+	ja	A_DOCOL
+%endif
+;jmpTEMP:
+jmp	embiggen(TEMP_ADDR)
 
-%macro then arg(0)
-	%$jump1:
-	%ifctx elsectx
-		%pop elsectx
-	%endif
-	%pop ifctx
-%endmacro
+%define lastoff2 A_NEXT
+; ABI
+; esi:	Instruction pointer to next forth word
+; SP:	Data stack
+; DI:	Return stack
+; A:	Contains value of forth word being executed.
+;	Must be set =< 255 when returning from primitive
+; D:	First working register for primitives
+; C:	Second working register for primitives, counter register
+; B:	FORTH_OFFSET of calling function. Third working register
+;
+; SP and DI are macros that expand to esp and edi on "32" and "x32" targets.
+; They expand to rsp and rdi on target "64"
+; Instruction pointer is always esi - we do not support programs bigger than 2^32 bytes
+;
+; Ideas what to use rbp for:
+; * address of next (nope: disp8 encoding means 3 bytes)
+; * zero register   (nope: mov is same or more than xor)
+; * comparison register
+; * counter register: only gain is not having to have rdrop
+;
+; Ideas for r8-15:
+; * Keep part of stack
+; * debug registers
+;
+;
+; zero-A vs before:
+; lit32:	+2
+; divmod:	+1
+; syscall3:	+2
+; DOCOL:	+1
+; lit8:		-2
+; NEXT:		-3
+; while2:	-2
+; string:	-2
+; TOTAL:	-3
 
-%macro else arg(0)
-	f_branch
-	%push elsectx
-	db %$jump1 - $
+%if FORCE_ARITHMETIC_32
+	%define	aD	edx
+	%define	aC	ecx
+	%define arith	dword
+%else
+	%define	aD	D
+	%define	aC	C
+	%define arith	native
+%endif
 
-	%$$jump1:
-%endmacro
+%assign haveclearA	0
+%assign havepushA	0
+%assign havepushDA	0
+%assign havepopTOS	0
+%assign havenop		0
 
-%macro jump arg(1)
-	f_branch
-	db %1 - $
-%endmacro
+WORD_OFFSET:
+%if TOS_ENABLE
+	%include "codewords-tos.asm"
+%else
+	%include "codewords.asm"
+%endif
 
-%macro do 0
-	%push infloop
-	%$loop:
-%endmacro
+LASTWORD equ lastoff2
+BREAK2 equ lastoff
+align2 WORD_ALIGN, nop
 
-%macro loop 0
-	f_branch
-	db %$loop - $
-	%pop infloop
-%endmacro
+A___BREAK__:
+END_OF_CODEWORDS:
+%assign ASM_WORDS WORD_COUNT
+%assign ASM_SIZE lastoff2 - WORD_OFFSET
+%warning "ASM_SIZE" ASM_SIZE
+
+; ################################################################
+
+%include "immediate.asm"
+
+%assign LASTASM offset($)
+%if SPLIT
+[section .data align=1]
+%endif
 
 FORTH_START:
 %include "compiled.asm"
+LATEST equ dlink
 
 A_END:
 %if DEBUG
 	; after A_END, because we don't want to count it towards the total
+	int3
 	A_regdump:
 	%include "regdump2.mac"
 %endif
 
-
-%if FULL
-;resb 65536
-%endif
-
-%if HARDEN
-SECTION txtrp align=1
-db 0
-%endif
 %assign FORTH_WORDS WORD_COUNT - ASM_WORDS
 %define FORTH_SIZE %eval(lastoff2 - FORTH_START)
 %warning "ASM_SIZE" ASM_SIZE
 %warning "ASM_WORDS" ASM_WORDS
-%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
-%warning "FORTH_SIZE" FORTH_SIZE
+%if ASM_WORDS > 0
+	%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
+%endif
 %warning "FORTH_WORDS" FORTH_WORDS
-%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
+%if FORTH_WORDS > 0
+	%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
+%endif
 %warning "WORDS TOTAL" WORD_COUNT
 %warning "BREAK" %eval(BREAK)
-%warning "LASTOFF" %eval(lastoff)
-%warning "LASTOFF2" %eval(((lastoff2 - $$)/WORD_ALIGN)+ELF_HEADER_SIZE)
+%if %isdef(lastoff) && !SPLIT
+	%warning "LASTOFF" %eval(lastoff)
+%endif
+
+FORTH_END:
+[section .bss align=1]
+resb	4 * 0xffff

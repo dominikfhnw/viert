@@ -34,3 +34,10 @@
 * limit start ?DO .. LOOP
 
 
+currently implemented:
+* BEGIN .. AGAIN
+* n FOR .. NEXT
+* limit start DO .. LOOP
+* start limit SWAPDO .. LOOP
+* LOOPLE: exit loop if above limit. Does not require the word 'minus'
+* LOOP: exit loop if equals to limit

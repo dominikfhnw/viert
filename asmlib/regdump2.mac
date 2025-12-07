@@ -19,7 +19,7 @@
 %define EXTENDED 0
 %define FLAGS 1
 %define IP 1
-%define	STACK 10
+%define	STACK 6
 
 %define LABEL 2
 %define ALTLABEL 0
@@ -29,7 +29,7 @@
 ;  A   C   D   B   S   P   s   d   f
 ;hlt
 
-%macro regdump_func 0
+%macro regdump_func 0.nolist
 %if LABEL || ALTLABEL
 %define SPACE 1
 %else
@@ -232,7 +232,7 @@ endloop
 stosb
 %endif
 
-puts	esp, TOTAL
+write	1, esp, TOTAL
 
 ; partial memory cleanup +6 bytes
 ; popf/popa/ret not cleand up (40 bytes)
@@ -295,7 +295,9 @@ times 8 db 0
 %endif
 
 regdump:
+[warning -user]
 regdump_func
+[warning *user]
 ret
 
 %if SEPARATE_STACK
