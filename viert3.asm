@@ -9,7 +9,9 @@ BITS BIT
 CPU 8086
 %endif
 
-;%define B64
+%if BIT == 64
+	%define B64
+%endif
 
 %define REG_OPT		1
 %define REG_SEARCH	1
@@ -312,11 +314,14 @@ rdump
 	%define INIT_REG FORTH_OFFSET
 %endif
 
-
 %if SMALLINIT
 	mov	INIT_REG, FORTH - (FORTH_START - END_OF_CODEWORDS)
-	mov	RETURN_STACK, SP
-	sub	SP, INIT_REG
+	mov	RETURN_STACK, DATA_STACK
+	%if X32
+		sub	DATA_STACK, INIT_REG
+	%else
+		sub	DATA_STACK, embiggen(INIT_REG)
+	%endif
 
 	%if BIT != 16
 		ELF_PHDR 1
@@ -400,13 +405,17 @@ A_DOCOL:
 	%endif
 %endif
 rspush	FORTH_OFFSET
-xchg	FORTH_OFFSET, TEMP_ADDR
+%if BIT == 64
+	mov	FORTH_OFFSET, TEMP_ADDR
+%else
+	xchg	FORTH_OFFSET, TEMP_ADDR
+%endif
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
 DEBUGCOL:
-	xchg	SP, RETURN_STACK
+	xchg	DATA_STACK, RETURN_STACK
 	BP2:
 	INSP:
-	xchg	SP, RETURN_STACK
+	xchg	DATA_STACK, RETURN_STACK
 %endif
 %endif
 
@@ -506,10 +515,14 @@ jmp	embiggen(TEMP_ADDR)
 ; TOTAL:	-3
 
 %if FORCE_ARITHMETIC_32
+	%define	aTOS	emsmallen(TOS)
+	%define	aA	eax
 	%define	aD	edx
 	%define	aC	ecx
 	%define arith	dword
 %else
+	%define	aTOS	TOS
+	%define	aA	A
 	%define	aD	D
 	%define	aC	C
 	%define arith	native
