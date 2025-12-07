@@ -122,6 +122,7 @@ BITS BIT
 	%define	SI		rsi
 	%define	jCz		jrcxz
 	%define	native		qword
+	%define	dn		dq
 	%define	CELL_SIZE	8
 %else
 	%define	A		eax
@@ -134,6 +135,7 @@ BITS BIT
 	%define	SI		esi
 	%define	jCz		jecxz
 	%define	native		dword
+	%define	dn		dd
 	%define	CELL_SIZE	4
 %endif
 
