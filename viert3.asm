@@ -531,3 +531,7 @@ A_END:
 %if %isdef(lastoff) && !SPLIT
 	%warning "LASTOFF" %eval(lastoff)
 %endif
+
+FORTH_END:
+[section .bss align=1]
+resb	4 * 0xffff
