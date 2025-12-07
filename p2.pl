@@ -187,13 +187,21 @@ sub hlparse {
 
 		given(shift@stream){
 			#dp "TOK $_";
-			when('variable'){
+			when(/^(variable|varinit|vararray)$/){
 				my $var = shift @stream;
 				push @wordorder, $var;
+				my $value = 0;
+				my $extralen = 0;
+				if($_ eq "varinit"){
+					$value = shift @stream;
+				}
+				elsif($_ eq "vararray"){
+					$extralen = shift @stream;
+				}
 				#$LASTWORD = $word;
 				# XXX layering violation - this is the optimizer.
 				# See also comment below for the words that look like numbers
-				$word{$var} = ["VARIABLE","EXIT"];
+				$word{$var} = ["VARIABLE",$value,$extralen,"EXIT"];
 				push @{ $word{$var} }, "varhelper" if $VARHELPER;
 				if($CONTINUE){
 					die "continue is illegal before variable";
@@ -689,7 +697,18 @@ sub rehydrate {
 	my @word = @{ rehydrate2($name) || return "" };
 
 	if($word[0] eq "VARIABLE"){
-		return "variable $name";
+		my $value = $word[1];
+		my $extralen = $word[2];
+		dp "VARIABLE $name $value $extralen ",join(" ",@word);
+		if($extralen > 0){
+			return "vararray $name $extralen";
+		}
+		elsif(looks_like_number($value) && $value == 0){
+			return "variable $name";
+		}
+		else {
+			return "varinit $name $value";
+		}
 	}
 	if($word[-1] eq "EXIT"){
 		$word[-1] = ";";

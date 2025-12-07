@@ -83,9 +83,17 @@ sub parse {
 				dbg;
 				say "$_ $str";
 			}
-			when(/^(variable)$/) {
+			when(/^(variable|varinit|vararray)$/) {
 				$word = shift @stream;
 				my $name = name($word);
+				my $value = 0;
+				my $extralen = 0;
+				if($1 eq "varinit"){
+					$value = shift @stream;
+				}
+				if($1 eq "vararray"){
+					$extralen = shift @stream;
+				}
 				dp2 "VARIABLE $name";
 				say "";
 				$defined{$word}++;
@@ -97,11 +105,14 @@ sub parse {
 				}
 				else {
 					say f($LIT);
-					say "dd ${name}_mem";
+					say "dn ${name}_mem";
 					say "END";
 				}
 				say "${name}_mem:";
-				say "dd 0";
+				say "dn $value";
+				if($extralen > 0){
+					say "resb $extralen";
+				}
 				if($CONTINUE){
 					die "continue not legal before variable";
 				}
