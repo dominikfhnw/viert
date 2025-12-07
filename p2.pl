@@ -448,6 +448,7 @@ sub is_inlineable {
 	dp "IS_INLINEABLE $name count:$count len0:$len0 len1:$len1 ldif:",($len0-$len1)," sorig:$sorig sinline:$sinline \tX:",join(" ",@word)," origX:",join(" ",@orig);
 
 	return 1 if $alwaysinline{$name};
+	return 0 unless $INLINE;
 	if($sorig == $sinline){
 		dp "\tinline neutral $sorig == $sinline";
 		return 1;
@@ -682,6 +683,7 @@ sub rehydrate2 {
 
 	my @word = @{ $word{$name}};
 
+	# TODO: this is the only place where we care if a word was defined with ':?'
 	if($word[0] eq "MAYBE"){
 		shift @word;
 		if($codeword{$name}){
