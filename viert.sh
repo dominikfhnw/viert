@@ -88,6 +88,10 @@ if [ -n "${LINCOM-}" ]; then
 	FULL=
 fi
 
+preproc(){
+	{ nasm -I asmlib/ -e viert3.asm $NASMOPT "$@" ||:; } 2> preproc.err | grep -Ev '^(%line|$)' | sed '/:$/s/^/\n/' > preproc.asm
+}
+
 if [ -n "${FULL-1}" ]; then
 	if [ "$BIT" = 64 ]
 	then
@@ -110,6 +114,7 @@ if [ -n "${FULL-1}" ]; then
 	NASMOPT="$NASMOPT -DFULL=1"
 	#nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro ' | grep -a --color=always -E '|error:'
 	nasm -I asmlib/ -o $OUT.o viert3.asm $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	preproc
 	$LD $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
 	ls -l $OUT.full
@@ -142,6 +147,7 @@ else
 	fi
 	rm -f $OUT
 	nasm -I asmlib/ -f bin -o $OUT viert3.asm $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	preproc
 fi
 chmod +x $OUT
 ls -l $OUT
