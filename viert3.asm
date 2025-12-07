@@ -505,6 +505,7 @@ END_OF_CODEWORDS:
 
 FORTH_START:
 %include "compiled.asm"
+LATEST equ dlink
 
 A_END:
 %if DEBUG
