@@ -160,11 +160,13 @@ my %inline;
 my @wordorder = ();
 
 sub getstream {
-	my $contents = do { local $/; <> || die "read failed: $!" };
-	$contents =~ s/\(\s+[^)]*\)//gm;		# ( comments )
-	$contents =~ s/\\\s.*$//gm;			# \ comments
-	$contents =~ s/:x\s+[^;]*\;(NORETURN)?//gm;	# ":x": disabled words
-	return split ' ', $contents;
+	given(my $contents = do { local $/; <> || die "read failed: $!" }){
+		s/\(\s+[^)]*\)//gm;		# ( comments )
+		s/\\\s.*$//gm;			# \ comments
+		s/:x\s+[^;]*\;(NORETURN)?//gm;	# ":x": disabled words
+		/^#if/m and die "C preprocessor directive found in input, aborting";
+		return split ' ', $_;
+	}
 }
 
 sub noinline {
