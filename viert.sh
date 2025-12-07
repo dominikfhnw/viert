@@ -25,9 +25,11 @@ fi
 if [ -n "${SPLIT-}" ]; then
 	NASMOPT="$NASMOPT -DSPLIT=$SPLIT"
 else
+	NASMOPT="$NASMOPT -DSPLIT=0"
 	SPLIT=0
 fi
 NASMOPT="$NASMOPT -DFORTHBRANCH=${FORTHBRANCH-0}"
+NASMOPT="$NASMOPT -DJMPLEN=${JMPLEN-short}"
 
 LD="gold"
 #LD="ld.lld"
@@ -200,7 +202,7 @@ R2=
 if [ -n "${FULL-1}" ]; then
 	SIZE=$(( $(wc -c < "$OUT") - 84 ))
 	RADARE="r2 -2 -c aa -c 'e emu.str = true' -c 'pD $SIZE @ entry0' -q"
-	DUMP="$DUMP -j .text -j .rodata"
+	DUMP="$DUMP -j .text -j .data -j .rodata"
 	if [ "${DIS-1}" ]; then
 		if [ "${R2-}" ]; then
 			time eval $RADARE "$OUT.full"
