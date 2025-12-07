@@ -250,7 +250,7 @@ DEF "stringr"
 
 %ifdef C_1minus
 DEF "1minus"
-	dec	TOS
+	dec	aTOS
 	END
 %endif
 
@@ -263,8 +263,12 @@ DEF "1plus"
 %ifdef C_minus
 DEF "minus"
 	pop	C
-	sub	aC, TOS
-	xchg	aC, TOS
+	sub	aC, aTOS
+	%if BIT == 64 && FORCE_ARITHMETIC_32 == 0
+		mov	TOS, C
+	%else
+		xchg	aC, aTOS
+	%endif
 	END
 %endif
 
@@ -272,7 +276,7 @@ DEF "minus"
 %ifdef C_plus
 DEF "plus"
 	pop	C
-	add	TOS, aC
+	add	TOS, C
 	END
 %endif
 
@@ -293,23 +297,23 @@ DEF "int3"
 %ifdef C_divmod
 DEF "divmod"
 	assert_A_low
-	cdq		; A is <= 255, so cdq will always work
+	cnd		; A is <= 255, so cdq will always work
 	pop	A
-	div	TOS
-	mov	TOS, A
-	xchg	A, D
+	div	aTOS
+	mov	aTOS, aA
+	xchg	aA, aD
 	END	pushA
 %endif
 
 %ifdef C_nand
 	DEF "nand"
 		pop	D
-		and	TOS, D
+		and	aTOS, aD
 		END	no_next
 %endif
 %if %isdef(C_not) || %isdef(C_nand)
 	DEF "not"
-		not	TOS
+		not	aTOS
 		END
 %endif
 
@@ -358,7 +362,7 @@ DEF "nzbranch"
 
 %ifdef C_zbranch
 DEF "zbranch"
-	mov	C, TOS
+	mov	aC, aTOS
 	; can't use END popTOS, because then tos wouldn't be popped if we branch
 	pop	TOS
 	jCz	A_branch
@@ -371,12 +375,23 @@ gobranch:
 %if %isdef(C_branch) || %isdef(C_zbranch) || %isdef(C_zbranchc)
 DEF "branch"
 	%if BRANCH8
-		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
-		add	FORTH_OFFSET, ecx
+		%if BIT == 16
+			mov	A, [FORTH_OFFSET]
+			test	al, al
+			jns	.skip
+			dec	ah
+			.skip:
+			add	FORTH_OFFSET, A
+			END	clearA
+		%else
+			movsx	ecx, byte [embiggen(FORTH_OFFSET)]
+			add	FORTH_OFFSET, ecx
+			END
+		%endif
 	%else
 		mov	FORTH_OFFSET, [embiggen(FORTH_OFFSET)]
+		END
 	%endif
-	END
 %endif
 
 
@@ -403,12 +418,17 @@ DEF "0lt"
 	; from eForth. Would be 4 bytes smaller than my version
 	; Unfortunately, it clashes with the A <= 255 condition of this
 	; Forth, making it just 3 bytes smaller
-	xchg	TOS, A
+	xchg	aTOS, aA
+	%if %isdef(C_dropfalse)
 		END	no_next
+	%endif
 %endif
 %if %isdef(C_0lt) || %isdef(C_dropfalse)
-DEF "dropfalse"
-	cdq		; sign extend AX into DX
+	%if %isdef(C_dropfalse)
+		DEF "dropfalse"
+	%endif
+
+	cnd
 	push	D	; push 0 or -1
 	END	popTOS
 %endif
@@ -459,13 +479,19 @@ DEF "testasm"
 
 %ifdef C_rsinc
 	DEF "rsinc"
-		inc	native [RETURN_STACK]
+		inc	arith [RETURN_STACK]
+		END
+%endif
+
+%ifdef C_rsdec
+	DEF "rsdec"
+		dec	arith [RETURN_STACK]
 		END
 %endif
 
 %ifdef C_rsinci
 	DEF "rsinci"
-		inc	native [RETURN_STACK]
+		inc	arith [RETURN_STACK]
 		END	no_next
 %endif
 %if %isdef(C_rsinci) || %isdef(C_i)
@@ -553,7 +579,7 @@ DEF "zbranchc"
 DEF "lit32"
 	lodsd
 	push	TOS
-	xchg	TOS, A
+	xchg	emsmallen(TOS), eax
 	END	clearA
 %endif
 
@@ -654,7 +680,7 @@ DEF "rot"
 		%ifidn RETURN_STACK,B
 			%fatal invalid return stack register
 		%endif
-		xchg	A, TOS
+		xchg32	A, TOS
 		pop	B
 		pop	C
 		pop	D
@@ -668,7 +694,7 @@ DEF "rot"
 		%endif
 		mov	SYSCALL_SAVE, FORTH_OFFSET
 
-		xchg	A, TOS
+		xchg32	A, TOS
 		pop	DI
 		pop	SI
 		pop	D
@@ -685,7 +711,7 @@ DEF "rot"
 		%ifidn RETURN_STACK,B
 			%fatal invalid return stack register
 		%endif
-		xchg	A, TOS
+		xchg32	A, TOS
 		pop	B
 		pop	C
 		pop	D
@@ -707,7 +733,7 @@ DEF "syscall3"
 	%endif
 	mov	SYSCALL_SAVE, FORTH_OFFSET
 
-	xchg	A, TOS
+	xchg32	A, TOS
 	pop	DI
 	pop	SI
 	pop	D

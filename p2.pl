@@ -97,8 +97,8 @@ my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
 if($SMALLASM){
 	$BRANCH8 = opt "BRANCH8", 0; # default 0, but allow overide
-	$LIT8 = opt "LIT8", 0; # default 0, but allow overide
-	$FORTHBRANCH = 1;
+	$LIT8 = opt "LIT8", 0;
+	$FORTHBRANCH = opt "FORTHBRANCH", 1;
 }
 if($FORTHBRANCH){
 	$BRANCH8 = 0;
@@ -736,13 +736,11 @@ sub rehydrate {
 # for ANYLIT if nothing was defined. It gets substituded here, just before converting
 # the AST back to text
 my $ANYLIT = "rp@";
+my $anysub = not exists $word{'ANYLIT'};
 for my $word (@wordorder) {
-	if(not exists $word{$word}){
-		#dp "optimized away: $word";
-	}
-	else {
+	if(exists $word{$word}){
 		my $out = rehydrate($word);
-		$out =~ s/ANYLIT/$ANYLIT/g;
+		$out =~ s/ANYLIT/$ANYLIT/g if $anysub;
 		say $out if $out ne "";
 	}
 }
@@ -751,7 +749,7 @@ say "MAIN";
 #dp "XXXXXX";
 #dp Dumper(\%word);
 my $out = join(" ",@{ rehydrate2("MAIN") });
-$out =~ s/ANYLIT/$ANYLIT/g;
+$out =~ s/ANYLIT/$ANYLIT/g if $anysub;
 say $out;
 
 exit;

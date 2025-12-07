@@ -5,8 +5,13 @@
 ; B64: flag for regdump
 
 BITS BIT
+%if BIT == 16
+CPU 8086
+%endif
 
-;%define B64
+%if BIT == 64
+	%define B64
+%endif
 
 %define REG_OPT		1
 %define REG_SEARCH	1
@@ -14,6 +19,12 @@ BITS BIT
 
 %include "stdlib.mac"
 
+; mov wrapper to create smaller mov alternatives
+%ifndef SMALLMOV
+%define SMALLMOV	1
+%endif
+
+; keep top of stack (ToS) in separate register
 %ifndef TOS_ENABLE
 %define TOS_ENABLE	1
 %endif
@@ -129,6 +140,19 @@ BITS BIT
 	%define	native		qword
 	%define	dn		dq
 	%define	CELL_SIZE	8
+%elif BIT == 16
+	%define	A		ax
+	%define	B		bx
+	%define	C		cx
+	%define	D		dx
+	%define	BP		bp
+	%define	SP		sp
+	%define	DI		di
+	%define	SI		si
+	%define	jCz		jcxz
+	%define	native		word
+	%define	dn		dw
+	%define	CELL_SIZE	2
 %else
 	%define	A		eax
 	%define	B		ebx
@@ -213,6 +237,11 @@ BITS BIT
 	%define	TEMP_ADDR	ecx
 %endif
 
+%if BIT == 16
+	%define	FORTH_OFFSET	si
+	%define	TEMP_ADDR	cx
+%endif
+
 %if X32
 	%xdefine	DATA_STACK	emsmallen(DATA_STACK)
 	%xdefine	RETURN_STACK	emsmallen(RETURN_STACK)
@@ -261,7 +290,9 @@ SECTION .text align=1
 %if !FULL
 	%define ELF_OFFSET 0x20
 	org ORG
-	ELF
+	%if BIT != 16
+		ELF
+	%endif
 %else
 	_start:
 %endif
@@ -283,13 +314,18 @@ rdump
 	%define INIT_REG FORTH_OFFSET
 %endif
 
-
 %if SMALLINIT
 	mov	INIT_REG, FORTH - (FORTH_START - END_OF_CODEWORDS)
-	mov	RETURN_STACK, SP
-	sub	SP, INIT_REG
+	mov	RETURN_STACK, DATA_STACK
+	%if X32
+		sub	DATA_STACK, INIT_REG
+	%else
+		sub	DATA_STACK, embiggen(INIT_REG)
+	%endif
 
-	ELF_PHDR 1
+	%if BIT != 16
+		ELF_PHDR 1
+	%endif
 %else
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
@@ -369,13 +405,17 @@ A_DOCOL:
 	%endif
 %endif
 rspush	FORTH_OFFSET
-xchg	FORTH_OFFSET, TEMP_ADDR
+%if BIT == 64
+	mov	FORTH_OFFSET, TEMP_ADDR
+%else
+	xchg	FORTH_OFFSET, TEMP_ADDR
+%endif
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
 DEBUGCOL:
-	xchg	SP, RETURN_STACK
+	xchg	DATA_STACK, RETURN_STACK
 	BP2:
 	INSP:
-	xchg	SP, RETURN_STACK
+	xchg	DATA_STACK, RETURN_STACK
 %endif
 %endif
 
@@ -385,7 +425,20 @@ A_NEXT:
 	lodsb
 	%assign A_is_low 1 ; flag to indicate A is low when words are called
 	xt:
-	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	%if BIT == 16
+		mov	TEMP_ADDR, A
+		%if WORD_ALIGN == 1
+		%elif WORD_ALIGN == 2
+			shl	TEMP_ADDR, 1
+		%elif WORD_ALIGN == 4
+			shl	TEMP_ADDR, 2
+		%else
+			%fatal "unsupported WORD_ALIGN on 16b"
+		%endif
+		add	TEMP_ADDR, BASE
+	%else
+		lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	%endif
 	%ifdef C_DOCOL
 		cmp	al, BREAK2
 	%endif
@@ -462,10 +515,14 @@ jmp	embiggen(TEMP_ADDR)
 ; TOTAL:	-3
 
 %if FORCE_ARITHMETIC_32
+	%define	aTOS	emsmallen(TOS)
+	%define	aA	eax
 	%define	aD	edx
 	%define	aC	ecx
 	%define arith	dword
 %else
+	%define	aTOS	TOS
+	%define	aA	A
 	%define	aD	D
 	%define	aC	C
 	%define arith	native
