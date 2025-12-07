@@ -5,7 +5,6 @@
 * forth-to-bytecode via nasm is a mess: compile-time constants in nasm, other
   constants in the forth part, stuff I don't remember right now...
   lit8/lit32 tracking
-* forth compiler: simplify stuff like "1 1 +" and "3 not"
 * ":?" words: inside should not be checked for reachability if it isn't clear that they are needed
   (e.g. syscall3 defined as :?-word, syscall7 now required. but should not be required if syscall7
   never used elswehere)
@@ -38,7 +37,29 @@
   * inlining allows to use words before they appear in the source file
   * "." does not support anything besides base 10
   * nothing interactive yet
-
+* forth compiler: simplify stuff like "1 1 +" and "3 not"
+  * CONST is a literal, but with unknown value
+  * LIT is a literal with known value
+  * a LITCONST is a LIT or a CONST
+  * NULL is 1 or more word which does not influence the stack
+  * LIT + => LIT+ (if not PLUS)
+  * LITCONST1 LITCONST2 swap => LITCONST2 LITCONST1
+  * LIT CELLS => 4*LIT
+  * VARIABLE => CONST, or LIT?
+  * LITCONST @ => CONST
+  * LIT CONST + => CONST LIT +
+  * LIT (not 1+|negate) => LIT-1 not
+  * LIT not + => LIT+1 -
+  * LIT - => LIT- (if not PLUS)
+  * LIT not => not(LIT) (if LIT8 not active)
+  * CONST CONSTLIT + => CONST
+  ** constant variables:
+  * "10 var1 !"; "var1 @" => 10
+    * mapping lost as soon as another "var1 !" encountered
+  ** NULL bundling. NULLs get skipped in pattern matching as if not there
+  * LITCONST LITCONST ! => NULL
+  * LITCONST emit => NULL
+  * LC1 LC2 LC3 LC4 syscall3_noret => NULL
 
 Major parts:
 
