@@ -729,12 +729,18 @@ sub rehydrate {
 }
 
 
+# XXX HACK: if ANYLIT was not defined as a word, it will pass unmodified through here
+# ': ANYLIT rp@ ;' will mess with the noinline for rp@, so we just assume rp@ was meant
+# for ANYLIT if nothing was defined. It gets substituded here, just before converting
+# the AST back to text
+my $ANYLIT = "rp@";
 for my $word (@wordorder) {
 	if(not exists $word{$word}){
 		#dp "optimized away: $word";
 	}
 	else {
 		my $out = rehydrate($word);
+		$out =~ s/ANYLIT/$ANYLIT/g;
 		say $out if $out ne "";
 	}
 }
@@ -742,7 +748,9 @@ dp "REHYD2";
 say "MAIN";
 #dp "XXXXXX";
 #dp Dumper(\%word);
-say join(" ",@{ rehydrate2("MAIN") });
+my $out = join(" ",@{ rehydrate2("MAIN") });
+$out =~ s/ANYLIT/$ANYLIT/g;
+say $out;
 
 exit;
 
