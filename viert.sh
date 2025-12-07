@@ -218,10 +218,12 @@ else
 		if :; then
 			if [ "$BIT" = "x32" ]; then
 				m="x86-64"
+			elif [ "$BIT" = "16" ]; then
+				m="i8086"
 			else
 				m="i386"
 			fi
-			if [ -n "${LINCOM-}" ]; then
+			if [ -n "${LINCOM-}" ] || [ "$BIT" = "16" ]; then
 				OFF="0x10000"
 				START="0x10000"
 			else

@@ -5,6 +5,9 @@
 ; B64: flag for regdump
 
 BITS BIT
+%if BIT == 16
+CPU 8086
+%endif
 
 ;%define B64
 
@@ -129,6 +132,19 @@ BITS BIT
 	%define	native		qword
 	%define	dn		dq
 	%define	CELL_SIZE	8
+%elif BIT == 16
+	%define	A		ax
+	%define	B		bx
+	%define	C		cx
+	%define	D		dx
+	%define	BP		bp
+	%define	SP		sp
+	%define	DI		di
+	%define	SI		si
+	%define	jCz		jcxz
+	%define	native		word
+	%define	dn		dw
+	%define	CELL_SIZE	2
 %else
 	%define	A		eax
 	%define	B		ebx
@@ -213,6 +229,11 @@ BITS BIT
 	%define	TEMP_ADDR	ecx
 %endif
 
+%if BIT == 16
+	%define	FORTH_OFFSET	si
+	%define	TEMP_ADDR	cx
+%endif
+
 %if X32
 	%xdefine	DATA_STACK	emsmallen(DATA_STACK)
 	%xdefine	RETURN_STACK	emsmallen(RETURN_STACK)
@@ -261,7 +282,9 @@ SECTION .text align=1
 %if !FULL
 	%define ELF_OFFSET 0x20
 	org ORG
-	ELF
+	%if BIT != 16
+		ELF
+	%endif
 %else
 	_start:
 %endif
@@ -289,7 +312,9 @@ rdump
 	mov	RETURN_STACK, SP
 	sub	SP, INIT_REG
 
-	ELF_PHDR 1
+	%if BIT != 16
+		ELF_PHDR 1
+	%endif
 %else
 ; "enter" will push ebp on the stack
 ; This means that we can call EXIT to start the forth code at ebp
@@ -385,7 +410,20 @@ A_NEXT:
 	lodsb
 	%assign A_is_low 1 ; flag to indicate A is low when words are called
 	xt:
-	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	%if BIT == 16
+		mov	TEMP_ADDR, A
+		%if WORD_ALIGN == 1
+		%elif WORD_ALIGN == 2
+			shl	TEMP_ADDR, 1
+		%elif WORD_ALIGN == 4
+			shl	TEMP_ADDR, 2
+		%else
+			%fatal "unsupported WORD_ALIGN on 16b"
+		%endif
+		add	TEMP_ADDR, BASE
+	%else
+		lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
+	%endif
 	%ifdef C_DOCOL
 		cmp	al, BREAK2
 	%endif

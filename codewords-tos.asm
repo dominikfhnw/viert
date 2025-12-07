@@ -371,12 +371,23 @@ gobranch:
 %if %isdef(C_branch) || %isdef(C_zbranch) || %isdef(C_zbranchc)
 DEF "branch"
 	%if BRANCH8
-		movsx	ecx, byte [embiggen(FORTH_OFFSET)]
-		add	FORTH_OFFSET, ecx
+		%if BIT == 16
+			mov	A, [FORTH_OFFSET]
+			test	al, al
+			jns	.skip
+			dec	ah
+			.skip:
+			add	FORTH_OFFSET, A
+			END	clearA
+		%else
+			movsx	ecx, byte [embiggen(FORTH_OFFSET)]
+			add	FORTH_OFFSET, ecx
+			END
+		%endif
 	%else
 		mov	FORTH_OFFSET, [embiggen(FORTH_OFFSET)]
+		END
 	%endif
-	END
 %endif
 
 
