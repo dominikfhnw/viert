@@ -79,27 +79,6 @@ BITS BIT
 	%define BIT_ARITHMETIC	32
 %endif
 
-%if FORTHBRANCH
-	%macro dbr 1
-		%warning FORTHBRANCH %1
-		;dd %1 - $	; relative
-		dd %1		; absolute
-	%endmacro
-	%define incbr
-%elif BRANCH8
-	%macro dbr 1
-		%warning BRANCH8 %1
-		db %1 - $
-	%endmacro
-	%define incbr	lodsb
-%else
-	%macro dbr 1
-		%warning BRANCH32 %1
-		dd %1
-	%endmacro
-	%define incbr	add	FORTH_OFFSET, 4
-%endif
-
 ; WHILE in pure forth
 %ifndef FORTHWHILE
 %define FORTHWHILE	0
@@ -161,6 +140,34 @@ BITS BIT
 ; those two are pretty much fixed, due to push/pop and lods*
 %define	DATA_STACK	SP
 %define	FORTH_OFFSET	esi
+
+%if FORTHBRANCH
+	%macro dbr 1
+		%warning FORTHBRANCH %1
+		;dd %1 - $	; relative
+		dd %1		; absolute
+	%endmacro
+	%define incbr
+%elif BRANCH8
+	%macro dbr 1
+		%warning "BRANCH8" %1
+		db %1 - $
+	%endmacro
+	%ifidn FORTH_OFFSET,esi
+		%warning "standard FORT_OFFSET esi"
+		%define incbr	lodsb
+	%else
+		%warning "************************* NONSTANDARD FORTH_OFFSET " FORTH_OFFSET
+		%define incbr	inc	FORTH_OFFSET
+	%endif
+%else
+	%macro dbr 1
+		%warning "BRANCH32" %1
+		dd %1
+	%endmacro
+	%define incbr	add	FORTH_OFFSET, 4
+%endif
+
 
 %if SYSCALL64
 	; A: used by syscall, lodsb
