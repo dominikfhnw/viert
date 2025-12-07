@@ -736,13 +736,11 @@ sub rehydrate {
 # for ANYLIT if nothing was defined. It gets substituded here, just before converting
 # the AST back to text
 my $ANYLIT = "rp@";
+my $anysub = not exists $word{'ANYLIT'};
 for my $word (@wordorder) {
-	if(not exists $word{$word}){
-		#dp "optimized away: $word";
-	}
-	else {
+	if(exists $word{$word}){
 		my $out = rehydrate($word);
-		$out =~ s/ANYLIT/$ANYLIT/g;
+		$out =~ s/ANYLIT/$ANYLIT/g if $anysub;
 		say $out if $out ne "";
 	}
 }
@@ -751,7 +749,7 @@ say "MAIN";
 #dp "XXXXXX";
 #dp Dumper(\%word);
 my $out = join(" ",@{ rehydrate2("MAIN") });
-$out =~ s/ANYLIT/$ANYLIT/g;
+$out =~ s/ANYLIT/$ANYLIT/g if $anysub;
 say $out;
 
 exit;
