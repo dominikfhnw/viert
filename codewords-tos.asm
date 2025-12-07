@@ -665,7 +665,7 @@ DEF "rot"
 		%ifidn RETURN_STACK,B
 			%fatal invalid return stack register
 		%endif
-		xchg	A, TOS
+		xchg32	A, TOS
 		pop	B
 		pop	C
 		pop	D
@@ -679,7 +679,7 @@ DEF "rot"
 		%endif
 		mov	SYSCALL_SAVE, FORTH_OFFSET
 
-		xchg	A, TOS
+		xchg32	A, TOS
 		pop	DI
 		pop	SI
 		pop	D
@@ -696,7 +696,7 @@ DEF "rot"
 		%ifidn RETURN_STACK,B
 			%fatal invalid return stack register
 		%endif
-		xchg	A, TOS
+		xchg32	A, TOS
 		pop	B
 		pop	C
 		pop	D
@@ -718,7 +718,7 @@ DEF "syscall3"
 	%endif
 	mov	SYSCALL_SAVE, FORTH_OFFSET
 
-	xchg	A, TOS
+	xchg32	A, TOS
 	pop	DI
 	pop	SI
 	pop	D
