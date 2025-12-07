@@ -1,9 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-(return 0 2>&-) && ASM=$0
-: "${ASM:=viert3.asm}"
-
 BIT="32"
 HARDEN=0
 #ORG="0x01000000"
@@ -12,7 +9,8 @@ ORG="0x10000"
 DUMP="-z -Mintel"
 #DUMP="--no-addresses -z -Mintel"
 #NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan"
-NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan -L+ -l nasm.list"
+#NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan -L+ -l nasm.list"
+NASMOPT="-g -DORG=$ORG -w+all -Werror=label-orphan -Lemp -l nasm.list"
 #NASMOPT="-g -DORG=$ORG -w+all"
 if [ -z "${FORCE-}" ]; then
 	NASMOPT="$NASMOPT -Werror=number-overflow"
@@ -22,7 +20,17 @@ fi
 if [ -n "${LIT-}" ]; then
 	NASMOPT="$NASMOPT -DLIT=$LIT"
 fi
+if [ -n "${TOS_ENABLE-}" ]; then
+	NASMOPT="$NASMOPT -DTOS_ENABLE=$TOS_ENABLE"
+fi
+if [ -n "${SPLIT-}" ]; then
+	NASMOPT="$NASMOPT -DSPLIT=$SPLIT"
+else
+	NASMOPT="$NASMOPT -DSPLIT=0"
+	SPLIT=0
+fi
 NASMOPT="$NASMOPT -DFORTHBRANCH=${FORTHBRANCH-0}"
+NASMOPT="$NASMOPT -DJMPLEN=${JMPLEN-short}"
 
 LD="gold"
 #LD="ld.lld"
@@ -64,7 +72,10 @@ else
 fi
 #FLAGS="$FLAGS --relax --enable-non-contiguous-regions --no-check-sections --no-fatal-warnings --no-warn-mismatch --noinhibit-exec  --warn-unresolved-symbols"
 #FLAGS="$FLAGS --noinhibit-exec --build-id"
-FLAGS="$FLAGS --noinhibit-exec --omagic"
+FLAGS="$FLAGS --noinhibit-exec"
+if [ "$SPLIT" -eq 0 ]; then
+	FLAGS="$FLAGS --omagic"
+fi
 
 if [ -z "${RAW-}" ]; then
 	DEBUG=${PRDEBUG-0} LIT8=${LIT8-1} perl parse.pl "${SOURCE:-forthwords.fth}" > compiled.asm 2> db.parse1
@@ -79,6 +90,10 @@ if [ -n "${LINCOM-}" ]; then
 	NASMOPT="$NASMOPT -DLINCOM=1"
 	FULL=
 fi
+
+preproc(){
+	{ nasm -I asmlib/ -e viert3.asm $NASMOPT "$@" ||:; } 2> preproc.err | grep -Ev '^(%line|$)' | sed '/:$/s/^/\n/' > preproc.asm
+}
 
 if [ -n "${FULL-1}" ]; then
 	if [ "$BIT" = 64 ]
@@ -101,7 +116,8 @@ if [ -n "${FULL-1}" ]; then
 	rm -f $OUT $OUT.o
 	NASMOPT="$NASMOPT -DFULL=1"
 	#nasm -I asmlib/ -o $OUT.o "$0" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro ' | grep -a --color=always -E '|error:'
-	nasm -I asmlib/ -o $OUT.o "$ASM" $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	nasm -I asmlib/ -o $OUT.o viert3.asm $NASMOPT "$@" 2>&1 | grep -a --color=always -E '|error:'
+	preproc
 	$LD $FLAGS $OUT.o -o $OUT || { echo "ERROR $?"; exit; }
 	cp $OUT $OUT.full
 	ls -l $OUT.full
@@ -133,7 +149,8 @@ else
 		#exit 66
 	fi
 	rm -f $OUT
-	nasm -I asmlib/ -f bin -o $OUT "$ASM" $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	nasm -I asmlib/ -f bin -o $OUT viert3.asm $NASMOPT "$@" 2>&1 | grep -vF ': ... from macro '
+	preproc
 fi
 chmod +x $OUT
 ls -l $OUT
@@ -153,15 +170,15 @@ sizes(){
 
 		/. A_[^.]*$/ {
 			sub(/A_/,"")
-			if(name){
-				print $1-size, name
-				total+=($1-size)
-			}
 			if(name == "__BREAK__"){
 				print total, "SUBTOTAL"
 				subtotal = total
 				asm = total-elf
 				print asm, "ASM"
+			}
+			else if(name){
+				print $1-size, name
+				total+=($1-size)
 			}
 			if(name == "MAIN"){
 				print total-subtotal, "FORTH"
@@ -186,7 +203,7 @@ R2=
 if [ -n "${FULL-1}" ]; then
 	SIZE=$(( $(wc -c < "$OUT") - 84 ))
 	RADARE="r2 -2 -c aa -c 'e emu.str = true' -c 'pD $SIZE @ entry0' -q"
-	DUMP="$DUMP -j .text -j .rodata"
+	DUMP="$DUMP -j .text -j .data -j .rodata"
 	if [ "${DIS-1}" ]; then
 		if [ "${R2-}" ]; then
 			time eval $RADARE "$OUT.full"

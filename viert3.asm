@@ -1,7 +1,3 @@
-%if 0
-. ./viert.sh
-%endif
-
 ; Bitness flags:
 ; BIT: 32 or 64. What kind of code is being executed
 ; X32: true if we are compiling an "x32" binary - 64-bit code with 32-bit pointers.
@@ -17,6 +13,25 @@ BITS BIT
 %define REG_ASSERT	0
 
 %include "stdlib.mac"
+
+%ifndef TOS_ENABLE
+%define TOS_ENABLE	1
+%endif
+
+; create dictionary
+%ifndef DICT
+%define DICT		0
+%endif
+
+; dangerous hacky things
+%ifndef HACKY
+%define HACKY		1
+%endif
+
+; split asm/forth segments. Only works with SCALED==0 atm
+%ifndef SPLIT
+%define SPLIT		0
+%endif
 
 ; use scaled, relative offsets
 %ifndef SCALED
@@ -69,27 +84,6 @@ BITS BIT
 	%define BIT_ARITHMETIC	32
 %endif
 
-%if FORTHBRANCH
-	%macro dbr 1
-		%warning FORTHBRANCH %1
-		;dd %1 - $	; relative
-		dd %1		; absolute
-	%endmacro
-	%define incbr
-%elif BRANCH8
-	%macro dbr 1
-		%warning BRANCH8 %1
-		db %1 - $
-	%endmacro
-	%define incbr	lodsb
-%else
-	%macro dbr 1
-		%warning BRANCH32 %1
-		dd %1
-	%endmacro
-	%define incbr	lodsd
-%endif
-
 ; WHILE in pure forth
 %ifndef FORTHWHILE
 %define FORTHWHILE	0
@@ -133,6 +127,7 @@ BITS BIT
 	%define	SI		rsi
 	%define	jCz		jrcxz
 	%define	native		qword
+	%define	dn		dq
 	%define	CELL_SIZE	8
 %else
 	%define	A		eax
@@ -145,12 +140,41 @@ BITS BIT
 	%define	SI		esi
 	%define	jCz		jecxz
 	%define	native		dword
+	%define	dn		dd
 	%define	CELL_SIZE	4
 %endif
 
 ; those two are pretty much fixed, due to push/pop and lods*
 %define	DATA_STACK	SP
 %define	FORTH_OFFSET	esi
+
+%if FORTHBRANCH
+	%macro dbr 1
+		%warning FORTHBRANCH %1
+		;dd %1 - $	; relative
+		dd %1		; absolute
+	%endmacro
+	%define incbr
+%elif BRANCH8
+	%macro dbr 1
+		%warning "BRANCH8" %1
+		db %1 - $
+	%endmacro
+	%ifidn FORTH_OFFSET,esi
+		%warning "standard FORT_OFFSET esi"
+		%define incbr	lodsb
+	%else
+		%warning "************************* NONSTANDARD FORTH_OFFSET " FORTH_OFFSET
+		%define incbr	inc	FORTH_OFFSET
+	%endif
+%else
+	%macro dbr 1
+		%warning "BRANCH32" %1
+		dd %1
+	%endmacro
+	%define incbr	add	FORTH_OFFSET, 4
+%endif
+
 
 %if SYSCALL64
 	; A: used by syscall, lodsb
@@ -164,14 +188,13 @@ BITS BIT
 	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11
 	; leaves us with B, BP, R12-R15. BP and R12-R15 have additional encoding overhead
 	%define	RETURN_STACK	B
+	%define TOS		DI
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP, R12-R15. BP and R12-R15 have additional encoding overhead
-	%define	TEMP_ADDR	edi
+	%define	TEMP_ADDR	ecx
 	; SYSCALL_SAVE:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A, C, D, DI, SI, R11 
 	; leaves us with B, BP, R12-R15. R12-R15 have additional encoding overhead
 	%define	SYSCALL_SAVE	ebp	; FORTH_OFFSET will get saved here during syscalls
-	%define SYS_write	1
-	%define SYS_exit	60
 %else
 	; A: used by syscall, lodsb
 	; B: used by syscall
@@ -184,6 +207,7 @@ BITS BIT
 	; RETURN_STACK:	not DATA_STACK, FORTH_OFFSET, A, B, C, D
 	; leaves us with DI, BP. BP has additional encoding overhead
 	%define	RETURN_STACK	DI
+	%define TOS		B
 	; TEMP_ADDR:	not RETURN_STACK, DATA_STACK, FORTH_OFFSET, A
 	; leaves us with B, C, D, DI, BP. BP has additional encoding overhead
 	%define	TEMP_ADDR	ecx
@@ -200,6 +224,7 @@ BITS BIT
 %endif
 
 %assign	WORD_COUNT	0
+%assign	BRANCH_COUNT	0
 %define zero_seg	0
 
 %ifndef WORD_ALIGN
@@ -220,13 +245,6 @@ BITS BIT
 %endif
 
 %assign BITM1		BIT - 1
-
-; 52 byte for ELF header, 32 byte for each program header
-%define elf_extra_align 0
-%if WORD_ALIGN == 8
-	%define elf_extra_align 4
-%endif
-%define ELF_HEADER_SIZE (52 + 1*32 + elf_extra_align)
 
 %if PIC
 	%define BASE ebp
@@ -252,21 +270,24 @@ SECTION .text align=1
 A_INIT:
 rdump
 
-%if SMALLINIT == 1
-	;%ifnidn embiggen(RETURN_STACK),BP
-	dec	cx
-	inc	ecx
-	mov	RETURN_STACK, SP
-	;alloca	128
-	sub	SP, C
-	;add	C, byte (FORTH - 0xffff)
-	mov	cl, FORTH - 0x10000
+%ifdef WORDSET
+	%include "oldwordset.asm"
+%else
+	%include "wordset.asm"
+%endif
 
-	ELF_PHDR 1
-%elif SMALLINIT == 3
-	mov	TEMP_ADDR, FORTH
+%ifdef C_EXIT
+	%define C_DOCOL
+	%define INIT_REG TEMP_ADDR
+%else
+	%define INIT_REG FORTH_OFFSET
+%endif
+
+
+%if SMALLINIT
+	mov	INIT_REG, FORTH - (FORTH_START - END_OF_CODEWORDS)
 	mov	RETURN_STACK, SP
-	sub	SP, TEMP_ADDR
+	sub	SP, INIT_REG
 
 	ELF_PHDR 1
 %else
@@ -294,34 +315,29 @@ rdump
 		lea	TEMP_ADDR, [BASE + (FORTH-WORD_OFFSET)]
 	%else
 		rinit
-		%if SMALLINIT != 2
-			%if RWMEM && ELF_CUSTOM
-				%ifdef ORG
-					set	ebx, ORG
-				%else
-					set	ecx, 0xffff
-				%endif
+		%if RWMEM && ELF_CUSTOM
+			%ifdef ORG
+				set	ebx, ORG
+			%else
+				set	ecx, 0xffff
 			%endif
-			ELF_PHDR 1
-			%if RWMEM && ELF_CUSTOM
-				_rwx:
-				taint	RETURN_STACK
-				rwx
-			%endif
-			; we chose our base address to be < 2^32. So no embiggen
-			mov	TEMP_ADDR, FORTH
-		%else
-			mov	al, offset(FORTH)
-			ELF_PHDR 1
-			jmp	xt
 		%endif
+		ELF_PHDR 1
+		%if RWMEM && ELF_CUSTOM
+			_rwx:
+			taint	RETURN_STACK
+			rwx
+		%endif
+		; we chose our base address to be < 2^32. So no embiggen
+		mov	TEMP_ADDR, FORTH
 	%endif
 %endif
 
 ;;; OLD CODEWORDS.ASM
 %define BREAK offset(END_OF_CODEWORDS-2)
 
-%assign A_is_low 0
+%assign A_is_low 0		; is A low when words are called?
+%assign A_needs_clearing 1	; does A need clearing before returning from words?
 ; clear A/eax either in words or the inner interpreter
 ; Nb: xor eax, eax also clears upper 32bits on 64bit
 %if SCALED
@@ -343,22 +359,24 @@ rdump
 ;mov	esp, ebp
 ;pop	ebp
 
-%ifdef WORDSET
-	%include "oldwordset.asm"
-%else
-	%include "wordset.asm"
-%endif
-
+%ifdef C_DOCOL
 A_DOCOL:
+%if SPLIT && SCALED
+	%if HACKY && %isidn(TEMP_ADDR,ecx)
+		add	ch, 0x10
+	%else
+		add	TEMP_ADDR, (FORTH_START - END_OF_CODEWORDS)
+	%endif
+%endif
 rspush	FORTH_OFFSET
 xchg	FORTH_OFFSET, TEMP_ADDR
 %if DEBUG	; turn on to inspect return stack in GDB with "b INSP"
 DEBUGCOL:
-	mov	ebp, FORTH_OFFSET	; save for easy dbg
 	xchg	SP, RETURN_STACK
 	BP2:
-	INSP:	nop
+	INSP:
 	xchg	SP, RETURN_STACK
+%endif
 %endif
 
 A_NEXT:
@@ -368,15 +386,14 @@ A_NEXT:
 	%assign A_is_low 1 ; flag to indicate A is low when words are called
 	xt:
 	lea	TEMP_ADDR, [A*WORD_ALIGN+BASE]
-	;cmp	eax, BREAK
-	cmp	al, BREAK
-	;cmp	TEMP_ADDR, END_OF_CODEWORDS-2
+	%ifdef C_DOCOL
+		cmp	al, BREAK2
+	%endif
 %else
+	%assign A_needs_clearing 0
 	lodsd
 	xt:
-	%if 0	; if size of forth code < 256b
-		cmp	al, LASTWORD
-	%else
+	%ifdef C_DOCOL
 		cmp	ax, LASTWORD
 	%endif
 %endif
@@ -401,7 +418,9 @@ A_NEXT:
 
 
 BP1:
-ja	A_DOCOL
+%ifdef C_DOCOL
+	ja	A_DOCOL
+%endif
 ;jmpTEMP:
 jmp	embiggen(TEMP_ADDR)
 
@@ -452,23 +471,26 @@ jmp	embiggen(TEMP_ADDR)
 	%define arith	native
 %endif
 
-%ifdef C_syscall3
-	%assign haveclearA	1
-	%assign havepushA	1
-%else
-	%assign haveclearA	0
-	%assign havepushA	0
-%endif
+%assign haveclearA	0
+%assign havepushA	0
 %assign havepushDA	0
+%assign havepopTOS	0
+%assign havenop		0
 
 WORD_OFFSET:
-%include "codewords.asm"
+%if TOS_ENABLE
+	%include "codewords-tos.asm"
+%else
+	%include "codewords.asm"
+%endif
 
 LASTWORD equ lastoff2
+BREAK2 equ lastoff
+align2 WORD_ALIGN, nop
+
 A___BREAK__:
 END_OF_CODEWORDS:
 %assign ASM_WORDS WORD_COUNT
-;%define ASM_SIZE END_OF_CODEWORDS - $$ - ELF_HEADER_SIZE
 %assign ASM_SIZE lastoff2 - WORD_OFFSET
 %warning "ASM_SIZE" ASM_SIZE
 
@@ -476,29 +498,15 @@ END_OF_CODEWORDS:
 
 %include "immediate.asm"
 
+%assign LASTASM offset($)
+%if SPLIT
+[section .data align=1]
+%endif
+
 FORTH_START:
 %include "compiled.asm"
+LATEST equ dlink
 
-%if ELF_CUSTOM
-	%assign HEADER 0
-%else
-	%assign HEADER 84
-%endif
-%if SMALLINIT == 2
-	%assign x offset(FORTH)
-	%if x > 255
-		%error x too big for smallinit == 2
-	%endif
-%endif
-
-%if SMALLINIT == 1 && (FORTH - $$ + HEADER) > 0xff
-	%warning SMALLINIT: %eval(FORTH - $$ + HEADER) > 255
-	%ifdef FORCE
-		%warning "too much code for SMALLINIT"
-	%else
-		%error   "too much code for SMALLINIT"
-	%endif
-%endif
 A_END:
 %if DEBUG
 	; after A_END, because we don't want to count it towards the total
@@ -514,14 +522,16 @@ A_END:
 %if ASM_WORDS > 0
 	%warning "ASM_RATIO" %eval(ASM_SIZE/ASM_WORDS)
 %endif
-%warning "FORTH_SIZE" FORTH_SIZE
 %warning "FORTH_WORDS" FORTH_WORDS
 %if FORTH_WORDS > 0
 	%warning "FORTH_RATIO" %eval(FORTH_SIZE/FORTH_WORDS)
 %endif
 %warning "WORDS TOTAL" WORD_COUNT
 %warning "BREAK" %eval(BREAK)
-%ifdef lastoff
+%if %isdef(lastoff) && !SPLIT
 	%warning "LASTOFF" %eval(lastoff)
 %endif
-%warning "LASTOFF2" %eval((lastoff2 - $$)/WORD_ALIGN)
+
+FORTH_END:
+[section .bss align=1]
+resb	4 * 0xffff

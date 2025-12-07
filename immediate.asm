@@ -57,25 +57,30 @@
 ;%endmacro
 
 %macro zbranch arg(1)
+	%assign %%off %1 - $
+	%if BRANCH8 && ( (%%off < -128) || (%%off > 127) )
+		%error "BRANCH8: offset too big: " %%off %1
+	%endif
+
 	%if FORTHBRANCH
-		f_xzbranch
+		f "xzbranch"
 		dbr %1
-	%elifdef f_zbranch
-		f_zbranch
+	%elifdef C_zbranchc
+		f "zbranchc"
 		dbr %1
+		f "drop"
 	%else
-		f_zbranchc
+		f "zbranch"
 		dbr %1
-		f_drop
 	%endif
 %endmacro
 
 %macro branch arg(1)
 	%if FORTHBRANCH
-		f_xbranch
+		f "xbranch"
 		dbr %1
 	%else
-		f_branch
+		f "branch"
 		dbr %1
 	%endif
 %endmacro
@@ -88,24 +93,13 @@
 ;%endmacro
 
 %macro unless arg(0)
-	%ifdef f_nzbranch
-		%push ifctx
-		f_nzbranch
-		dbr %$jump1
-	%else
-		if
-		else
-	%endif
+	if
+	else
 %endmacro
 
 %macro if arg(0)
-	%if %isdef(f_zbranch) || %isdef(f_zbranchc) || %isdef(f_xzbranch)
-		%push ifctx
-		zbranch %$jump1
-	%else
-		unless
-		else
-	%endif
+	%push ifctx
+	zbranch %$jump1
 %endmacro
 
 %macro then arg(0)
@@ -203,6 +197,10 @@
 
 %macro begin 0
 	%push beginloop
+	%assign BRANCH_COUNT BRANCH_COUNT + 1
+	%assign %$count BRANCH_COUNT
+	%deftok %%B %strcat("BRANCH_",%$count)
+	%%B:
 	%$loop:
 %endmacro
 
@@ -224,8 +222,9 @@
 	%endif
 %endmacro
 
-%macro until 0
-	%$zbr: zbranch %$loop
+%macro until 0.nolist
+	%deftok %%B %strcat("BRANCH_",%$count)
+	%$zbr: zbranch %%B
 	%pop beginloop
 %endmacro
 

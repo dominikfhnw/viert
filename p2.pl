@@ -84,19 +84,20 @@ my $WORD_ALIGN = opt "WORD_ALIGN", 1;
 my $INLINE = opt "INLINE", 1;		# enable inlining
 my $INLINEALL = opt "INLINEALL", 0;	# inline as much as possible
 my $PRUNE = opt "PRUNE", 1;		# remove unused functions
-my $ZBRANCHC = opt "ZBRANCHC ", 0;	# use smaller zbranchc branching
+my $ZBRANCHC = opt "ZBRANCHC", 0;	# use smaller zbranchc branching
 my $BRANCH8 = opt "BRANCH8", 1;		# use 8bit branch offsets
-my $VARHELPER = 1;			# use varhelper function for variables
+my $VARHELPER = opt "VARHELPER", 1;	# use varhelper function for variables
 my $LIT8 = opt "LIT8", 1;		#
 my $LIT = opt "LIT", "xlit32";		# which lit function to use
 my $SMALLASM = opt "SMALLASM", 0;	# optimize for smallest asm
 my $SCALED = opt "SCALED", 1;		# use 8bit scaled offsets?
+my $TOS_ENABLE = opt "TOS_ENABLE", 1;	# is ToS in register enabled?
 my $OPT = opt "OPT", 0;
 my $FORTHBRANCH = opt "FORTHBRANCH", 0;
 
 if($SMALLASM){
-	$BRANCH8 = 0;
-	$LIT8 = 0;
+	$BRANCH8 = opt "BRANCH8", 0; # default 0, but allow overide
+	$LIT8 = opt "LIT8", 0; # default 0, but allow overide
 	$FORTHBRANCH = 1;
 }
 if($FORTHBRANCH){
@@ -132,6 +133,8 @@ my %builtin_all = map { $_ => 1 } qw(
 	lit32
 	varhelper
 	testasm
+	sp3 rp3 dropfalse dropsp@
+	ANYLIT
 
 ); 
 #	syscall3_noret syscall3
@@ -153,24 +156,18 @@ $word{'until'}	= \@zbranch;
 my %noinline;
 my %alwaysinline;
 my %codeword;
-my %inline = (
-	STDOUT		=>	[1],
-	SYS_exit	=>	[1],
-	SYS_write	=>	[4],
-	CELL_SIZE	=>	[4],
-	'CELL_SIZE*1'	=>	[4],
-	'CELL_SIZE*2'	=>	[8],
-	'CELL_SIZE*3'	=>	[12],
-);
+my %inline;
 
 my @wordorder = ();
 
 sub getstream {
-	my $contents = do { local $/; <> || die "read failed: $!" };
-	$contents =~ s/\(\s+[^)]*\)//gm;		# ( comments )
-	$contents =~ s/\\\s.*$//gm;			# \ comments
-	$contents =~ s/:x\s+[^;]*\;(NORETURN)?//gm;	# ":x": disabled words
-	return split ' ', $contents;
+	given(my $contents = do { local $/; <> || die "read failed: $!" }){
+		s/\(\s+[^)]*\)//gm;		# ( comments )
+		s/\\\s.*$//gm;			# \ comments
+		s/:x\s+[^;]*\;(NORETURN)?//gm;	# ":x": disabled words
+		/^#if/m and die "C preprocessor directive found in input, aborting";
+		return split ' ', $_;
+	}
 }
 
 sub noinline {
@@ -191,13 +188,21 @@ sub hlparse {
 
 		given(shift@stream){
 			#dp "TOK $_";
-			when('variable'){
+			when(/^(variable|varinit|vararray)$/){
 				my $var = shift @stream;
 				push @wordorder, $var;
+				my $value = 0;
+				my $extralen = 0;
+				if($_ eq "varinit"){
+					$value = shift @stream;
+				}
+				elsif($_ eq "vararray"){
+					$extralen = shift @stream;
+				}
 				#$LASTWORD = $word;
 				# XXX layering violation - this is the optimizer.
 				# See also comment below for the words that look like numbers
-				$word{$var} = ["VARIABLE","EXIT"];
+				$word{$var} = ["VARIABLE",$value,$extralen,"EXIT"];
 				push @{ $word{$var} }, "varhelper" if $VARHELPER;
 				if($CONTINUE){
 					die "continue is illegal before variable";
@@ -405,7 +410,7 @@ sub is_inlineable {
 	}
 	my $litsize = 0;
 	my $escape = $name;
-	$escape =~ s/([?.+-])/\\$1/g;
+	$escape =~ s/([*?.+-])/\\$1/g;
 	for(@word){
 		if(defined($word{$_})){
 			my @inner = @{ $word{$_} };
@@ -445,6 +450,7 @@ sub is_inlineable {
 
 	return 0 unless $INLINE;
 	return 1 if $alwaysinline{$name};
+	return 0 unless $INLINE;
 	if($sorig == $sinline){
 		dp "\tinline neutral $sorig == $sinline";
 		return 1;
@@ -547,6 +553,11 @@ if($OPT == 0){
 	}
 	else {
 		asm "rpsp@";
+	}
+
+	if($TOS_ENABLE){
+		asm "drop" if $reach{'!'};
+		asm "not"  if $reach{'nand'};
 	}
 
 }
@@ -674,6 +685,7 @@ sub rehydrate2 {
 
 	my @word = @{ $word{$name}};
 
+	# TODO: this is the only place where we care if a word was defined with ':?'
 	if($word[0] eq "MAYBE"){
 		shift @word;
 		if($codeword{$name}){
@@ -689,7 +701,18 @@ sub rehydrate {
 	my @word = @{ rehydrate2($name) || return "" };
 
 	if($word[0] eq "VARIABLE"){
-		return "variable $name";
+		my $value = $word[1];
+		my $extralen = $word[2];
+		dp "VARIABLE $name $value $extralen ",join(" ",@word);
+		if($extralen > 0){
+			return "vararray $name $extralen";
+		}
+		elsif(looks_like_number($value) && $value == 0){
+			return "variable $name";
+		}
+		else {
+			return "varinit $name $value";
+		}
 	}
 	if($word[-1] eq "EXIT"){
 		$word[-1] = ";";
@@ -708,12 +731,18 @@ sub rehydrate {
 }
 
 
+# XXX HACK: if ANYLIT was not defined as a word, it will pass unmodified through here
+# ': ANYLIT rp@ ;' will mess with the noinline for rp@, so we just assume rp@ was meant
+# for ANYLIT if nothing was defined. It gets substituded here, just before converting
+# the AST back to text
+my $ANYLIT = "rp@";
 for my $word (@wordorder) {
 	if(not exists $word{$word}){
 		#dp "optimized away: $word";
 	}
 	else {
 		my $out = rehydrate($word);
+		$out =~ s/ANYLIT/$ANYLIT/g;
 		say $out if $out ne "";
 	}
 }
@@ -721,7 +750,9 @@ dp "REHYD2";
 say "MAIN";
 #dp "XXXXXX";
 #dp Dumper(\%word);
-say join(" ",@{ rehydrate2("MAIN") });
+my $out = join(" ",@{ rehydrate2("MAIN") });
+$out =~ s/ANYLIT/$ANYLIT/g;
+say $out;
 
 exit;
 

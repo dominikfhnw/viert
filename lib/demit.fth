@@ -3,6 +3,7 @@
 : d0	false ;
 : d1	d0 1+ ;
 : d4	d1 1+ 1+ 1+ ;
+: femit d1 sp@ d1 d4 syscall3_noret ;
 
 : dnl
 	4
@@ -41,7 +42,7 @@
 	1+ 1+ 1+
 	;
 
-: demit sp@ d1 over d1 d4 syscall3 drop drop drop ;
+: demit sp@ d1 over d1 d4 syscall3_noret drop drop ;
 : Temit 84 demit ;
 : Femit 70 demit ;
 : Bemit dbang demit ;
