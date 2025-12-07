@@ -218,6 +218,32 @@
 	%endif
 %endmacro
 
+%macro mov arg(2)
+	%if SMALLMOV && %isidn(%1,%2)
+		%warning MOVWRAP -> %1 == %2, doing nothing
+	%elif SMALLMOV && %isid(%1) && %isidn('r',%substr(%1,1,1)) && %istoken(%2)
+		%warning MOVWRAP -> mov %1, %2
+		push	%2
+		pop	%1
+	%else
+		mov	%1, %2
+	%endif
+%endmacro
+
+%macro xchg32 arg(2)
+	xchg	emsmallen(%1), emsmallen(%2)
+%endmacro
+
+; Convert Native to Double that
+%macro cnd 0
+	%if BIT == 16
+		cwd		; sign extend  AX into  DX
+	%elif BIT == 32 || FORCE_ARITHMETIC_32
+		cdq		; sign extend EAX into EDX
+	%else
+		cqo		; sign extend RAX into RDX
+	%endif
+%endmacro
 
 %macro pop arg(1)
 	%if BIT == 64
