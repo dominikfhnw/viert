@@ -239,13 +239,6 @@ BITS BIT
 
 %assign BITM1		BIT - 1
 
-; 52 byte for ELF header, 32 byte for each program header
-%define elf_extra_align 0
-%if WORD_ALIGN == 8
-	%define elf_extra_align 4
-%endif
-%define ELF_HEADER_SIZE (52 + 1*32 + elf_extra_align)
-
 %if PIC
 	%define BASE ebp
 %else
@@ -284,18 +277,7 @@ rdump
 %endif
 
 
-%if SMALLINIT == 1
-	;;%ifnidn embiggen(RETURN_STACK),BP
-	;dec	cx
-	;inc	ecx
-	;mov	RETURN_STACK, SP
-	;;alloca	128
-	;sub	SP, C
-	;;add	C, byte (FORTH - 0xffff)
-	;mov	cl, FORTH - 0x10000
-
-	;ELF_PHDR 1
-%elif SMALLINIT == 3
+%if SMALLINIT
 	mov	INIT_REG, FORTH - (FORTH_START - END_OF_CODEWORDS)
 	mov	RETURN_STACK, SP
 	sub	SP, INIT_REG
@@ -326,27 +308,21 @@ rdump
 		lea	TEMP_ADDR, [BASE + (FORTH-WORD_OFFSET)]
 	%else
 		rinit
-		%if SMALLINIT != 2
-			%if RWMEM && ELF_CUSTOM
-				%ifdef ORG
-					set	ebx, ORG
-				%else
-					set	ecx, 0xffff
-				%endif
+		%if RWMEM && ELF_CUSTOM
+			%ifdef ORG
+				set	ebx, ORG
+			%else
+				set	ecx, 0xffff
 			%endif
-			ELF_PHDR 1
-			%if RWMEM && ELF_CUSTOM
-				_rwx:
-				taint	RETURN_STACK
-				rwx
-			%endif
-			; we chose our base address to be < 2^32. So no embiggen
-			mov	TEMP_ADDR, FORTH
-		%else
-			mov	al, offset(FORTH)
-			ELF_PHDR 1
-			jmp	xt
 		%endif
+		ELF_PHDR 1
+		%if RWMEM && ELF_CUSTOM
+			_rwx:
+			taint	RETURN_STACK
+			rwx
+		%endif
+		; we chose our base address to be < 2^32. So no embiggen
+		mov	TEMP_ADDR, FORTH
 	%endif
 %endif
 
@@ -504,7 +480,6 @@ align2 WORD_ALIGN, nop
 A___BREAK__:
 END_OF_CODEWORDS:
 %assign ASM_WORDS WORD_COUNT
-;%define ASM_SIZE END_OF_CODEWORDS - $$ - ELF_HEADER_SIZE
 %assign ASM_SIZE lastoff2 - WORD_OFFSET
 %warning "ASM_SIZE" ASM_SIZE
 
@@ -520,26 +495,6 @@ END_OF_CODEWORDS:
 FORTH_START:
 %include "compiled.asm"
 
-%if ELF_CUSTOM
-	%assign HEADER 0
-%else
-	%assign HEADER 84
-%endif
-%if SMALLINIT == 2
-	%assign x offset(FORTH)
-	%if x > 255
-		%error x too big for smallinit == 2
-	%endif
-%endif
-
-%if SMALLINIT == 1 && (FORTH - $$ + HEADER) > 0xff
-	%warning SMALLINIT: %eval(FORTH - $$ + HEADER) > 255
-	%ifdef FORCE
-		%warning "too much code for SMALLINIT"
-	%else
-		%error   "too much code for SMALLINIT"
-	%endif
-%endif
 A_END:
 %if DEBUG
 	; after A_END, because we don't want to count it towards the total
