@@ -150,7 +150,8 @@
 	syscall3_noret
 	;
 
-: writestdout STDOUT SYS_write syscall3_noret ;
+: type STDOUT SYS_write syscall3_noret ;
+: writestdout type ;
 
 #if !CHAIN
 : emitn
