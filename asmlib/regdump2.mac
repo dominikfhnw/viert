@@ -29,7 +29,7 @@
 ;  A   C   D   B   S   P   s   d   f
 ;hlt
 
-%macro regdump_func 0
+%macro regdump_func 0.nolist
 %if LABEL || ALTLABEL
 %define SPACE 1
 %else
@@ -295,7 +295,9 @@ times 8 db 0
 %endif
 
 regdump:
+[warning -user]
 regdump_func
+[warning *user]
 ret
 
 %if SEPARATE_STACK
