@@ -409,7 +409,7 @@ sub is_inlineable {
 	}
 	my $litsize = 0;
 	my $escape = $name;
-	$escape =~ s/([?.+-])/\\$1/g;
+	$escape =~ s/([*?.+-])/\\$1/g;
 	for(@word){
 		if(defined($word{$_})){
 			my @inner = @{ $word{$_} };

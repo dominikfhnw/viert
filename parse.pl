@@ -52,6 +52,7 @@ sub name {
 		s/<>/ne/;
 		s/</lt/;
 		s/>/gt/;
+		s/,/comma/;
 		s/'/_/g;
 		s/:/dcol/g;
 		s/;/EXIT/g;
