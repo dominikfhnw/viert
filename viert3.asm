@@ -205,6 +205,7 @@ BITS BIT
 %endif
 
 %assign	WORD_COUNT	0
+%assign	BRANCH_COUNT	0
 %define zero_seg	0
 
 %ifndef WORD_ALIGN
