@@ -2,6 +2,8 @@
 : invert not ;
 : and nand not ;
 : imply not nand ;
-: droptrue dup imply ;
-:? dropfalse droptrue not ;
+#if !TOS_ENABLE
+: dropfalse droptrue not ;
+#endif
+: droptrue dropfalse not ;
 :? drop droptrue and ;
