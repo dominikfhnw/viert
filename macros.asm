@@ -3,6 +3,8 @@
 %define JMPLEN short
 %endif
 
+%define dlink		0
+
 %define roundup		WORD_ALIGN-1
 %define offset(a)	(a - WORD_OFFSET + roundup)/WORD_ALIGN
 %define offset_forth(a)	(a - FORTH_START + roundup)/WORD_ALIGN
@@ -49,6 +51,18 @@
 	%deftok %%v %strcat("v_",%1)
 	%deftok %%Z %strcat("Z_",%1,"_",%str(xx))
 	%deftok %$q %strcat("q_",%1)
+	%if DICT
+		%deftok %%d %strcat("dict_",%1)
+
+		jmp	%%A
+		%%d:
+		dn	dlink
+		%define	dlink %%d
+		%strlen	%%len %1
+		db	%%len
+		db	%substr(%1,1,3)
+	%endif
+
 	%%A:
 	%define lastoff offset(%%A)
 	%define lastoff2 %%A

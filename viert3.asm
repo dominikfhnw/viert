@@ -18,6 +18,11 @@ BITS BIT
 %define TOS_ENABLE	1
 %endif
 
+; create dictionary
+%ifndef DICT
+%define DICT		0
+%endif
+
 ; split asm/forth segments. Only works with SCALED==0 atm
 %ifndef SPLIT
 %define SPLIT		0
