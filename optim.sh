@@ -30,7 +30,7 @@ fi
 # CHAIN: u. as a continue-chain
 : "${TOS_ENABLE=1}"
 CPP=
-for i in BIT BITS DEBUG FULL WORD_ALIGN SCALED TOS_ENABLE FORTHBRANCH PRUNE INLINE INLINEALL PRDEBUG LIT8 BRANCH8 SMALLASM PLUS VARHELPER XLIT FORCE JMPLEN
+for i in BIT BITS DEBUG FULL WORD_ALIGN SCALED TOS_ENABLE FORTHBRANCH PRUNE INLINE INLINEALL PRDEBUG LIT8 BRANCH8 SMALLASM PLUS VARHELPER XLIT FORCE JMPLEN SMALLINIT
 do
 	if [ -n "${!i-}" ]; then
 		CPP="$CPP -D$i=${!i}"
@@ -48,16 +48,25 @@ fi
 
 OUT="tmp.fth"
 echo "$EXTRA" > "$OUT"
-cpp $CPP -C -P -nostdinc "$LIB" >> "$OUT"
+CMD="cpp $CPP -C -P -nostdinc"
+$CMD "$LIB" >> "$OUT"
 if [ $PREPROC ]; then
-	cpp $CPP -C -P -nostdinc "$FILE" >> "$OUT"
+	$CMD "$FILE" >> "$OUT"
 else
 	cat $FILE >> "$OUT"
 fi
 
 
 
-perl p2.pl "$OUT" 2> x > f2
+if perl p2.pl "$OUT" 2> x > f2
+then
+	:
+else
+	ret=$?
+	tail -20 x
+	echo "p2 error $ret"
+	exit $ret
+fi
 
 bash -x ./f2 "$@"
 
