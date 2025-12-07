@@ -183,10 +183,10 @@
 %endmacro
 
 ; "A noble spirit embiggens the smallest man."
-%if BIT == 32
-	%define embiggen(a)  a
-%else
+%if BIT == 64
 	%define embiggen(a)  %tok(%strcat("r",%substr(a,2,2)))
+%else
+	%define embiggen(a)  a
 %endif
 
 %define emsmallen(a)  %tok(%strcat("e",%substr(a,2,2)))
