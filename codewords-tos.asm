@@ -398,8 +398,6 @@ DEF "0eq"
 %endif
 
 
-
-;%define C_0lt 1
 %ifdef C_0lt
 DEF "0lt"
 	; from eForth. Would be 4 bytes smaller than my version
@@ -413,12 +411,6 @@ DEF "dropfalse"
 	cdq		; sign extend AX into DX
 	push	D	; push 0 or -1
 	END	popTOS
-
-;DEF "0ee"
-;	pop	A
-;	neg	A
-;	sbb	A, A
-;	END	pushA
 %endif
 
 ;%define C_2mul	1
