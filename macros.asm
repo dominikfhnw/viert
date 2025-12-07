@@ -22,7 +22,7 @@
 	%endif
 %endmacro
 
-%macro f 1
+%macro f 1.nolist
 	%if !DEBUG && ( %isidn(%1,"dbg") || %isidn(%1,"int3") )
 		%warning "SKIP DEBUGWORD"
 	%else
@@ -35,7 +35,7 @@
 				%assign %%off offset(%%A)
 			%endif
 			%if %%off > 255 && !%isdef(FORCE)
-				%error word too big: wordname x
+				%error word too big: %%A %%off
 			%endif
 			db	%%off
 		%else
@@ -65,7 +65,7 @@
 	%assign WORD_COUNT WORD_COUNT+1
 %endmacro
 
-%macro DEF 1
+%macro DEF 1.nolist
 	%ifctx defcode
 		%fatal Nested DEF not allowed. Did you forget an END?
 	%endif
@@ -76,7 +76,7 @@
 	%$q equ 0
 %endmacro
 
-%macro DEFFORTH 1
+%macro DEFFORTH 1.nolist
 	%ifctx defforth
 		%fatal Nested DEFFORTH not allowed. Did you forget an END?
 	%endif
@@ -110,7 +110,7 @@
 	%endif
 %endmacro
 
-%macro endpushA 0.nolist
+%macro endpushA 0
 	%if havepushA
 		jmp	JMPLEN pushA
 	%else
@@ -121,7 +121,7 @@
 	%endif
 %endmacro
 
-%macro endpushDA 0.nolist
+%macro endpushDA 0
 	%if havepushDA
 		jmp	JMPLEN pushDA
 	%else
@@ -132,7 +132,7 @@
 	%endif
 %endmacro
 
-%macro endpopTOS 0.nolist
+%macro endpopTOS 0
 	%if havepopTOS
 		jmp	JMPLEN popTOS
 	%else
@@ -150,7 +150,7 @@
 	%endif
 %endmacro
 
-%macro endcode 1.nolist
+%macro endcode 1
 	%ifidn %1,clearA
 		endclearA
 	%elifidn %1,pushA
@@ -164,7 +164,7 @@
 	%endif
 %endmacro
 
-%macro END 0-1.nolist
+%macro END 0-1
 	%ifctx defcode
 		%if %0 == 0
 			NEXT
