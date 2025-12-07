@@ -167,15 +167,15 @@ sizes(){
 
 		/. A_[^.]*$/ {
 			sub(/A_/,"")
-			if(name){
-				print $1-size, name
-				total+=($1-size)
-			}
 			if(name == "__BREAK__"){
 				print total, "SUBTOTAL"
 				subtotal = total
 				asm = total-elf
 				print asm, "ASM"
+			}
+			else if(name){
+				print $1-size, name
+				total+=($1-size)
 			}
 			if(name == "MAIN"){
 				print total-subtotal, "FORTH"
