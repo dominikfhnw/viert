@@ -273,9 +273,50 @@
 
 
 \ ************  BRANCHING NEEDED FROM HERE
+#if 0
+variable t
+: >t t ! ;
+: t@ t @ ;
+: t1+ t@ 1+ >t ; \ t@ instead of t> allowed here, because in this case we now t is just a single variable and not a stack
+: t1- t@ 1- >t ;
+:  t1+@ t1+ t@ ;
+:x t1+@ t@ 1+ dup >t ;
+
+: t> t@ 0 >t ;
+\ t0 0 >t ; \ reset t
+: t0 ; \ if we're sure t gets properly cleared at the end of every word that uses it
+#else
+: >t ALWAYSINLINE >r ;
+: t@ ALWAYSINLINE i ;
+: t1+ ALWAYSINLINE rsinc ;
+: t1- ALWAYSINLINE rsdec ;
+: t> ALWAYSINLINE i rsdrop ;
+: t0 ALWAYSINLINE 0 >r ;
+#endif
 
 variable p1
 \ inlineable
+#if 1
+: q+
+	>t
+	begin
+		t1+
+		1- dup0<
+	until
+	drop
+	t> 1-
+	;
+
+: q-
+	>t
+	begin
+		t1+
+		1- dup0<
+	until
+	drop
+	t> 1-
+	;
+#else
 : q+
 	p1 !
 	begin
@@ -295,6 +336,7 @@ variable p1
 	drop
 	p1 @ 1-
 	;
+#endif
 :? +
 	over 0< if
 		swap negate swap
@@ -321,9 +363,55 @@ variable p1
 
 :? - negate + ;
 :? < - 0< ;
+:? >= < not ;
+:? > 1+ >= ;
 
 \ ************  PLUS+BRANCHING NEEDED FROM HERE
+#if 1
+variable divi	\ XXX needed if >t/t> uses return stack
+		\ due to rsinc/rp@ using swap
 :? divmod
+	( num div )
+	o2 ! ( num )
+	t0
+	begin
+		t1+
+		o2 @ ( num div )
+		- ( num-div )
+		dup0<
+	until
+	o2 @ +
+	\ dbg
+	t> 1-
+	;
+#else
+:? divmod
+	( num div )
+	swap
+	( div num )
+
+	t0
+
+	begin
+		over
+		( div num div )
+		\ dbg
+		-
+		dup0<
+		if
+			\ dbg
+			+
+			\ dbg
+			t>
+			\ dbg
+			EXIT
+		then
+		t1+
+	again
+	;NORETURN
+#endif
+
+:x divmod
 	( num div )
 	swap
 	( div num )
@@ -356,9 +444,20 @@ variable p1
 \ slow variant just using divmod
 : 10divmod 10 divmod ;
 #else
+\ using var instead of return stack
+: 10divmod
+	t0
+	begin
+		not 10+ not
+		t1+
+		dup0<
+	until
+	10+
+	t> 1-
+	;
 
 \ using begin..until to allow inlining
-: 10divmod
+:x 10divmod
 	0 >r
 	begin
 		not 10+ not
