@@ -178,7 +178,7 @@
 	%endif
 %endmacro
 
-%macro END 0-1
+%macro END arg(0-1)
 	%ifctx defcode
 		%if %0 == 0
 			NEXT
@@ -282,7 +282,7 @@
 %imacro rspush arg(1)
 %if 1
 	lea	RETURN_STACK, [embiggen(RETURN_STACK)-CELL_SIZE]
-	mov	[embiggen(RETURN_STACK)], embiggen(%1)
+	mov	[embiggen(RETURN_STACK)], %1
 %else
 	xchg	RETURN_STACK, DATA_STACK
 	push	%1
