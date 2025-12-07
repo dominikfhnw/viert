@@ -17,6 +17,12 @@ CPU 8086
 
 %include "stdlib.mac"
 
+; mov wrapper to create smaller mov alternatives
+%ifndef SMALLMOV
+%define SMALLMOV	1
+%endif
+
+; keep top of stack (ToS) in separate register
 %ifndef TOS_ENABLE
 %define TOS_ENABLE	1
 %endif
