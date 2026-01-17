@@ -16,7 +16,7 @@
 %endmacro
 
 %macro string0 1
-	f_string0
+	f "string0"
 	db %%endstring - $ - 1
 	db %1, 0
 	%%endstring:

@@ -269,7 +269,9 @@
 : i1+ ALWAYSINLINE rsinci ;
 
 
-: rot >r swap r@ rsdrop swap ;
+\ rdrop is more standard
+: rdrop rsdrop ;
+: rot >r swap r@ rdrop swap ;
 : -rot rot rot ;
 
 
